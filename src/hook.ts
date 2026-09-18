@@ -52,7 +52,7 @@ const main = (): void => {
   const { lines, tokens } = measure(path)
   if (lines <= maxLines && tokens <= maxTokens) return
   deny(
-    `${path} has ${lines} lines, ~${tokens} tokens (limits ${maxLines} lines, ${maxTokens} tokens). Locate or count with Grep first. When the answer needs the file understood end to end, use the /ccsaver:bulk-reader skill to delegate the read. To edit, Read only the range you need with offset and limit.`,
+    `${path} has ${lines} lines, ~${tokens} tokens at 4 bytes each, and a whole-file Read measures about twice that (limits ${maxLines} lines, ${maxTokens} tokens). Locate or count with Grep first. When the answer needs the file understood end to end, use the /ccsaver:bulk-reader skill to delegate the read. To edit, Read only the range you need with offset and limit.`,
   )
 }
 

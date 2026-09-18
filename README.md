@@ -2,12 +2,14 @@
 
 A Claude Code plugin that keeps two expensive habits out of the main model's context, only in the projects you plug in:
 
-- **Whole-file reads of big files.** A `PreToolUse` hook denies a `Read` of a whole file over 350 lines or ~8,000 tokens and points the model at Grep, at a ranged read, or at the `bulk-reader` skill.
+- **Whole-file reads of big files.** A `PreToolUse` hook denies a `Read` of a whole file over 350 lines or 32 KB (8,000 tokens by the bytes/4 rule; a real `Read` [measures about twice that](#honest-limits-with-numbers)) and points the model at Grep, at a ranged read, or at the `bulk-reader` skill.
 - **Boilerplate writing.** The `code-writer` skill hands tests, fixtures and stubs to a cheap worker and lets your project's own checks review the result.
 
 Both skills call one command, `ccsaver`, which makes **one tool-less, one-shot call** to a cheap model: an OpenAI-compatible endpoint of your choice, with Claude Haiku (through your own Claude Code) as the fallback. The expensive model sees the short answer, never the file.
 
 A project that is not plugged in gets nothing: the hook exits before starting Node, the command refuses to run, and no byte leaves your machine.
+
+> **Plugging a project in sends whole files from it to a third party.** The worker you configure receives them, and free API tiers may train on what you send. Read your provider's terms before you plug in private code. [What leaves your machine](#what-leaves-your-machine) has the exact boundary.
 
 ccsaver is an independent project. It is not affiliated with or endorsed by Anthropic.
 
@@ -24,11 +26,11 @@ Measured on one TypeScript monorepo with Claude Code 2.1, small samples (1–4 s
 | Fixed cost of the two skill descriptions | **+180 tokens per session, in every project** (≈ 0.006 $ on a frontier model) |
 | Hook overhead per `Read` (mean of 30, process spawn included) | **1–3 ms** in an unplugged project (the `sh` gate exits before starting Node), **≈ 22 ms** in a plugged one (Node start-up with its compile cache; 49 ms without it) |
 | One-shot worker vs a subagent for the same read | 4–8 s and 0.03–0.07 $ vs 26–169 s and up to 0.14 $ |
+| The hook's token estimate (bytes/4) vs the real cost of a whole-file `Read` | the real cost measured **1.9–2.2×** the estimate on batches of 16–27 KB and 2.1–2.8× on batches of small files (Fable 5.1, 9 batches in 2 sessions, line numbers included): the 8,000-token limit lets through reads of about 16,000 real tokens. A denied `Read` costs 136–251 tokens |
 
 Other limits:
 
 - **Linux and macOS only.** The gate is a POSIX `sh` script.
-- **Free API tiers may train on what you send.** Read your provider's terms before plugging in private code.
 - The cheap worker ignores style rules now and then. That is why `code-writer` treats your project's checks as the reviewer and why adapters can list follow-up commands.
 - If most of your files are under 300 lines, the hook will rarely fire and the honest expectation is a small saving.
 - **Permission prompts.** Each skill pre-approves its own subcommand and nothing else. Claude Code 2.1.274 applies that grant when you type `/ccsaver:bulk-reader` yourself; when Claude invokes the skill on its own, which is what the hook's message asks for, it registers the grant but does not apply it, so your usual permission flow decides. Answer "don't ask again" once, or add `Bash(/path/to/ccsaver/bin/ccsaver bulk-read *)` and `Bash(/path/to/ccsaver/bin/ccsaver code-write *)` to `permissions.allow` in `~/.claude/settings.json`.
@@ -84,7 +86,7 @@ ccsaver key set     # typed on the terminal with echo off; never an argument
 ccsaver doctor
 ```
 
-Any OpenAI-compatible chat completions endpoint works; the URL must be `https` (localhost excepted). Without a worker, or whenever it fails, times out or cuts its answer short, the call goes to Claude Haiku through your own Claude Code binary: the one the session runs on (`CLAUDE_CODE_EXECPATH`, an undocumented variable observed in Claude Code 2.1), then `claude` on your `PATH`. `"claude"` in `worker.json` wins over both, so only set it to a path that survives updates: the IDE extensions keep their binary in a versioned folder.
+Any OpenAI-compatible chat completions endpoint works; the URL must be `https` (localhost excepted). Without a worker, or whenever it fails, times out or cuts its answer short, the call goes to Claude Haiku through your own Claude Code binary: the one the session runs on (`CLAUDE_CODE_EXECPATH`, an undocumented variable observed in Claude Code 2.1), then `claude` on your `PATH`. `"claude"` in `worker.json` wins over both, so only set it to a path that survives updates: the IDE extensions keep their binary in a versioned folder. A redirect from the worker counts as a failure, never followed with your file in hand. When the fallback itself reports an error, the command fails with that error instead of handing it over as an answer.
 
 `doctor` checks the permissions of the state folder and the key, sends a one-token probe (200 = the key works, 401/403 = rejected), runs the fallback binary with `--version`, and lists each plugged project with its adapter and limits. It never prints the key or its length. From a terminal outside Claude Code with no `claude` on the `PATH`, the fallback line is a `warn`, not a failure: that shell cannot see the binary a session brings, so run `doctor` from inside one.
 
@@ -102,15 +104,23 @@ An adapter is a small JSON file with what is specific to one project. ccsaver lo
 }
 ```
 
-Every field is optional. `format` runs from the project root with the written file appended; `after` lines are printed as `next:` commands for the model to run; `maxLines` and `maxTokens` move the hook's thresholds. [`adapters/strict-ts.json`](adapters/strict-ts.json) is a working example: with those rules the worker imported from the right module in 4 of 4 runs, against 0 of 4 without them.
+Every field is optional. `format` runs from the project root with the written file appended, for at most 60 s, and a failing formatter is reported, not fatal; `after` lines are printed as `next:` commands for the model to run, with `{target}` replaced by the absolute path, shell-quoted when it needs it, so do not add quotes of your own; `maxLines` and `maxTokens` move the hook's thresholds (`maxTokens` counts bytes/4). [`adapters/strict-ts.json`](adapters/strict-ts.json) is a working example: with those rules the worker imported from the right module in 4 of 4 runs, against 0 of 4 without them.
 
 ## What leaves your machine
 
 - Unplugged project: nothing, ever.
 - Files inside the plugged root travel labelled with their path relative to that root, so your user name and folder layout stay home.
 - Plugged project: a file goes to the external worker only when the real path of **every** file in the call is inside the plugged root. One file outside (a note in your home, a symlink pointing out) sends the whole call to the Haiku fallback instead.
-- Files that look like secrets (`.env*`, `*.pem`, `*.key`, `id_rsa`, `.npmrc`, `credentials*`, `settings.local.json`…) are refused outright, by given name and by real name.
-- `code-write --target` never overwrites an existing file.
+- Files that look like secrets (`.env*`, `*.pem`, `*.key`, `id_rsa`, `.npmrc`, `credentials*`, `settings.local.json`, `*.tfstate`…) are refused outright, by given name and by real name, in any letter case. So is any file that holds a private-key header, whatever its name. The list is a net, not a guarantee: a secret pasted into `config.ts` goes out with it.
+- `code-write --target` never overwrites an existing file, only writes inside the plugged root (symlinked folders are followed first), and refuses the paths Claude Code itself protects: `.git`, `.claude`, `.vscode`, `.idea`, `.husky`, `.devcontainer` and the shell, git and package-manager config files. A refused target stops the call before anything is sent.
+
+## What the two permission rules grant
+
+The rules from [Honest limits](#honest-limits-with-numbers) pre-approve more than their names suggest, because Claude Code cannot see what a subprocess reads or writes:
+
+- `… bulk-read *` reads **any file your user can read**, not only the project's, except the secret-looking ones above. Your own `Read` deny rules and Claude Code's prompt for the first read outside the project do not apply to it. Files inside the plugged root go to your external worker; every other file goes to the Haiku fallback.
+- `… code-write *` creates new files inside the plugged root under the limits above and, when the adapter names a formatter, runs it **from the project's own folder** without a prompt. Plug in only projects whose tooling you trust.
+- What comes back is the output of a cheap model that read files you may not have written. Both skills tell Claude to treat it as data, never as instructions; `code-writer` still runs the generated tests unopened, so review what it wrote before you rely on it.
 
 ## Measure it yourself
 
@@ -121,6 +131,18 @@ claude -p "which functions does src/big-file.ts export?" --output-format json
 ```
 
 Use several runs per arm; single runs differ by more than the effect you are looking for.
+
+## Uninstall
+
+```bash
+ccsaver list                                   # what is still plugged
+claude plugin uninstall ccsaver@abgonzalez93
+claude plugin marketplace remove abgonzalez93
+rm -rf ~/.config/ccsaver                       # your API key lives here
+rm ~/bin/ccsaver                               # if you linked the launcher
+```
+
+Then delete the two `Bash(… ccsaver …)` rules from `permissions.allow` in `~/.claude/settings.json`, if you added them. Nothing was ever written inside your projects.
 
 ## Development
 

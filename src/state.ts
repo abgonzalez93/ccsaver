@@ -1,4 +1,12 @@
-import { chmodSync, mkdirSync, readFileSync, realpathSync, statSync, writeFileSync } from "node:fs"
+import {
+  chmodSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  renameSync,
+  statSync,
+  writeFileSync,
+} from "node:fs"
 import { homedir } from "node:os"
 import { join, resolve } from "node:path"
 
@@ -68,8 +76,10 @@ export const encrypted = (url: string): boolean => {
 const writePrivate = (path: string, text: string): void => {
   mkdirSync(stateHome(), { recursive: true, mode: 0o700 })
   chmodSync(stateHome(), 0o700)
-  writeFileSync(path, text, { mode: 0o600 })
-  chmodSync(path, 0o600)
+  const fresh = `${path}.${process.pid}.new`
+  writeFileSync(fresh, text, { mode: 0o600 })
+  chmodSync(fresh, 0o600)
+  renameSync(fresh, path)
 }
 
 export const readPlugged = (): Plugged[] => {
@@ -119,7 +129,7 @@ const adapterOf = (raw: unknown): Adapter | undefined => {
   }
 }
 
-const parsed = (text: string): unknown => {
+export const parsed = (text: string): unknown => {
   try {
     return JSON.parse(text)
   } catch {

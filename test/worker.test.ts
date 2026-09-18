@@ -1,5 +1,13 @@
 import assert from "node:assert/strict"
-import { chmodSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs"
 import { join } from "node:path"
 import { after, before, beforeEach, test } from "node:test"
 import { isRecord } from "../src/state.ts"
@@ -60,7 +68,7 @@ before(async () => {
     writeFileSync(join(dir, "source.ts"), "export const a = 1\nexport const b = 2\n")
   writeFileSync(
     join(FORMATTED, "tools", "fmt.sh"),
-    '#!/bin/sh\nprintf "export const formatted = 1\\n" >> "$1"\n',
+    '#!/bin/sh\nprintf "export const formatted = 1\\n" >> "$1"\nexit $FMT_EXIT\n',
   )
   chmodSync(join(FORMATTED, "tools", "fmt.sh"), 0o755)
   writeFileSync(
@@ -210,6 +218,91 @@ test("says so when the formatter of the adapter cannot run", async () => {
   assert.equal(readFileSync(target, "utf8"), "export const f = 6\n")
 })
 
+test("says so when the formatter exits with an error, and quotes a target that needs it", async () => {
+  server.reply.content = "export const g = 7\n"
+  const target = join(FORMATTED, "with space.ts")
+  const out = await cli(
+    [
+      "code-write",
+      "--project",
+      FORMATTED,
+      "--spec",
+      "add g",
+      "--reference",
+      join(FORMATTED, "source.ts"),
+      "--target",
+      target,
+    ],
+    { FMT_EXIT: "3" },
+  )
+  assert.equal(out.code, 0)
+  assert.match(out.stderr, /the formatter exited 3/)
+  assert.ok(out.stdout.includes(`next: check '${target}'\n`), out.stdout)
+})
+
+test("refuses a target outside the plugged root or where Claude Code protects writes", async () => {
+  const before = server.seen.length
+  mkdirSync(join(PROJECT, ".claude"), { recursive: true })
+  symlinkSync(OUTSIDE, join(PROJECT, "way-out"))
+  for (const target of [
+    join(OUTSIDE, "escaped.ts"),
+    join(PROJECT, "way-out", "escaped.ts"),
+    join(PROJECT, ".claude", "settings.json"),
+    join(PROJECT, ".Git", "hooks", "pre-commit"),
+    join(PROJECT, ".envrc"),
+  ]) {
+    const out = await cli([
+      "code-write",
+      "--project",
+      PROJECT,
+      "--spec",
+      "s",
+      "--reference",
+      SOURCE,
+      "--target",
+      target,
+    ])
+    assert.equal(out.code, 1, target)
+    assert.match(out.stderr, /^Error: refusing to write /)
+    assert.equal(existsSync(target), false)
+  }
+  assert.equal(server.seen.length, before)
+})
+
+test("keeps a closing fence that belongs to the generated file", async () => {
+  server.reply.content = "# Title\n\n```bash\nls\n```"
+  const out = await cli(["code-write", "--project", PROJECT, "--spec", "s", "--reference", SOURCE])
+  assert.equal(out.stdout, "# Title\n\n```bash\nls\n```\n")
+})
+
+test("never follows a redirect with the file in hand", async () => {
+  server.reply.status = 307
+  server.reply.location = "/elsewhere"
+  const before = server.seen.length
+  assert.match((await bulkRead(SOURCE)).stdout, /FROM-CLAUDE/)
+  assert.equal(server.seen.length, before + 1)
+})
+
+test("fails loudly when the fallback prints an error instead of a result", async () => {
+  const hidden = join(OUTSIDE, "for-the-fallback.ts")
+  writeFileSync(hidden, "export const x = 1\n")
+  const scripted = (name: string, line: string): string => {
+    const path = join(WORK, name)
+    writeFileSync(path, `#!/bin/sh\necho '${line}'\n`, { mode: 0o755 })
+    return path
+  }
+  const failing = scripted("failing", '{"is_error":true,"result":"Credit balance is too low"}')
+  const failed = await bulkRead(hidden, { CLAUDE_CODE_EXECPATH: failing })
+  assert.equal(failed.code, 1)
+  assert.equal(failed.stdout, "")
+  assert.match(failed.stderr, /^Error: fallback worker failed: Credit balance is too low$/m)
+  const chatty = await bulkRead(hidden, {
+    CLAUDE_CODE_EXECPATH: scripted("chatty", "not json at all"),
+  })
+  assert.equal(chatty.code, 1)
+  assert.match(chatty.stderr, /^Error: fallback worker returned no result: not json at all/m)
+})
+
 test("the adapter rules complete the measured code-write instruction, byte for byte", async () => {
   const args = ["--spec", "s", "--reference"]
   await cli(["code-write", "--project", STYLED, ...args, join(STYLED, "source.ts")])
@@ -290,14 +383,30 @@ test("rejects a mode inherited from the prototype", async () => {
 
 test("refuses to send a secrets file", async () => {
   const before = server.seen.length
+  const names = [".env.local", ".netrc", "id_ecdsa", "release.jks", "api-key"]
+  const shouting = [".ENV", "ID_RSA", "Server.PEM"]
+  const added = ["prod.tfstate", "prod.tfvars", ".pypirc", "key.ppk", ".htpasswd", "vault.kdbx"]
   const codes = await Promise.all(
-    [".env.local", ".netrc", "id_ecdsa", "release.jks", "api-key"].map(async (name) => {
+    [...names, ...shouting, ...added, ".pgpass", "kubeconfig.yaml"].map(async (name) => {
       const secret = join(PROJECT, name)
       writeFileSync(secret, "TOKEN=1\n")
       return (await bulkRead(secret)).code
     }),
   )
-  assert.deepEqual(codes, [1, 1, 1, 1, 1])
+  assert.deepEqual(
+    codes,
+    codes.map(() => 1),
+  )
+  assert.equal(server.seen.length, before)
+})
+
+test("refuses a file that holds a private key, whatever its name", async () => {
+  const before = server.seen.length
+  const armored = join(PROJECT, "deploy-notes.txt")
+  writeFileSync(armored, `${["-----BEGIN", "OPENSSH PRIVATE KEY-----"].join(" ")}\nabc\n`)
+  const out = await bulkRead(armored)
+  assert.equal(out.code, 1)
+  assert.match(out.stderr, /holds a private key/)
   assert.equal(server.seen.length, before)
 })
 

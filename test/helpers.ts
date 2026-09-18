@@ -26,6 +26,7 @@ interface Reply {
   content: string
   finish: string
   accepts: string | undefined
+  location: string | undefined
 }
 
 export interface FakeServer {
@@ -89,7 +90,13 @@ export const writeHome = (
 
 export const startServer = async (): Promise<FakeServer> => {
   const seen: Seen[] = []
-  const reply: Reply = { status: 200, content: "FROM-EXTERNAL", finish: "stop", accepts: undefined }
+  const reply: Reply = {
+    status: 200,
+    content: "FROM-EXTERNAL",
+    finish: "stop",
+    accepts: undefined,
+    location: undefined,
+  }
   const server = createServer((request, response) => {
     let body = ""
     request.on("data", (chunk) => {
@@ -99,7 +106,10 @@ export const startServer = async (): Promise<FakeServer> => {
       const authorization = request.headers.authorization
       seen.push({ authorization, body })
       const refused = reply.accepts !== undefined && authorization !== `Bearer ${reply.accepts}`
-      response.writeHead(refused ? 401 : reply.status, { "content-type": "application/json" })
+      response.writeHead(refused ? 401 : reply.status, {
+        "content-type": "application/json",
+        ...(reply.location === undefined ? {} : { location: reply.location }),
+      })
       response.end(
         JSON.stringify({
           choices: [{ message: { content: reply.content }, finish_reason: reply.finish }],
@@ -121,6 +131,7 @@ export const startServer = async (): Promise<FakeServer> => {
       reply.content = "FROM-EXTERNAL"
       reply.finish = "stop"
       reply.accepts = undefined
+      reply.location = undefined
     },
     close: (): void => {
       server.close()

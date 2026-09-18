@@ -2,7 +2,7 @@
 import { spawnSync } from "node:child_process"
 import { readFileSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
-import { basename, relative, resolve } from "node:path"
+import { basename, dirname, join, relative, resolve } from "node:path"
 import { parseArgs } from "node:util"
 import {
   type Adapter,
@@ -11,6 +11,7 @@ import {
   isUnder,
   keyFile,
   loadAdapter,
+  parsed,
   pluggedRootOf,
   readWorker,
   real,
@@ -29,8 +30,14 @@ const HOUSE_RULES = " House rules, they win over the reference: "
 const FALLBACK_MODEL = "haiku"
 const TIMEOUT_MS = 180_000
 const EXTERNAL_TIMEOUT_MS = 30_000
+const FORMAT_TIMEOUT_MS = 60_000
 const SECRET_NAME =
-  /^\.env|^\.dev\.vars$|^\.credentials\.json$|^\.claude\.json$|^settings\.local\.json$|^api-key$|^\.npmrc$|^\.netrc$|^\.git-credentials$|^credentials(\.|$)|^\.?secrets?(\.|$)|^id_(rsa|ed25519|ecdsa|dsa)|\.(key|pem|p12|pfx|jks|keystore)$/
+  /^\.env|^\.dev\.vars$|^\.credentials\.json$|^\.claude\.json$|^settings\.local\.json$|^api-key$|^\.npmrc$|^\.netrc$|^\.pypirc$|^\.pgpass$|^\.htpasswd$|^\.git-credentials$|^kubeconfig|^credentials(\.|$)|^\.?secrets?(\.|$)|^id_(rsa|ed25519|ecdsa|dsa)|\.(key|pem|p12|pfx|jks|keystore|ppk|kdbx|tfvars|tfstate)$|\.tfstate\.backup$/i
+const PRIVATE_KEY = /-----BEGIN [A-Z ]*PRIVATE KEY-----/
+const PROTECTED_PLACE =
+  /(^|\/)(\.git|\.config\/git|\.vscode|\.idea|\.husky|\.cargo|\.devcontainer|\.yarn|\.mvn|\.claude)(\/|$)/i
+const PROTECTED_NAME =
+  /^(\.gitconfig|\.gitmodules|\.bash(rc|_profile|_login|_aliases|_logout)|\.z(shrc|profile|shenv|login|logout)|\.profile|\.envrc|\.npmrc|\.yarnrc(\.yml)?|\.pnp\.(cjs|loader\.mjs)|\.pnpmfile\.cjs|\.?bunfig\.toml|\.bazel(rc|version|iskrc)|\.pre-commit-config\.yaml|\.?lefthook\.ya?ml|(gradle|maven)-wrapper\.properties|\.devcontainer\.json|\.ripgreprc|pyrightconfig\.json|\.mcp\.json|\.claude\.json)$/i
 
 export const isMode = (value: string | undefined): value is Mode =>
   value !== undefined && Object.hasOwn(MODES, value)
@@ -66,6 +73,7 @@ const fileBlock = (given: string, numbered: boolean, root: string): string => {
       return fail(`file not found or unreadable: ${given}`)
     }
   })()
+  if (PRIVATE_KEY.test(text)) fail(`refusing to send a file that holds a private key: ${given}`)
   const body = numbered
     ? (text.endsWith("\n") ? text.slice(0, -1) : text)
         .split("\n")
@@ -103,12 +111,14 @@ const invokeClaude = (mode: Mode, system: string, message: string): string => {
   if (run.error) return fail(`fallback worker could not run: ${run.error.message}`)
   if (run.status !== 0)
     return fail(`fallback worker exited ${run.status ?? run.signal}: ${run.stderr.slice(0, 400)}`)
-  const raw: unknown = JSON.parse(run.stdout)
+  const raw = parsed(run.stdout)
   if (!isRecord(raw) || typeof raw["result"] !== "string")
-    return fail("fallback worker returned no result")
+    return fail(`fallback worker returned no result: ${run.stdout.slice(0, 200)}`)
+  if (raw["is_error"] === true)
+    return fail(`fallback worker failed: ${raw["result"].slice(0, 400)}`)
   const cost = typeof raw["total_cost_usd"] === "number" ? raw["total_cost_usd"].toFixed(4) : "?"
   note(
-    `~${Math.round(message.length / 4)} input tokens | $${cost} | ${FALLBACK_MODEL} | delegated to ${mode}`,
+    `~${Math.round(message.length / 4)} input tokens by chars/4 | $${cost} | ${FALLBACK_MODEL} | delegated to ${mode}`,
   )
   return raw["result"]
 }
@@ -147,6 +157,7 @@ const invokeExternal = async (
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
       signal: AbortSignal.timeout(EXTERNAL_TIMEOUT_MS),
+      redirect: "error",
       body: JSON.stringify({
         model: worker.model,
         temperature: 0.2,
@@ -163,7 +174,7 @@ const invokeExternal = async (
       return undefined
     }
     note(
-      `~${Math.round(message.length / 4)} input tokens | external | ${worker.model} | delegated to ${mode}`,
+      `~${Math.round(message.length / 4)} input tokens by chars/4 | external | ${worker.model} | delegated to ${mode}`,
     )
     return content
   } catch {
@@ -172,12 +183,10 @@ const invokeExternal = async (
   }
 }
 
-const peeled = (code: string): string =>
-  code
-    .replace(/^\s*```[^\n]*\n/, "")
-    .replace(/\n```\s*$/, "")
-    .replace(/^\s*<file[^>]*>\s*\n/, "")
-    .replace(/\n<\/file>\s*$/, "")
+const FENCED = /^\s*```[^\n]*\n([\s\S]*?)\n?```\s*$/
+const WRAPPED = /^\s*<file[^>]*>\s*\n([\s\S]*?)\n?<\/file>\s*$/
+
+const peeled = (code: string): string => code.replace(FENCED, "$1").replace(WRAPPED, "$1")
 
 const unwrapped = (code: string): string => `${peeled(peeled(code)).trim()}\n`
 
@@ -187,11 +196,25 @@ const format = (adapter: Adapter, root: string, target: string): void => {
   const run = spawnSync(
     command.includes("/") ? resolve(root, command) : command,
     [...args, target],
-    { cwd: root },
+    { cwd: root, timeout: FORMAT_TIMEOUT_MS },
   )
   if (run.error)
     note(`the formatter could not run (${run.error.message}), ${target} is unformatted`)
+  else if (run.status !== 0)
+    note(`the formatter exited ${run.status ?? run.signal}, check ${target}`)
 }
+
+const targetIn = (root: string, given: string): string => {
+  const wanted = resolve(given)
+  const target = join(real(dirname(wanted)), basename(wanted))
+  if (!isUnder(target, root)) fail(`refusing to write outside the plugged project: ${given}`)
+  if (PROTECTED_PLACE.test(relative(root, target)) || PROTECTED_NAME.test(basename(target)))
+    fail(`refusing to write a path that Claude Code protects: ${given}`)
+  return target
+}
+
+const quoted = (path: string): string =>
+  /^[\w./-]+$/.test(path) ? path : `'${path.replaceAll("'", "'\\''")}'`
 
 export const runWorker = async (mode: Mode, argv: string[]): Promise<void> => {
   const { values, positionals } = parseArgs({
@@ -233,13 +256,13 @@ export const runWorker = async (mode: Mode, argv: string[]): Promise<void> => {
     return
   }
   if (!values.spec) fail("--spec is required")
+  const target = values.target ? targetIn(project.root, values.target) : undefined
   const corpus = files.map((path) => fileBlock(path, false, project.root)).join("")
   const code = unwrapped(await invoke(`${corpus}Spec: ${values.spec}\n`))
-  if (!values.target) {
+  if (target === undefined) {
     process.stdout.write(code)
     return
   }
-  const target = resolve(values.target)
   try {
     writeFileSync(target, code, { flag: "wx" })
   } catch (error) {
@@ -255,7 +278,9 @@ export const runWorker = async (mode: Mode, argv: string[]): Promise<void> => {
   process.stdout.write(
     [
       `wrote ${values.target} (${written.split("\n").length - 1} lines)`,
-      ...(adapter.after ?? []).map((line) => `next: ${line.replaceAll("{target}", target)}`),
+      ...(adapter.after ?? []).map(
+        (line) => `next: ${line.replaceAll("{target}", quoted(target))}`,
+      ),
     ]
       .join("\n")
       .concat("\n"),

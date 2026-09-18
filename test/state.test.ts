@@ -1,5 +1,13 @@
 import assert from "node:assert/strict"
-import { mkdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs"
+import {
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs"
 import { join } from "node:path"
 import { after, test } from "node:test"
 import {
@@ -38,6 +46,7 @@ test("plug stores the real path, list shows it, unplug removes it", () => {
   assert.deepEqual(readPlugged(), [{ root: SIBLING }, { root: PROJECT }])
   assert.equal(statSync(join(HOME, "plugged")).mode & 0o777, 0o600)
   assert.equal(statSync(HOME).mode & 0o777, 0o700)
+  assert.deepEqual(readdirSync(HOME).sort(), ["adapters", "plugged"])
   assert.equal(unplug(link), true)
   assert.equal(unplug(link), false)
   assert.deepEqual(readPlugged(), [{ root: SIBLING }])

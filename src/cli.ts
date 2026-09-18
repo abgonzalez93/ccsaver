@@ -64,6 +64,7 @@ const probe = async (url: string, model: string, key: string): Promise<Finding> 
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
       signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
+      redirect: "error",
       body: JSON.stringify({ model, max_tokens: 1, messages: [{ role: "user", content: "ping" }] }),
     })
     const took = `${Math.round(performance.now() - started)} ms`
