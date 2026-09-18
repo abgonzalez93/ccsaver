@@ -149,3 +149,20 @@ test("doctor fails on a key readable by others and on a fallback that does not r
   assert.equal(broken.code, 1)
   assert.match(broken.stdout, /^FAIL fallback: /m)
 })
+
+test("doctor only warns about a missing fallback from a shell outside Claude Code", async () => {
+  const bin = join(WORK, "bin")
+  mkdirSync(bin)
+  symlinkSync(process.execPath, join(bin, "node"))
+  const bare = {
+    PATH: `${bin}:/usr/bin:/bin`,
+    CLAUDE_CODE_EXECPATH: "",
+    CLAUDE_CODE_CHILD_SESSION: "",
+  }
+  const outside = await ccsaver(["doctor"], "", bare)
+  assert.match(outside.stdout, /^warn fallback: claude does not run from this shell; /m)
+  assert.equal(outside.code, 0)
+  const inside = await ccsaver(["doctor"], "", { ...bare, CLAUDE_CODE_CHILD_SESSION: "1" })
+  assert.match(inside.stdout, /^FAIL fallback: claude does not run; /m)
+  assert.equal(inside.code, 1)
+})

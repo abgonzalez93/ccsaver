@@ -12,7 +12,7 @@ import {
   unplug,
   writeWorker,
 } from "./state.ts"
-import { claudeBin, isMode, runWorker } from "./worker.ts"
+import { CLAUDE_ON_PATH, claudeBin, isMode, runWorker } from "./worker.ts"
 
 const USAGE = `usage: ccsaver <command>
 
@@ -101,8 +101,12 @@ const external = async (): Promise<Finding[]> => {
 const fallback = (): Finding => {
   const bin = claudeBin()
   const run = spawnSync(bin, ["--version"], { encoding: "utf8", timeout: 15_000 })
-  return run.status === 0
-    ? { level: "ok", text: `fallback: ${bin} (${run.stdout.trim()})` }
+  if (run.status === 0) return { level: "ok", text: `fallback: ${bin} (${run.stdout.trim()})` }
+  return bin === CLAUDE_ON_PATH && process.env["CLAUDE_CODE_CHILD_SESSION"] !== "1"
+    ? {
+        level: "warn",
+        text: "fallback: claude does not run from this shell; a Claude Code session brings its own binary, so run doctor from inside one",
+      }
     : { level: "FAIL", text: `fallback: ${bin} does not run; set "claude" in worker.json` }
 }
 

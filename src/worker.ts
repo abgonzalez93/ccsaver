@@ -44,8 +44,10 @@ const note = (text: string): void => {
   process.stderr.write(`[ccsaver: ${text}]\n`)
 }
 
+export const CLAUDE_ON_PATH = "claude"
+
 export const claudeBin = (): string =>
-  readWorker()?.claude ?? (process.env["CLAUDE_CODE_EXECPATH"] || "claude")
+  readWorker()?.claude ?? (process.env["CLAUDE_CODE_EXECPATH"] || CLAUDE_ON_PATH)
 
 const instructionOf = (mode: Mode, adapter: Adapter): string =>
   mode === "code-write" && adapter.rules

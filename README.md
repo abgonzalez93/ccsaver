@@ -83,9 +83,9 @@ ccsaver key set     # typed on the terminal with echo off; never an argument
 ccsaver doctor
 ```
 
-Any OpenAI-compatible chat completions endpoint works; the URL must be `https` (localhost excepted). Without a worker, or whenever it fails, times out or cuts its answer short, the call goes to Claude Haiku through your own Claude Code binary. Set `"claude"` in `worker.json` when that binary is not on your `PATH`.
+Any OpenAI-compatible chat completions endpoint works; the URL must be `https` (localhost excepted). Without a worker, or whenever it fails, times out or cuts its answer short, the call goes to Claude Haiku through your own Claude Code binary: the one the session runs on (`CLAUDE_CODE_EXECPATH`, an undocumented variable observed in Claude Code 2.1), then `claude` on your `PATH`. `"claude"` in `worker.json` wins over both, so only set it to a path that survives updates: the IDE extensions keep their binary in a versioned folder.
 
-`doctor` checks the permissions of the state folder and the key, sends a one-token probe (200 = the key works, 401/403 = rejected), runs the fallback binary with `--version`, and lists each plugged project with its adapter and limits. It never prints the key or its length.
+`doctor` checks the permissions of the state folder and the key, sends a one-token probe (200 = the key works, 401/403 = rejected), runs the fallback binary with `--version`, and lists each plugged project with its adapter and limits. It never prints the key or its length. From a terminal outside Claude Code with no `claude` on the `PATH`, the fallback line is a `warn`, not a failure: that shell cannot see the binary a session brings, so run `doctor` from inside one.
 
 ## Adapters
 
