@@ -22,7 +22,7 @@ Measured on one TypeScript monorepo with Claude Code 2.1, small samples (1–4 s
 | Delegated writing of a ~110-line test file | **break-even**: 0.80–1.02 $ vs 0.85 $ written directly; the cost is the review, not the writing |
 | Files where delegation starts to pay | roughly **2,000–3,000 lines** and up |
 | Fixed cost of the two skill descriptions | **+180 tokens per session, in every project** (≈ 0.006 $ on a frontier model) |
-| Hook overhead per `Read` (mean of 30, process spawn included) | **≈ 3 ms** in an unplugged project (the `sh` gate exits before starting Node), **≈ 23 ms** in a plugged one (Node start-up with its compile cache; 49 ms without it) |
+| Hook overhead per `Read` (mean of 30, process spawn included) | **1–3 ms** in an unplugged project (the `sh` gate exits before starting Node), **≈ 22 ms** in a plugged one (Node start-up with its compile cache; 49 ms without it) |
 | One-shot worker vs a subagent for the same read | 4–8 s and 0.03–0.07 $ vs 26–169 s and up to 0.14 $ |
 
 Other limits:
