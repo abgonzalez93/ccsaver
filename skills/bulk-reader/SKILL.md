@@ -1,7 +1,7 @@
 ---
 name: bulk-reader
 description: "Delegate bulk file reading to a cheap one-shot worker. Use when a Read is denied by the file-size hook, to answer one question across 3+ files, or to digest long notes. Locating or counting is Grep's job; debugging and editing stay with you."
-allowed-tools: Bash(${CLAUDE_PLUGIN_ROOT}/bin/ccsaver *)
+allowed-tools: Bash(${CLAUDE_PLUGIN_ROOT}/bin/ccsaver bulk-read *)
 license: Apache-2.0
 metadata:
   notice: "Contains material adapted from a third-party Apache-2.0 work; modified. See NOTICE in the plugin root."

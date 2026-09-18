@@ -1,7 +1,7 @@
 ---
 name: code-writer
 description: "Delegate boilerplate code generation to a cheap one-shot worker. Use for tests, fixtures, data entries or type stubs where >80% is predictable from reference files. Domain rules, design choices and debugging stay with you."
-allowed-tools: Bash(${CLAUDE_PLUGIN_ROOT}/bin/ccsaver *)
+allowed-tools: Bash(${CLAUDE_PLUGIN_ROOT}/bin/ccsaver code-write *)
 license: Apache-2.0
 metadata:
   notice: "Contains material adapted from a third-party Apache-2.0 work; modified. See NOTICE in the plugin root."

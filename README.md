@@ -31,6 +31,7 @@ Other limits:
 - **Free API tiers may train on what you send.** Read your provider's terms before plugging in private code.
 - The cheap worker ignores style rules now and then. That is why `code-writer` treats your project's checks as the reviewer and why adapters can list follow-up commands.
 - If most of your files are under 300 lines, the hook will rarely fire and the honest expectation is a small saving.
+- **Permission prompts.** Each skill pre-approves its own subcommand and nothing else. Claude Code 2.1.274 applies that grant when you type `/ccsaver:bulk-reader` yourself; when Claude invokes the skill on its own, which is what the hook's message asks for, it registers the grant but does not apply it, so your usual permission flow decides. Answer "don't ask again" once, or add `Bash(/path/to/ccsaver/bin/ccsaver bulk-read *)` and `Bash(/path/to/ccsaver/bin/ccsaver code-write *)` to `permissions.allow` in `~/.claude/settings.json`.
 
 ## Requirements
 
