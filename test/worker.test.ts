@@ -29,7 +29,8 @@ const FORMATTED = join(WORK, "formatted")
 const UNPLUGGED = join(WORK, "unplugged")
 const SOURCE = join(PROJECT, "source.ts")
 const FAKE = fakeClaude(WORK)
-const PLUGGED = [[PROJECT], [STYLED, "strict-ts"], [FORMATTED, "fmt"]]
+const UNFORMATTED = join(WORK, "unformatted")
+const PLUGGED = [[PROJECT], [STYLED, "strict-ts"], [FORMATTED, "fmt"], [UNFORMATTED, "nofmt"]]
 
 let server: FakeServer
 
@@ -50,7 +51,12 @@ before(async () => {
   server = await startServer()
   for (const dir of [PROJECT, STYLED, UNPLUGGED, join(FORMATTED, "tools"), join(HOME, "adapters")])
     mkdirSync(dir, { recursive: true })
-  for (const dir of [PROJECT, STYLED, FORMATTED, UNPLUGGED])
+  mkdirSync(UNFORMATTED, { recursive: true })
+  writeFileSync(
+    join(HOME, "adapters", "nofmt.json"),
+    JSON.stringify({ format: ["tools/missing.sh"] }),
+  )
+  for (const dir of [PROJECT, STYLED, FORMATTED, UNFORMATTED, UNPLUGGED])
     writeFileSync(join(dir, "source.ts"), "export const a = 1\nexport const b = 2\n")
   writeFileSync(
     join(FORMATTED, "tools", "fmt.sh"),
@@ -110,6 +116,8 @@ test("bulk-read sends numbered files and the question to the external model", as
   assert.ok(last?.body.includes('"model":"cheap-1"'))
   assert.ok(last?.body.includes("2\\texport const b = 2"))
   assert.ok(last?.body.includes("Question: what is b?"))
+  assert.ok(last?.body.includes('<file path=\\"source.ts\\">'))
+  assert.equal(last?.body.includes(WORK), false)
 })
 
 test("falls back to the Claude worker when the external model refuses", async () => {
@@ -181,6 +189,25 @@ test("formats with the adapter and lists its follow-up commands", async () => {
   ])
   assert.equal(readFileSync(target, "utf8"), "export const e = 5\nexport const formatted = 1\n")
   assert.equal(out.stdout, `wrote ${target} (2 lines)\nnext: check ${target}\nnext: then test\n`)
+})
+
+test("says so when the formatter of the adapter cannot run", async () => {
+  server.reply.content = "export const f = 6\n"
+  const target = join(UNFORMATTED, "made.ts")
+  const out = await cli([
+    "code-write",
+    "--project",
+    UNFORMATTED,
+    "--spec",
+    "add f",
+    "--reference",
+    join(UNFORMATTED, "source.ts"),
+    "--target",
+    target,
+  ])
+  assert.equal(out.code, 0)
+  assert.match(out.stderr, /the formatter could not run/)
+  assert.equal(readFileSync(target, "utf8"), "export const f = 6\n")
 })
 
 test("the adapter rules complete the measured code-write instruction, byte for byte", async () => {

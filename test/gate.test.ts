@@ -20,7 +20,7 @@ for (const dir of [DEEP, SIBLING, OTHER, FAKE_BIN]) mkdirSync(dir, { recursive: 
 writeFileSync(LONG, "x\n".repeat(351))
 writeFileSync(join(FAKE_BIN, "node"), `#!/bin/sh\n: > "${MARKER}"\n`)
 chmodSync(join(FAKE_BIN, "node"), 0o755)
-writeHome(HOME, { plugged: [[join(WORK, "unrelated")], [PLUGGED, "strict-ts"]] })
+writeHome(HOME, { plugged: [["", "strict-ts"], [join(WORK, "unrelated")], [PLUGGED, "strict-ts"]] })
 
 const gate = (project: string, env: NodeJS.ProcessEnv = {}): Promise<Ran> =>
   run("sh", [GATE], { CCSAVER_HOME: HOME, CLAUDE_PROJECT_DIR: project, ...env }, INPUT)
@@ -34,6 +34,7 @@ test("a plugged project is denied, and the hook input reaches node through the g
   assert.equal(out.code, 0)
   assert.match(out.stdout, /"permissionDecision":"deny"/)
   assert.ok(out.stdout.includes(LONG))
+  assert.equal(existsSync(join(HOME, "cache")), true)
 })
 
 test("a subfolder of a plugged project is denied", async () => {

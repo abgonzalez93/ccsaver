@@ -11,9 +11,9 @@ if [ "$1" = key ] && [ "$2" = set ]; then
   umask 077
   mkdir -p "$home" && chmod 700 "$home" || exit 1
   if [ -t 0 ]; then
-    printf 'API key (input hidden): ' >&2
     trap 'stty echo' EXIT INT TERM
     stty -echo
+    printf 'API key (input hidden): ' >&2
     IFS= read -r key
     stty echo
     trap - EXIT INT TERM

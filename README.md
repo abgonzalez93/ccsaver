@@ -22,7 +22,7 @@ Measured on one TypeScript monorepo with Claude Code 2.1, small samples (1–4 s
 | Delegated writing of a ~110-line test file | **break-even**: 0.80–1.02 $ vs 0.85 $ written directly; the cost is the review, not the writing |
 | Files where delegation starts to pay | roughly **2,000–3,000 lines** and up |
 | Fixed cost of the two skill descriptions | **+180 tokens per session, in every project** (≈ 0.006 $ on a frontier model) |
-| Hook overhead per `Read` | **1.2 ms** in an unplugged project (the `sh` gate), ≈ 40 ms in a plugged one (Node start-up) |
+| Hook overhead per `Read` (mean of 30, process spawn included) | **≈ 3 ms** in an unplugged project (the `sh` gate exits before starting Node), **≈ 23 ms** in a plugged one (Node start-up with its compile cache; 49 ms without it) |
 | One-shot worker vs a subagent for the same read | 4–8 s and 0.03–0.07 $ vs 26–169 s and up to 0.14 $ |
 
 Other limits:
@@ -70,6 +70,7 @@ api-key       600, the key of the external worker
 worker.json   { "url", "model", "claude"? }
 plugged       one line per project: <real path><TAB><adapter>
 adapters/     your own adapters (optional)
+cache/        Node's compile cache for the hook
 ```
 
 `plug` stores the real path and refuses `/`, your home folder and any folder that contains the state folder.
@@ -105,6 +106,7 @@ Every field is optional. `format` runs from the project root with the written fi
 ## What leaves your machine
 
 - Unplugged project: nothing, ever.
+- Files inside the plugged root travel labelled with their path relative to that root, so your user name and folder layout stay home.
 - Plugged project: a file goes to the external worker only when the real path of **every** file in the call is inside the plugged root. One file outside (a note in your home, a symlink pointing out) sends the whole call to the Haiku fallback instead.
 - Files that look like secrets (`.env*`, `*.pem`, `*.key`, `id_rsa`, `.npmrc`, `credentials*`, `settings.local.json`…) are refused outright, by given name and by real name.
 - `code-write --target` never overwrites an existing file.

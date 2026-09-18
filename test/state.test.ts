@@ -15,7 +15,7 @@ import { tempDir } from "./helpers.ts"
 
 const WORK = tempDir("state-work")
 const HOME = join(WORK, "holds-state", "ccsaver")
-const USER_HOME = join(WORK, "user-home")
+const USER_HOME = join(WORK, "people", "me")
 const PROJECT = join(WORK, "project")
 const NESTED = join(PROJECT, "packages", "inner")
 const SIBLING = join(WORK, "project-two")
@@ -54,6 +54,7 @@ test("unplug still works after the folder is gone", () => {
 test("plug refuses the filesystem root, the home and any root holding the state folder", () => {
   assert.throws(() => plug("/"), /refusing to plug/)
   assert.throws(() => plug(USER_HOME), /refusing to plug/)
+  assert.throws(() => plug(join(WORK, "people")), /refusing to plug/)
   assert.throws(() => plug(join(WORK, "holds-state")), /refusing to plug/)
   assert.throws(() => plug(HOME), /refusing to plug/)
 })
@@ -81,8 +82,21 @@ test("a private adapter shadows the bundled one, and a malformed one is rejected
   rmSync(join(HOME, "adapters", "strict-ts.json"))
   writeFileSync(join(HOME, "adapters", "typo.json"), JSON.stringify({ rule: "misspelt key" }))
   writeFileSync(join(HOME, "adapters", "empty-format.json"), JSON.stringify({ format: [] }))
+  writeFileSync(join(HOME, "adapters", "bad-json.json"), "{")
   assert.throws(() => loadAdapter("typo"), /malformed/)
+  assert.throws(() => loadAdapter("bad-json"), /malformed: .*bad-json\.json/)
   assert.throws(() => loadAdapter("empty-format"), /malformed/)
+})
+
+test("a corrupt state line never plugs the whole disk", () => {
+  const kept = readFileSync(join(HOME, "plugged"), "utf8")
+  writeFileSync(join(HOME, "plugged"), `\tstrict-ts\n/\t\nrelative/path\t\n${kept}`)
+  assert.equal(pluggedRootOf("/etc"), undefined)
+  assert.equal(
+    readPlugged().every(({ root }) => root.startsWith("/") && root !== "/"),
+    true,
+  )
+  assert.equal(readPlugged().length, kept.split("\n").length - 1)
 })
 
 test("the deepest plugged root wins and a sibling prefix never matches", () => {

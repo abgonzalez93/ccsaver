@@ -2,7 +2,7 @@
 import { spawnSync } from "node:child_process"
 import { readFileSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
-import { basename, resolve } from "node:path"
+import { basename, relative, resolve } from "node:path"
 import { parseArgs } from "node:util"
 import {
   type Adapter,
@@ -16,14 +16,14 @@ import {
   real,
 } from "./state.ts"
 
-export const MODES = {
+const MODES = {
   "bulk-read":
     "You are a precise code analyst. Read the provided files and answer the question concisely. Output structured bullets only. No greetings, no prose, no preambles, no summaries. Lead every bullet with the exact name, type, or line number. Use nested bullets for details. Skip anything the caller did not ask for.",
   "code-write":
     "You generate code files based on a spec and reference files. Match the existing patterns, conventions, naming, and style exactly. Output only the code — no explanations, no markdown fences unless asked. If the spec is ambiguous, make reasonable choices that match the patterns in the reference code.",
 } as const
 
-export type Mode = keyof typeof MODES
+type Mode = keyof typeof MODES
 
 const HOUSE_RULES = " House rules, they win over the reference: "
 const FALLBACK_MODEL = "haiku"
@@ -52,8 +52,9 @@ const instructionOf = (mode: Mode, adapter: Adapter): string =>
     ? `${MODES[mode]}${HOUSE_RULES}${adapter.rules}`
     : MODES[mode]
 
-const fileBlock = (given: string, numbered: boolean): string => {
+const fileBlock = (given: string, numbered: boolean, root: string): string => {
   const path = real(given)
+  const label = isUnder(path, root) ? relative(root, path) : given
   if ([given, path].some((name) => SECRET_NAME.test(basename(name))))
     fail(`refusing to send a secrets file to a worker: ${given}`)
   const text = ((): string => {
@@ -69,7 +70,7 @@ const fileBlock = (given: string, numbered: boolean): string => {
         .map((line, i) => `${i + 1}\t${line}`)
         .join("\n")
     : text
-  return `<file path="${given}">\n${body}\n</file>\n\n`
+  return `<file path="${label}">\n${body}\n</file>\n\n`
 }
 
 const invokeClaude = (mode: Mode, system: string, message: string): string => {
@@ -181,9 +182,13 @@ const unwrapped = (code: string): string => `${peeled(peeled(code)).trim()}\n`
 const format = (adapter: Adapter, root: string, target: string): void => {
   const [command, ...args] = adapter.format ?? []
   if (command === undefined) return
-  spawnSync(command.includes("/") ? resolve(root, command) : command, [...args, target], {
-    cwd: root,
-  })
+  const run = spawnSync(
+    command.includes("/") ? resolve(root, command) : command,
+    [...args, target],
+    { cwd: root },
+  )
+  if (run.error)
+    note(`the formatter could not run (${run.error.message}), ${target} is unformatted`)
 }
 
 export const runWorker = async (mode: Mode, argv: string[]): Promise<void> => {
@@ -221,12 +226,12 @@ export const runWorker = async (mode: Mode, argv: string[]): Promise<void> => {
       : undefined) ?? invokeClaude(mode, system, message)
   if (mode === "bulk-read") {
     if (!values.question) fail("--question is required")
-    const corpus = files.map((path) => fileBlock(path, true)).join("")
+    const corpus = files.map((path) => fileBlock(path, true, project.root)).join("")
     process.stdout.write(`${await invoke(`${corpus}Question: ${values.question}\n`)}\n`)
     return
   }
   if (!values.spec) fail("--spec is required")
-  const corpus = files.map((path) => fileBlock(path, false)).join("")
+  const corpus = files.map((path) => fileBlock(path, false, project.root)).join("")
   const code = unwrapped(await invoke(`${corpus}Spec: ${values.spec}\n`))
   if (!values.target) {
     process.stdout.write(code)

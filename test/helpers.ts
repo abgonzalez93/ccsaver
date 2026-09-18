@@ -16,12 +16,12 @@ export interface Ran {
   stderr: string
 }
 
-export interface Seen {
+interface Seen {
   authorization: string | undefined
   body: string
 }
 
-export interface Reply {
+interface Reply {
   status: number
   content: string
   finish: string

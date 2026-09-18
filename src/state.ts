@@ -81,6 +81,7 @@ export const readPlugged = (): Plugged[] => {
         const [root = "", adapter] = line.split("\t")
         return adapter ? { root, adapter } : { root }
       })
+      .filter(({ root }) => root.startsWith("/") && root !== "/")
   } catch {
     return []
   }
@@ -118,6 +119,14 @@ const adapterOf = (raw: unknown): Adapter | undefined => {
   }
 }
 
+const parsed = (text: string): unknown => {
+  try {
+    return JSON.parse(text)
+  } catch {
+    return undefined
+  }
+}
+
 export const loadAdapter = (name: string): Adapter => {
   if (!ADAPTER_NAME.test(name)) throw new Error(`invalid adapter name: ${name}`)
   const places = [
@@ -133,8 +142,7 @@ export const loadAdapter = (name: string): Adapter => {
       }
     })()
     if (text === undefined) continue
-    const raw: unknown = JSON.parse(text)
-    const adapter = adapterOf(raw)
+    const adapter = adapterOf(parsed(text))
     if (adapter === undefined) throw new Error(`adapter ${name} is malformed: ${place}`)
     return adapter
   }
@@ -153,7 +161,7 @@ export const plug = (dir: string, adapter?: string): Plugged => {
   if (root === "") throw new Error(`not a directory: ${dir}`)
   if (LINE_BREAKERS.test(root))
     throw new Error("a root with a tab or a line break cannot be stored")
-  if (root === "/" || root === real(homedir()) || isUnder(real(stateHome()), root))
+  if (root === "/" || isUnder(real(homedir()), root) || isUnder(real(stateHome()), root))
     throw new Error(`refusing to plug ${root}: it would expose far more than one project`)
   if (adapter !== undefined) loadAdapter(adapter)
   const entry: Plugged = adapter === undefined ? { root } : { root, adapter }

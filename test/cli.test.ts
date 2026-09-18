@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import { spawn, spawnSync } from "node:child_process"
 import { chmodSync, mkdirSync, readFileSync, rmSync, statSync, symlinkSync } from "node:fs"
 import { join } from "node:path"
 import { after, before, beforeEach, test } from "node:test"
@@ -49,6 +50,36 @@ test("key set stores the piped key privately and never echoes it", async () => {
   assert.equal(readFileSync(join(HOME, "api-key"), "utf8"), `${OLD_KEY}\n`)
   assert.equal(statSync(join(HOME, "api-key")).mode & 0o777, 0o600)
   assert.equal(statSync(HOME).mode & 0o777, 0o700)
+})
+
+const HAS_PTY = process.platform === "linux" && spawnSync("script", ["--version"]).status === 0
+
+test("key set on a real terminal turns the echo off before it asks", {
+  skip: !HAS_PTY,
+  timeout: 20_000,
+}, async () => {
+  const home = join(WORK, "tty-home")
+  const typed = "k-typed-on-a-terminal"
+  const shown = await new Promise<string>((done) => {
+    const child = spawn("script", ["-qec", `"${LAUNCHER}" key set`, "/dev/null"], {
+      env: { ...process.env, CCSAVER_HOME: home },
+    })
+    let seen = ""
+    let sent = false
+    child.stdout.on("data", (chunk) => {
+      seen += String(chunk)
+      if (sent || !seen.includes("input hidden")) return
+      sent = true
+      child.stdin.write(`${typed}\n`)
+    })
+    child.on("close", () => {
+      done(seen)
+    })
+  })
+  assert.match(shown, /input hidden/)
+  assert.equal(shown.includes(typed), false)
+  assert.equal(readFileSync(join(home, "api-key"), "utf8"), `${typed}\n`)
+  assert.equal(statSync(join(home, "api-key")).mode & 0o777, 0o600)
 })
 
 test("key set refuses an empty key and keeps the stored one", async () => {
