@@ -1,0 +1,10 @@
+ccsaver
+Copyright 2026 The ccsaver authors
+
+This product includes material adapted from spotify/portal-ai-plugins
+(plugins/shunt) at commit 3c24ca30ff63e1f5bbad1c43fe5324daff579123,
+licensed under the Apache License, Version 2.0.
+
+The adapted material was modified. It lives in the worker instructions of
+src/worker.ts, in the structure of the hook message of src/hook.ts and in
+parts of skills/bulk-reader/SKILL.md and skills/code-writer/SKILL.md.

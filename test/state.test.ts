@@ -1,0 +1,108 @@
+import assert from "node:assert/strict"
+import { mkdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs"
+import { join } from "node:path"
+import { after, test } from "node:test"
+import {
+  loadAdapter,
+  plug,
+  pluggedRootOf,
+  readPlugged,
+  readWorker,
+  unplug,
+  writeWorker,
+} from "../src/state.ts"
+import { tempDir } from "./helpers.ts"
+
+const WORK = tempDir("state-work")
+const HOME = join(WORK, "holds-state", "ccsaver")
+const USER_HOME = join(WORK, "user-home")
+const PROJECT = join(WORK, "project")
+const NESTED = join(PROJECT, "packages", "inner")
+const SIBLING = join(WORK, "project-two")
+
+for (const dir of [HOME, USER_HOME, NESTED, SIBLING, join(HOME, "adapters")])
+  mkdirSync(dir, { recursive: true })
+process.env["CCSAVER_HOME"] = HOME
+process.env["HOME"] = USER_HOME
+
+after(() => {
+  rmSync(WORK, { recursive: true, force: true })
+})
+
+test("plug stores the real path, list shows it, unplug removes it", () => {
+  const link = join(WORK, "link-to-project")
+  symlinkSync(PROJECT, link)
+  assert.deepEqual(plug(link, "strict-ts"), { root: PROJECT, adapter: "strict-ts" })
+  assert.deepEqual(plug(SIBLING), { root: SIBLING })
+  assert.deepEqual(plug(PROJECT), { root: PROJECT })
+  assert.deepEqual(readPlugged(), [{ root: SIBLING }, { root: PROJECT }])
+  assert.equal(statSync(join(HOME, "plugged")).mode & 0o777, 0o600)
+  assert.equal(statSync(HOME).mode & 0o777, 0o700)
+  assert.equal(unplug(link), true)
+  assert.equal(unplug(link), false)
+  assert.deepEqual(readPlugged(), [{ root: SIBLING }])
+})
+
+test("unplug still works after the folder is gone", () => {
+  const doomed = join(WORK, "doomed")
+  mkdirSync(doomed)
+  plug(doomed)
+  rmSync(doomed, { recursive: true })
+  assert.equal(unplug(doomed), true)
+})
+
+test("plug refuses the filesystem root, the home and any root holding the state folder", () => {
+  assert.throws(() => plug("/"), /refusing to plug/)
+  assert.throws(() => plug(USER_HOME), /refusing to plug/)
+  assert.throws(() => plug(join(WORK, "holds-state")), /refusing to plug/)
+  assert.throws(() => plug(HOME), /refusing to plug/)
+})
+
+test("plug refuses what is not a folder and a path that would break the state file", () => {
+  const file = join(WORK, "a-file.txt")
+  const broken = join(WORK, "injected\n/etc")
+  writeFileSync(file, "x\n")
+  mkdirSync(broken, { recursive: true })
+  assert.throws(() => plug(file), /not a directory/)
+  assert.throws(() => plug(join(WORK, "missing")), /not a directory/)
+  assert.throws(() => plug(broken), /line break/)
+  assert.equal(readFileSync(join(HOME, "plugged"), "utf8").includes("injected"), false)
+})
+
+test("plug refuses an adapter that does not exist or whose name walks the tree", () => {
+  assert.throws(() => plug(PROJECT, "no-such-adapter"), /not found/)
+  assert.throws(() => plug(PROJECT, "../../etc/passwd"), /invalid adapter name/)
+})
+
+test("a private adapter shadows the bundled one, and a malformed one is rejected", () => {
+  assert.match(loadAdapter("strict-ts").rules ?? "", /no comments of any kind/)
+  writeFileSync(join(HOME, "adapters", "strict-ts.json"), JSON.stringify({ rules: "mine" }))
+  assert.deepEqual(loadAdapter("strict-ts"), { rules: "mine" })
+  rmSync(join(HOME, "adapters", "strict-ts.json"))
+  writeFileSync(join(HOME, "adapters", "typo.json"), JSON.stringify({ rule: "misspelt key" }))
+  writeFileSync(join(HOME, "adapters", "empty-format.json"), JSON.stringify({ format: [] }))
+  assert.throws(() => loadAdapter("typo"), /malformed/)
+  assert.throws(() => loadAdapter("empty-format"), /malformed/)
+})
+
+test("the deepest plugged root wins and a sibling prefix never matches", () => {
+  plug(PROJECT)
+  plug(NESTED, "strict-ts")
+  assert.deepEqual(pluggedRootOf(join(NESTED, "src")), { root: NESTED, adapter: "strict-ts" })
+  assert.deepEqual(pluggedRootOf(join(PROJECT, "docs")), { root: PROJECT })
+  assert.equal(pluggedRootOf(join(WORK, "project-three")), undefined)
+  unplug(NESTED)
+  unplug(PROJECT)
+})
+
+test("the worker url must be encrypted and the pinned fallback survives a new worker", () => {
+  assert.throws(() => writeWorker("http://example.invalid/v1", "m"), /https/)
+  assert.throws(() => writeWorker("https://example.invalid/v1", ""), /model/)
+  writeFileSync(
+    join(HOME, "worker.json"),
+    JSON.stringify({ url: "https://a.invalid", model: "a", claude: "/opt/claude" }),
+  )
+  writeWorker("https://b.invalid/v1", "b")
+  assert.deepEqual(readWorker(), { url: "https://b.invalid/v1", model: "b", claude: "/opt/claude" })
+  assert.equal(statSync(join(HOME, "worker.json")).mode & 0o777, 0o600)
+})

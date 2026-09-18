@@ -1,0 +1,34 @@
+#!/bin/sh
+self=$0
+while [ -L "$self" ]; do
+  link=$(readlink "$self")
+  case $link in /*) self=$link ;; *) self=$(dirname "$self")/$link ;; esac
+done
+root=$(cd "$(dirname "$self")/.." && pwd -P) || exit 1
+
+if [ "$1" = key ] && [ "$2" = set ]; then
+  home=${CCSAVER_HOME:-$HOME/.config/ccsaver}
+  umask 077
+  mkdir -p "$home" && chmod 700 "$home" || exit 1
+  if [ -t 0 ]; then
+    printf 'API key (input hidden): ' >&2
+    trap 'stty echo' EXIT INT TERM
+    stty -echo
+    IFS= read -r key
+    stty echo
+    trap - EXIT INT TERM
+    printf '\n' >&2
+  else
+    IFS= read -r key
+  fi
+  if [ -z "$key" ]; then
+    echo "Error: empty key, nothing was written" >&2
+    exit 1
+  fi
+  printf '%s\n' "$key" > "$home/api-key.new" && mv "$home/api-key.new" "$home/api-key" || exit 1
+  chmod 600 "$home/api-key"
+  echo "key stored in $home/api-key (600); check it with: ccsaver doctor" >&2
+  exit 0
+fi
+
+exec node "$root/src/cli.ts" "$@"

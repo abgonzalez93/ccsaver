@@ -1,0 +1,52 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
+  "javascript": {
+    "formatter": {
+      "semicolons": "asNeeded",
+      "quoteStyle": "double"
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "style": {
+        "noNonNullAssertion": "error",
+        "useConsistentArrayType": "error",
+        "useConsistentMethodSignatures": "error",
+        "useConsistentTypeDefinitions": "error",
+        "useDefaultSwitchClause": "error"
+      },
+      "complexity": {
+        "useLiteralKeys": "off"
+      },
+      "suspicious": {
+        "noEvolvingTypes": "error",
+        "noExplicitAny": "error",
+        "noImportCycles": "error"
+      },
+      "correctness": {
+        "useImportExtensions": "error"
+      },
+      "nursery": {
+        "noFloatingPromises": "error",
+        "noMisusedPromises": "error",
+        "useAwaitThenable": "error",
+        "useExhaustiveSwitchCases": "error",
+        "useExplicitReturnType": "error",
+        "useNullishCoalescing": "error"
+      }
+    }
+  }
+}

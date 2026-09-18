@@ -1,0 +1,5 @@
+{
+  "rules": "no comments of any kind; every function is an arrow const with an explicit return type, never the function keyword; no any; no non-null assertion (!); no type assertion (as) other than as const; relative imports carry the real file extension.",
+  "format": ["node_modules/.bin/biome", "check", "--write", "--files-ignore-unknown=true"],
+  "after": ["node_modules/.bin/biome check {target}"]
+}

@@ -1,0 +1,13 @@
+{
+  "name": "ccsaver",
+  "version": "0.1.0",
+  "description": "Keeps whole-file reads and boilerplate writing out of the expensive model's context by delegating them to a cheap one-shot worker, only in the projects you plug in.",
+  "author": {
+    "name": "abgonzalez93",
+    "url": "https://github.com/abgonzalez93"
+  },
+  "homepage": "https://github.com/abgonzalez93/ccsaver",
+  "repository": "https://github.com/abgonzalez93/ccsaver",
+  "license": "Apache-2.0",
+  "keywords": ["tokens", "cost", "delegation", "hooks", "skills"]
+}

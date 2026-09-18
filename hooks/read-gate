@@ -1,0 +1,8 @@
+#!/bin/sh
+dir=$(cd "${CLAUDE_PROJECT_DIR:-$PWD}" 2>/dev/null && pwd -P) || exit 0
+state="${CCSAVER_HOME:-$HOME/.config/ccsaver}/plugged"
+[ -r "$state" ] || exit 0
+while IFS='	' read -r root _ <&3; do
+  case "$dir/" in "$root"/*) exec node "$(dirname "$0")/../src/hook.ts" 3<&- ;; esac
+done 3< "$state"
+exit 0
