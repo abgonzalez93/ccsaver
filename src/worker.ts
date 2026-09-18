@@ -28,6 +28,7 @@ type Mode = keyof typeof MODES
 
 const HOUSE_RULES = " House rules, they win over the reference: "
 const FALLBACK_MODEL = "haiku"
+const NO_MCP_SERVERS = '{"mcpServers":{}}'
 const TIMEOUT_MS = 180_000
 const EXTERNAL_TIMEOUT_MS = 30_000
 const FORMAT_TIMEOUT_MS = 60_000
@@ -94,6 +95,9 @@ const invokeClaude = (mode: Mode, system: string, message: string): string => {
       system,
       "--tools",
       "",
+      "--strict-mcp-config",
+      "--mcp-config",
+      NO_MCP_SERVERS,
       "--disable-slash-commands",
       "--no-session-persistence",
       "--output-format",
@@ -245,10 +249,18 @@ export const runWorker = async (mode: Mode, argv: string[]): Promise<void> => {
   )
   if (files.length === 0) fail("at least one file is required (--paths / --reference)")
   const system = instructionOf(mode, adapter)
-  const invoke = async (message: string): Promise<string> =>
-    (files.every((file) => isUnder(real(file), project.root))
-      ? await invokeExternal(mode, system, message)
-      : undefined) ?? invokeClaude(mode, system, message)
+  const invoke = async (message: string): Promise<string> => {
+    const inside = files.every((file) => isUnder(real(file), project.root))
+    const answer = inside ? await invokeExternal(mode, system, message) : undefined
+    if (answer !== undefined) return answer
+    if (readWorker()?.fallback === false)
+      return fail(
+        inside
+          ? "the worker did not answer and the fallback is off (ccsaver fallback on)"
+          : "a file is outside the plugged project and the fallback is off, nothing was sent (ccsaver fallback on)",
+      )
+    return invokeClaude(mode, system, message)
+  }
   if (mode === "bulk-read") {
     if (!values.question) fail("--question is required")
     const corpus = files.map((path) => fileBlock(path, true, project.root)).join("")

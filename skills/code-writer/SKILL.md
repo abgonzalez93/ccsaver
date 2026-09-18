@@ -21,4 +21,4 @@ Name in the spec the module every import comes from: the worker otherwise copies
 
 The gate is the reviewer. After the worker writes the target, run every `next:` command the output lists, plus the narrowest check that covers the file (the test file itself, or that package's typecheck). Green: the file is done — report it without opening it. Red: read only the failing lines the output names and make surgical edits; a second red, regenerate with the failure quoted in the spec.
 
-`Error: … is not plugged in` means the owner keeps this project away from the worker: write the file yourself.
+`Error: … is not plugged in` or `Error: … the fallback is off …` means the owner keeps this call away from a worker: write the file yourself.

@@ -166,3 +166,16 @@ test("doctor only warns about a missing fallback from a shell outside Claude Cod
   assert.match(inside.stdout, /^FAIL fallback: claude does not run; /m)
   assert.equal(inside.code, 1)
 })
+
+test("fallback off shows in doctor without running the binary, and on brings it back", async () => {
+  assert.equal((await ccsaver(["fallback", "off"])).stdout, "fallback off\n")
+  const off = await ccsaver(["doctor"], "", { CLAUDE_CODE_EXECPATH: join(WORK, "no-such-bin") })
+  assert.match(off.stdout, /^ok {3}fallback: off, /m)
+  assert.equal(off.code, 0)
+  assert.equal((await ccsaver(["fallback", "on"])).stdout, "fallback on\n")
+  assert.match(
+    (await ccsaver(["doctor"])).stdout,
+    /^ok {3}fallback: .*claude \(9\.9\.9 \(fake\)\)$/m,
+  )
+  assert.equal((await ccsaver(["fallback", "sideways"])).code, 1)
+})

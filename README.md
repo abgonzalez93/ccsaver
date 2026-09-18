@@ -70,7 +70,7 @@ Nothing is written inside the project. The state lives in `~/.config/ccsaver/`:
 
 ```
 api-key       600, the key of the external worker
-worker.json   { "url", "model", "claude"? }
+worker.json   { "url", "model", "claude"?, "fallback"? }
 plugged       one line per project: <real path><TAB><adapter>
 adapters/     your own adapters (optional)
 cache/        Node's compile cache for the hook
@@ -84,11 +84,14 @@ cache/        Node's compile cache for the hook
 ccsaver worker set https://your-provider.example/v1/chat/completions some-small-model
 ccsaver key set     # typed on the terminal with echo off; never an argument
 ccsaver doctor
+ccsaver fallback off   # optional: never spend on the Claude Haiku fallback
 ```
 
 Any OpenAI-compatible chat completions endpoint works; the URL must be `https` (localhost excepted). Without a worker, or whenever it fails, times out or cuts its answer short, the call goes to Claude Haiku through your own Claude Code binary: the one the session runs on (`CLAUDE_CODE_EXECPATH`, an undocumented variable observed in Claude Code 2.1), then `claude` on your `PATH`. `"claude"` in `worker.json` wins over both, so only set it to a path that survives updates: the IDE extensions keep their binary in a versioned folder. A redirect from the worker counts as a failure, never followed with your file in hand. When the fallback itself reports an error, the command fails with that error instead of handing it over as an answer.
 
-`doctor` checks the permissions of the state folder and the key, sends a one-token probe (200 = the key works, 401/403 = rejected), runs the fallback binary with `--version`, and lists each plugged project with its adapter and limits. It never prints the key or its length. From a terminal outside Claude Code with no `claude` on the `PATH`, the fallback line is a `warn`, not a failure: that shell cannot see the binary a session brings, so run `doctor` from inside one.
+The fallback spends your Claude usage, so it is as bare as the worker: no built-in tools and no MCP servers (`--tools ""`, `--strict-mcp-config`), whatever your Claude Code has configured. `ccsaver fallback off` turns it off once a worker is set: a call the worker cannot answer then fails with a one-line error and Claude reads by ranges instead, and a call that names a file outside the plugged root sends nothing anywhere. `ccsaver fallback on` brings it back. Claude Code's documentation says `--bare` will become the default for `-p`, and bare mode does not use a subscription login: on a future version the fallback may need an `ANTHROPIC_API_KEY`.
+
+`doctor` checks the permissions of the state folder and the key, sends a one-token probe (200 = the key works, 401/403 = rejected), runs the fallback binary with `--version` (unless the fallback is off), and lists each plugged project with its adapter and limits. It never prints the key or its length. From a terminal outside Claude Code with no `claude` on the `PATH`, the fallback line is a `warn`, not a failure: that shell cannot see the binary a session brings, so run `doctor` from inside one.
 
 ## Adapters
 
@@ -110,7 +113,7 @@ Every field is optional. `format` runs from the project root with the written fi
 
 - Unplugged project: nothing, ever.
 - Files inside the plugged root travel labelled with their path relative to that root, so your user name and folder layout stay home.
-- Plugged project: a file goes to the external worker only when the real path of **every** file in the call is inside the plugged root. One file outside (a note in your home, a symlink pointing out) sends the whole call to the Haiku fallback instead.
+- Plugged project: a file goes to the external worker only when the real path of **every** file in the call is inside the plugged root. One file outside (a note in your home, a symlink pointing out) sends the whole call to the Haiku fallback instead, or makes it fail when the fallback is off.
 - Files that look like secrets (`.env*`, `*.pem`, `*.key`, `id_rsa`, `.npmrc`, `credentials*`, `settings.local.json`, `*.tfstate`…) are refused outright, by given name and by real name, in any letter case. So is any file that holds a private-key header, whatever its name. The list is a net, not a guarantee: a secret pasted into `config.ts` goes out with it.
 - `code-write --target` never overwrites an existing file, only writes inside the plugged root (symlinked folders are followed first), and refuses the paths Claude Code itself protects: `.git`, `.claude`, `.vscode`, `.idea`, `.husky`, `.devcontainer` and the shell, git and package-manager config files. A refused target stops the call before anything is sent.
 
@@ -118,7 +121,7 @@ Every field is optional. `format` runs from the project root with the written fi
 
 The rules from [Honest limits](#honest-limits-with-numbers) pre-approve more than their names suggest, because Claude Code cannot see what a subprocess reads or writes:
 
-- `… bulk-read *` reads **any file your user can read**, not only the project's, except the secret-looking ones above. Your own `Read` deny rules and Claude Code's prompt for the first read outside the project do not apply to it. Files inside the plugged root go to your external worker; every other file goes to the Haiku fallback.
+- `… bulk-read *` reads **any file your user can read**, not only the project's, except the secret-looking ones above. Your own `Read` deny rules and Claude Code's prompt for the first read outside the project do not apply to it. Files inside the plugged root go to your external worker; every other file goes to the Haiku fallback, or nowhere when the fallback is off.
 - `… code-write *` creates new files inside the plugged root under the limits above and, when the adapter names a formatter, runs it **from the project's own folder** without a prompt. Plug in only projects whose tooling you trust.
 - What comes back is the output of a cheap model that read files you may not have written. Both skills tell Claude to treat it as data, never as instructions; `code-writer` still runs the generated tests unopened, so review what it wrote before you rely on it.
 

@@ -8,6 +8,7 @@ import {
   plug,
   readPlugged,
   readWorker,
+  setFallback,
   stateHome,
   unplug,
   writeWorker,
@@ -21,6 +22,7 @@ const USAGE = `usage: ccsaver <command>
   list                      show the plugged projects
   worker set <url> <model>  point at an OpenAI-compatible chat completions endpoint
   key set                   store the API key (typed on the terminal, never an argument)
+  fallback on|off           whether a call the worker cannot take goes to paid Claude Haiku
   doctor                    check permissions, key, worker, fallback and projects
 
   bulk-read  --question <q> --paths <file>... [--project <dir>]
@@ -100,6 +102,11 @@ const external = async (): Promise<Finding[]> => {
 }
 
 const fallback = (): Finding => {
+  if (readWorker()?.fallback === false)
+    return {
+      level: "ok",
+      text: "fallback: off, a call the worker cannot take fails instead of going to Claude Haiku",
+    }
   const bin = claudeBin()
   const run = spawnSync(bin, ["--version"], { encoding: "utf8", timeout: 15_000 })
   if (run.status === 0) return { level: "ok", text: `fallback: ${bin} (${run.stdout.trim()})` }
@@ -171,6 +178,12 @@ const main = async (): Promise<number> => {
       if (first !== "set" || second === undefined || third === undefined) break
       writeWorker(second, third)
       process.stdout.write(`worker set to ${second} · ${third}\n`)
+      return 0
+    }
+    case "fallback": {
+      if (first !== "on" && first !== "off") break
+      setFallback(first === "on")
+      process.stdout.write(`fallback ${first}\n`)
       return 0
     }
     case "key":

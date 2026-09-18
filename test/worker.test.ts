@@ -29,6 +29,7 @@ const HOME = tempDir("worker-home")
 const BARE_HOME = tempDir("worker-bare")
 const PLAIN_HOME = tempDir("worker-plain")
 const PINNED_HOME = tempDir("worker-pinned")
+const OFF_HOME = tempDir("worker-off")
 const WORK = tempDir("worker-work")
 const OUTSIDE = tempDir("worker-outside")
 const PROJECT = join(WORK, "project")
@@ -95,6 +96,11 @@ before(async () => {
     },
     key: "k-test",
   })
+  writeHome(OFF_HOME, {
+    plugged: PLUGGED,
+    worker: { url: server.url, model: "cheap-1", fallback: false },
+    key: "k-test",
+  })
 })
 
 beforeEach(() => {
@@ -103,7 +109,7 @@ beforeEach(() => {
 
 after(() => {
   server.close()
-  for (const dir of [HOME, BARE_HOME, PLAIN_HOME, PINNED_HOME, WORK, OUTSIDE])
+  for (const dir of [HOME, BARE_HOME, PLAIN_HOME, PINNED_HOME, OFF_HOME, WORK, OUTSIDE])
     rmSync(dir, { recursive: true, force: true })
 })
 
@@ -148,6 +154,36 @@ test("the fallback binary pinned in worker.json wins over the environment", asyn
   const hidden = join(OUTSIDE, "elsewhere.ts")
   writeFileSync(hidden, "export const elsewhere = 1\n")
   assert.match((await bulkRead(hidden, { CCSAVER_HOME: PINNED_HOME })).stdout, /FROM-PINNED/)
+})
+
+test("with the fallback off, a call the worker cannot take fails and nothing reaches Claude", async () => {
+  server.reply.status = 429
+  const refused = await bulkRead(SOURCE, { CCSAVER_HOME: OFF_HOME })
+  assert.equal(refused.code, 1)
+  assert.equal(refused.stdout, "")
+  assert.match(refused.stderr, /^Error: the worker did not answer and the fallback is off/m)
+  const hidden = join(OUTSIDE, "stays-home.md")
+  writeFileSync(hidden, "private notes\n")
+  const before = server.seen.length
+  const kept = await bulkRead(hidden, { CCSAVER_HOME: OFF_HOME })
+  assert.equal(kept.code, 1)
+  assert.equal(kept.stdout, "")
+  assert.match(kept.stderr, /^Error: a file is outside .* the fallback is off, nothing was sent/m)
+  assert.equal(server.seen.length, before)
+})
+
+test("the fallback runs with no built-in tools and no MCP servers", async () => {
+  const echo = join(WORK, "echo-args")
+  writeFileSync(
+    echo,
+    '#!/usr/bin/env node\nprocess.stdout.write(JSON.stringify({ result: process.argv.slice(2).join(" "), total_cost_usd: 0 }))\n',
+    { mode: 0o755 },
+  )
+  const out = await bulkRead(SOURCE, { CCSAVER_HOME: BARE_HOME, CLAUDE_CODE_EXECPATH: echo })
+  assert.ok(
+    out.stdout.includes('--tools  --strict-mcp-config --mcp-config {"mcpServers":{}} --disable-'),
+    out.stdout,
+  )
 })
 
 test("code-write strips the markdown fence, writes the target and never overwrites", async () => {

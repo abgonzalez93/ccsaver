@@ -16,6 +16,7 @@ import {
   pluggedRootOf,
   readPlugged,
   readWorker,
+  setFallback,
   unplug,
   writeWorker,
 } from "../src/state.ts"
@@ -128,4 +129,22 @@ test("the worker url must be encrypted and the pinned fallback survives a new wo
   writeWorker("https://b.invalid/v1", "b")
   assert.deepEqual(readWorker(), { url: "https://b.invalid/v1", model: "b", claude: "/opt/claude" })
   assert.equal(statSync(join(HOME, "worker.json")).mode & 0o777, 0o600)
+})
+
+test("the fallback switch is stored, survives a new worker and needs a worker to go off", () => {
+  setFallback(false)
+  assert.deepEqual(readWorker(), {
+    url: "https://b.invalid/v1",
+    model: "b",
+    claude: "/opt/claude",
+    fallback: false,
+  })
+  writeWorker("https://c.invalid/v1", "c")
+  assert.equal(readWorker()?.fallback, false)
+  setFallback(true)
+  assert.equal(readWorker()?.fallback, true)
+  rmSync(join(HOME, "worker.json"))
+  setFallback(true)
+  assert.equal(readWorker(), undefined)
+  assert.throws(() => setFallback(false), /set a worker first/)
 })

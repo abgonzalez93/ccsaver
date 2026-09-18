@@ -19,6 +19,7 @@ export interface Worker {
   url: string
   model: string
   claude?: string
+  fallback?: boolean
 }
 
 export interface Adapter {
@@ -193,23 +194,33 @@ export const readWorker = (): Worker | undefined => {
     const raw: unknown = JSON.parse(readFileSync(workerFile(), "utf8"))
     if (!isRecord(raw) || typeof raw["url"] !== "string" || typeof raw["model"] !== "string")
       return undefined
-    const claude = raw["claude"]
+    const { claude, fallback } = raw
     return {
       url: raw["url"],
       model: raw["model"],
       ...(typeof claude === "string" && claude.length > 0 ? { claude } : {}),
+      ...(typeof fallback === "boolean" ? { fallback } : {}),
     }
   } catch {
     return undefined
   }
 }
 
+const storeWorker = (worker: Worker): void => {
+  writePrivate(workerFile(), `${JSON.stringify(worker, null, 2)}\n`)
+}
+
 export const writeWorker = (url: string, model: string): void => {
   if (!encrypted(url)) throw new Error("the worker url must be https (localhost excepted)")
   if (model.length === 0) throw new Error("the worker model is required")
-  const claude = readWorker()?.claude
-  writePrivate(
-    workerFile(),
-    `${JSON.stringify({ url, model, ...(claude === undefined ? {} : { claude }) }, null, 2)}\n`,
-  )
+  storeWorker({ ...readWorker(), url, model })
+}
+
+export const setFallback = (on: boolean): void => {
+  const worker = readWorker()
+  if (worker === undefined) {
+    if (on) return
+    throw new Error("set a worker first: without one the fallback is the only worker")
+  }
+  storeWorker({ ...worker, fallback: on })
 }
