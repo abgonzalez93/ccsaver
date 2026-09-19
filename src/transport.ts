@@ -5,7 +5,7 @@ import { isEncrypted, isRecord, parsed, readKey, record, type Worker } from "./s
 
 const FALLBACK_MODEL = "haiku"
 const NO_MCP_SERVERS = '{"mcpServers":{}}'
-const NO_HOOKS = '{"disableAllHooks":true}'
+const BARE_SETTINGS = '{"disableAllHooks":true,"env":{"CLAUDE_CODE_EFFORT_LEVEL":"low"}}'
 const FALLBACK_TIMEOUT_MS = 180_000
 const EXTERNAL_TIMEOUT_MS = 30_000
 const FALLBACK_MAX_CHARS = 400_000
@@ -61,7 +61,7 @@ export const invokeClaude = (
       "--disable-slash-commands",
       "--no-session-persistence",
       "--settings",
-      NO_HOOKS,
+      BARE_SETTINGS,
       "--output-format",
       "json",
     ],
@@ -71,7 +71,7 @@ export const invokeClaude = (
       encoding: "utf8",
       timeout: FALLBACK_TIMEOUT_MS,
       maxBuffer: 64 * 1024 * 1024,
-      env: { ...process.env, MAX_THINKING_TOKENS: "0" },
+      env: { ...process.env, MAX_THINKING_TOKENS: "0", CLAUDE_CODE_EFFORT_LEVEL: "low" },
     },
   )
   delegation["fallbackMs"] = Math.round(performance.now() - started)

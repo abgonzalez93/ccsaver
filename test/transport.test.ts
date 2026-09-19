@@ -118,11 +118,11 @@ test("with the fallback off, a call the worker cannot take fails and nothing rea
   assert.equal(server.seen.length, before)
 })
 
-test("the fallback runs with no built-in tools, no MCP servers and none of the user's hooks", async () => {
+test("the fallback runs bare: no tools, no MCP servers, no hooks and the lowest effort", async () => {
   const echo = join(WORK, "echo-args")
   writeFileSync(
     echo,
-    '#!/usr/bin/env node\nprocess.stdout.write(JSON.stringify({ result: process.argv.slice(2).join(" "), total_cost_usd: 0 }))\n',
+    '#!/usr/bin/env node\nprocess.stdout.write(JSON.stringify({ result: process.argv.slice(2).join(" ") + " effort=" + process.env.CLAUDE_CODE_EFFORT_LEVEL, total_cost_usd: 0 }))\n',
     { mode: 0o755 },
   )
   const out = await bulkRead(SOURCE, { CCSAVER_HOME: BARE_HOME, CLAUDE_CODE_EXECPATH: echo })
@@ -130,7 +130,13 @@ test("the fallback runs with no built-in tools, no MCP servers and none of the u
     out.stdout.includes('--tools  --strict-mcp-config --mcp-config {"mcpServers":{}} --disable-'),
     out.stdout,
   )
-  assert.ok(out.stdout.includes('--settings {"disableAllHooks":true} '), out.stdout)
+  assert.ok(
+    out.stdout.includes(
+      '--settings {"disableAllHooks":true,"env":{"CLAUDE_CODE_EFFORT_LEVEL":"low"}} ',
+    ),
+    out.stdout,
+  )
+  assert.ok(out.stdout.includes("effort=low"), out.stdout)
 })
 
 test("never follows a redirect with the file in hand", async () => {

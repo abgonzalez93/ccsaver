@@ -2,6 +2,15 @@
 
 Every commit is a version. A git hook writes each section from the commit message, its subject and the bullets of its body ([how](README.md#versions)), and the numbers follow [Semantic Versioning](https://semver.org/). The file keeps the newest versions that fit in 350 lines; `git log` has every one.
 
+## 0.2.3 - 2026-09-19
+
+fix: the paid fallback runs at the lowest effort level
+
+- The Haiku fallback inherited the session's effort level, measured as max on a session running at max; it now gets low.
+- The level is set in the child's environment and in --settings, because Claude Code reads the two separately.
+- The fake binary in the test reports the effort it received, so the assertion fails if either path is undone.
+- README: the list of what makes the fallback bare now names the effort level.
+
 ## 0.2.2 - 2026-09-19
 
 docs: what a pull changes and what claude plugin list keeps saying
