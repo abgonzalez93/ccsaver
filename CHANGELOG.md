@@ -2,6 +2,16 @@
 
 Every commit is a version. A git hook writes each section from the commit message, its subject and the bullets of its body ([how](README.md#versions)), and the numbers follow [Semantic Versioning](https://semver.org/). The file keeps the newest versions that fit in 350 lines; `git log` has every one.
 
+## 0.4.12 - 2026-09-20
+
+refactor: state.ts becomes state, log and config
+
+- state.ts held five responsibilities in 314 of the 350 lines the gate allows, so the next feature would have forced the split in the middle of itself
+- src/state.ts is the state folder, the key, the guards and Refusal (75 lines); src/log.ts is the event log and its switch (63); src/config.ts is what the user configured, the plugged roots, the adapters and the worker (206)
+- the log could not simply move out: it needs stateHome and the stored key, and the five commands that record a config event would have pointed back at it, which biome's noImportCycles refuses. The three-way split is what makes the arrows go one way, and CONTRIBUTING 2.1 now says so
+- record reads the cached key through storedKey instead of the module-level secret it no longer shares a file with
+- it is not free: the hook imports three modules instead of one and pays 1.7 ms more per Read, 22.1 ms against 23.8 ms, three paired rounds of 30 runs per arm, every round after above every round before. The README, docs/measurements.md and CONTRIBUTING 4.4 carry that number, and 4.4 now prices a further import at about 0.85 ms
+
 ## 0.4.11 - 2026-09-20
 
 refactor: the commands are a table, not a switch of thirty-three branches

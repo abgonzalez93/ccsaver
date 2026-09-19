@@ -2,7 +2,8 @@ import assert from "node:assert/strict"
 import { readdirSync, readFileSync } from "node:fs"
 import { join, relative } from "node:path"
 import { test } from "node:test"
-import { DEFAULT_LIMITS, isRecord, parsed } from "../src/state.ts"
+import { DEFAULT_LIMITS } from "../src/config.ts"
+import { isRecord, parsed } from "../src/state.ts"
 import { REPO } from "./helpers.ts"
 
 const SKIPPED = [".git", "node_modules"]
@@ -53,9 +54,9 @@ test("src imports node: built-ins and its own files, and the package declares no
   )
 })
 
-test("the hook starts with the state module and nothing else of ours", () => {
+test("the hook starts with the three files of the state folder and nothing else of ours", () => {
   const ours = importsOf(join(REPO, "src", "hook.ts")).filter((name) => name.startsWith("."))
-  assert.deepEqual(ours, ["./state.ts"])
+  assert.deepEqual(ours, ["./config.ts", "./log.ts", "./state.ts"])
 })
 
 test("no cast, no function keyword, no default export, and only the comments CONTRIBUTING lists", () => {

@@ -6,20 +6,9 @@ import { basename, dirname, join, relative, resolve } from "node:path"
 import { parseArgs } from "node:util"
 import { checked, risky, unwrapped } from "./answer.ts"
 import { contentRefusal, pathRefusal, targetRefusal } from "./boundary.ts"
-import {
-  type Adapter,
-  attempt,
-  isRecord,
-  isUnder,
-  loadAdapter,
-  messageOf,
-  pluggedRootOf,
-  readWorker,
-  real,
-  record,
-  stateHome,
-  type Worker,
-} from "./state.ts"
+import { type Adapter, loadAdapter, pluggedRootOf, readWorker, type Worker } from "./config.ts"
+import { record } from "./log.ts"
+import { attempt, isRecord, isUnder, messageOf, real, stateHome } from "./state.ts"
 import {
   type Delegation,
   delegation,

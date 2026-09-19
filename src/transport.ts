@@ -2,17 +2,9 @@
 import { spawnSync } from "node:child_process"
 import { tmpdir } from "node:os"
 import type { Tally } from "./answer.ts"
-import {
-  isEncrypted,
-  isRecord,
-  keyFile,
-  keyIsStored,
-  messageOf,
-  parsed,
-  readKey,
-  record,
-  type Worker,
-} from "./state.ts"
+import type { Worker } from "./config.ts"
+import { record } from "./log.ts"
+import { isEncrypted, isRecord, keyFile, keyIsStored, messageOf, parsed, readKey } from "./state.ts"
 
 const FALLBACK_MODEL = "haiku"
 const FALLBACK_BUDGET_USD = "0.5"

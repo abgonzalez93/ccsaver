@@ -26,7 +26,7 @@ Measured on one TypeScript monorepo with Claude Code 2.1, small samples (1–4 s
 | Delegated writing of a ~110-line test file (3 runs delegated, 1 direct) | [**break-even**: 0.80–1.02 $ vs 0.85 $](docs/measurements.md#delegated-writing-of-a-test-file) |
 | Files where delegation starts to pay | [roughly **2,000–3,000 lines** and up](docs/measurements.md#where-delegation-starts-to-pay) |
 | Fixed cost of the two skill descriptions | [**~188 tokens per session, in every project**](docs/measurements.md#the-fixed-cost-of-the-skill-descriptions) (≈ 0.006 $ on a frontier model) |
-| Hook overhead per `Read` (mean of 30, process spawn included) | [**1–3 ms** unplugged, **≈ 22 ms** plugged](docs/measurements.md#hook-overhead-per-read) |
+| Hook overhead per `Read` (mean of 30, process spawn included) | [**1–3 ms** unplugged, **≈ 24 ms** plugged](docs/measurements.md#hook-overhead-per-read) |
 | Hook on a file past the byte limit, 300 MB of text (3 runs per arm) | [**371 MB → 73 MB** of peak memory and 0.26 s → 0.05 s](docs/measurements.md#the-hook-on-a-file-past-the-byte-limit) once the size decides before the read |
 | One-shot worker vs a subagent for the same read | [4–8 s and 0.03–0.07 $ vs 26–169 s and up to 0.14 $](docs/measurements.md#one-shot-worker-vs-a-subagent) |
 | The Haiku fallback on one 8,230-token call (Claude Code 2.1.274, subscription login, one run per arm) | [**0.0257 $ → 0.0128 $**](docs/measurements.md#the-haiku-fallback-on-one-8230-token-call) once it stopped asking for a session title and wrote a 5-minute cache |

@@ -24,7 +24,9 @@ The two skill descriptions cost about 188 tokens per session, in every project, 
 
 ## Hook overhead per Read
 
-Mean of 30 runs, process spawn included. 1–3 ms in an unplugged project, where the `sh` gate exits before Node starts. ≈ 22 ms in a plugged one, which is Node's start-up with its compile cache; 49 ms without the cache.
+Mean of 30 runs, process spawn included. 1–3 ms in an unplugged project, where the `sh` gate exits before Node starts. ≈ 24 ms in a plugged one, which is Node's start-up with its compile cache; 49 ms without the cache.
+
+That 24 ms was 22 ms while the state folder, the log and the configuration lived in one module. Splitting them into `state.ts`, `log.ts` and `config.ts` costs **1.7 ms per `Read`**, measured paired on the same machine, three rounds of 30 runs per arm: 22.4 / 22.1 / 21.9 ms before against 22.7 / 24.3 / 24.8 ms after, with every round after above every round before. The bytes are the same; the cost is two more module resolutions, about 0.85 ms each. The unplugged path does not move, because the `sh` gate never starts Node.
 
 ## The hook on a file past the byte limit
 

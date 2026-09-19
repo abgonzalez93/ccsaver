@@ -2,7 +2,7 @@
 
 The rules of this repository, for a person or a model. The [README](README.md) says what ccsaver does; this file says how its code is written.
 
-Each rule names its **guard**: the compiler switch (`tsconfig.json`), the Biome rule (`biome.json`) or the test that goes red when the rule is broken. A rule that no tool checks says *convention*: the reviewer is the guard. Examples cite a file and a symbol, like `src/state.ts` · `readWorker`, and `test/conventions.test.ts` fails when that symbol is gone.
+Each rule names its **guard**: the compiler switch (`tsconfig.json`), the Biome rule (`biome.json`) or the test that goes red when the rule is broken. A rule that no tool checks says *convention*: the reviewer is the guard. Examples cite a file and a symbol, like `src/config.ts` · `readWorker`, and `test/conventions.test.ts` fails when that symbol is gone.
 
 ## The gate
 
@@ -20,7 +20,7 @@ Guard: `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noPr
 ```ts
 // ❌ an optional field assigned undefined
 return { url, model, claude: claude || undefined }
-// ✅ `src/state.ts` · `readWorker`: the field is there or it is not
+// ✅ `src/config.ts` · `readWorker`: the field is there or it is not
 return { url, model, ...(claude ? { claude } : {}) }
 ```
 
@@ -30,7 +30,7 @@ Guard: Biome `noExplicitAny`, `noEvolvingTypes`, `noNonNullAssertion`; `as` by `
 ```ts
 // ❌ blesses whatever the file holds
 const worker = JSON.parse(text) as Worker
-// ✅ `src/state.ts` · `readWorker`: unknown in, checked fields out
+// ✅ `src/config.ts` · `readWorker`: unknown in, checked fields out
 const raw = parsed(text)
 const { url, model } = isRecord(raw) ? raw : {}
 if (typeof url !== "string" || typeof model !== "string") throw new Refusal(`${workerFile()} is malformed`)
@@ -56,39 +56,41 @@ tally[verdictOf(line, claimed)] += 1
 verdict === undefined ? tally : { ...tally, [verdict]: tally[verdict] + 1 }
 ```
 
-Module-level mutable state exists twice, `secret` in `src/state.ts` and `delegation` in `src/transport.ts`, because one process serves one call. Both become parameters the day a process serves two.
+Module-level mutable state exists twice, `secret` in `src/state.ts`, read through `storedKey`, and `delegation` in `src/transport.ts`, because one process serves one call. Both become parameters the day a process serves two.
 
-**1.5 NEVER comment code.** Names carry the what, the README carries the why. The complete list of exceptions: the one-line attribution header on a file that holds adapted third-party material (Apache-2.0 asks for it; [NOTICE](NOTICE) names the files), and one line inside a `catch` that is empty on purpose, saying why (`src/state.ts` · `record`).
+**1.5 NEVER comment code.** Names carry the what, the README carries the why. The complete list of exceptions: the one-line attribution header on a file that holds adapted third-party material (Apache-2.0 asks for it; [NOTICE](NOTICE) names the files), and one line inside a `catch` that is empty on purpose, saying why (`src/log.ts` · `record`).
 Guard: `test/conventions.test.ts`.
 
 **1.6 NEVER leave dead code, PREFER the helper that exists.** `attempt` for a call whose failure is an expected answer, `parsed` for JSON text, `isRecord` to open an unknown object, `messageOf` for a caught error, `real` and `isUnder` for paths, `isSecretPlace` for a folder that holds credentials, whether a file is leaving it or a root is being plugged, `readKey` and `readWorker` as the only readers of their files.
 Guard: `noUnusedLocals`, `noUnusedParameters`, Biome `noUnusedImports`, `noUnusedVariables`; an unused export and a duplicated helper are *convention*.
 
 **1.7 PREFER a function a reader holds in their head: cognitive complexity 15 or less.**
-Guard: *convention*, measured with `pnpm exec biome lint --only=complexity/noExcessiveCognitiveComplexity src test`. One function is over it and is the written exception: the field-by-field guard `adapterOf` in `src/state.ts` (18). A new function over 15 is split before it lands; a fourth one puts the rule in `biome.json` as an error and brings all of them under it.
+Guard: *convention*, measured with `pnpm exec biome lint --only=complexity/noExcessiveCognitiveComplexity src test`. One function is over it and is the written exception: the field-by-field guard `adapterOf` in `src/config.ts` (18). A new function over 15 is split before it lands; a fourth one puts the rule in `biome.json` as an error and brings all of them under it.
 
 **1.8 ALWAYS keep every file readable whole under this project's own gate: 350 lines and 32 KB.** A file splits by responsibility before it gets there, the way `worker.ts` gave birth to `boundary.ts`, `answer.ts` and `transport.ts`. The one exception is `pnpm-lock.yaml`, which nobody reads whole.
 Guard: `test/conventions.test.ts`.
 
 ## 2. Architecture
 
-**2.1 ALWAYS respect the map.** Seven files, one reason to change each, arrows that never turn back.
+**2.1 ALWAYS respect the map.** Nine files, one reason to change each, arrows that never turn back.
 
 | File | Owns | Imports |
 | --- | --- | --- |
-| `src/state.ts` | the state folder, the guards, `Refusal`, the event log | `node:` only |
+| `src/state.ts` | the state folder, the key, the guards, `Refusal` | `node:` only |
+| `src/log.ts` | the event log and its switch | `state` |
+| `src/config.ts` | what the user configured: the plugged roots, the adapters, the worker | `log`, `state` |
 | `src/answer.ts` | pure text work on the worker's answer | nothing |
 | `src/boundary.ts` | what may leave the machine | `state` |
-| `src/transport.ts` | the two ways out: `fetch` to the worker, spawn of the fallback | `state`, the `Tally` type of `answer` |
-| `src/worker.ts` | the `bulk-read` and `code-write` flows | `answer`, `boundary`, `state`, `transport` |
-| `src/cli.ts` | arguments, `doctor`, the exit code | `state`, `transport`, `worker` |
-| `src/hook.ts` | the `Read` gate | `state` |
+| `src/transport.ts` | the two ways out: `fetch` to the worker, spawn of the fallback | `config`, `log`, `state`, the `Tally` type of `answer` |
+| `src/worker.ts` | the `bulk-read` and `code-write` flows | `answer`, `boundary`, `config`, `log`, `state`, `transport` |
+| `src/cli.ts` | arguments, `doctor`, the exit code | `config`, `log`, `state`, `transport`, `worker` |
+| `src/hook.ts` | the `Read` gate | `config`, `log`, `state` |
 
-Guard: Biome `noImportCycles`; the import list of `src/hook.ts` by `test/conventions.test.ts`, because it is the start-up cost of every `Read` (4.4).
+Guard: Biome `noImportCycles`, which is why the log cannot live in `src/state.ts`: it needs `stateHome` and the stored key, and every command that records a `config` event would then point back at it. The import list of `src/hook.ts` is pinned by `test/conventions.test.ts`, because it is the start-up cost of every `Read` (4.4).
 
-Off the map: `scripts/version.ts`, the git hook of 5.3. It is no part of the product: nothing in `src/` imports it, and it imports `node:` built-ins and the guards of `src/state.ts`, by `test/conventions.test.ts`.
+Off the map: `scripts/version.ts`, the git hook of 5.3. It is no part of the product: nothing in `src/` imports it, and it imports `node:` built-ins, the guards of `src/state.ts` and the limits of `src/config.ts`, by `test/conventions.test.ts`.
 
-Off the map too: `bin/ccsaver`, the POSIX `sh` launcher, which holds `key set` so the key never reaches a Node argument list. It appends one event of its own, the `key set` line, in shell: the line format of `src/state.ts` · `LOG_VERSION` therefore has two writers, and a change to it has to touch both or the month's file will hold two shapes.
+Off the map too: `bin/ccsaver`, the POSIX `sh` launcher, which holds `key set` so the key never reaches a Node argument list. It appends one event of its own, the `key set` line, in shell: the line format of `src/log.ts` · `LOG_VERSION` therefore has two writers, and a change to it has to touch both or the month's file will hold two shapes.
 
 **2.2 ALWAYS import from the file that owns the symbol**, by relative path with the real extension. No barrel, no `export *`, no default export.
 Guard: Biome `useImportExtensions`, `allowImportingTsExtensions`; barrels are *convention*.
@@ -96,7 +98,7 @@ Guard: Biome `useImportExtensions`, `allowImportingTsExtensions`; barrels are *c
 **2.3 PREFER functions and plain data to classes.** The only class is `Refusal`, because `instanceof` is how the CLI tells a refusal from a bug. No interface with one implementation, no factory for one product, no option for a value that never changes.
 Guard: *convention*.
 
-**2.4 ALWAYS pass a dependency as a parameter.** There is no container and no service locator. The seams the tests use are a parameter (`worker` in `src/transport.ts` · `invokeExternal`), a default parameter (`src/state.ts` · `logFile` takes `now = new Date()`), an environment variable (`CCSAVER_HOME`, `CLAUDE_CODE_EXECPATH`) and a file in the state folder.
+**2.4 ALWAYS pass a dependency as a parameter.** There is no container and no service locator. The seams the tests use are a parameter (`worker` in `src/transport.ts` · `invokeExternal`), a default parameter (`src/log.ts` · `logFile` takes `now = new Date()`), an environment variable (`CCSAVER_HOME`, `CLAUDE_CODE_EXECPATH`) and a file in the state folder.
 
 ```ts
 // ❌ reads its collaborator from a global registry
@@ -107,7 +109,7 @@ export const invokeExternal = async (mode: string, system: string, message: stri
 
 Guard: *convention*. Revisit when a test needs to replace something that no parameter, variable or state file reaches, or when a seam gets a second implementation.
 
-**2.5 PREFER the flat `src/`.** It holds 7 files and about 1,400 lines. Folders and layers earn their place past 15 files or 3,000 lines; until then a new concept is a new file on the map of 2.1.
+**2.5 PREFER the flat `src/`.** It holds 9 files and about 1,500 lines. Folders and layers earn their place past 15 files or 3,000 lines; until then a new concept is a new file on the map of 2.1.
 Guard: *convention*.
 
 ## 3. Robustness
@@ -118,7 +120,7 @@ Guard: every `throw new` in `src/` throws a `Refusal`, by `test/conventions.test
 ```ts
 // ❌ a typo in an adapter name reads as a crash of ccsaver
 throw new Error(`adapter ${name} not found`)
-// ✅ `src/state.ts` · `loadAdapter`
+// ✅ `src/config.ts` · `loadAdapter`
 throw new Refusal(`adapter ${name} not found in ${places.join(" or ")}`)
 ```
 
@@ -135,7 +137,7 @@ if (text === undefined) continue
 
 Guard: *convention*.
 
-**3.3 ALWAYS validate at the boundary, by hand, and return a typed value built from the checked fields.** The boundaries are `worker.json` (`readWorker`), the `plugged` file (`src/state.ts` · `readPlugged`, which drops a line that is not an absolute path), an adapter file (`adapterOf`, which also rejects unknown keys), the hook's stdin (`src/hook.ts` · `gate`), the worker's HTTP response (`src/transport.ts` · `contentOf`), the fallback's stdout (`invokeClaude`), the month's own log lines when `doctor` adds up what was spent (`src/cli.ts` · `spent`) and `package.json` when it prints the version (`src/cli.ts` · `version`). Every `JSON.parse` lands in a `const` typed `unknown`, or goes through `parsed`.
+**3.3 ALWAYS validate at the boundary, by hand, and return a typed value built from the checked fields.** The boundaries are `worker.json` (`readWorker`), the `plugged` file (`src/config.ts` · `readPlugged`, which drops a line that is not an absolute path), an adapter file (`adapterOf`, which also rejects unknown keys), the hook's stdin (`src/hook.ts` · `gate`), the worker's HTTP response (`src/transport.ts` · `contentOf`), the fallback's stdout (`invokeClaude`), the month's own log lines when `doctor` adds up what was spent (`src/cli.ts` · `spent`) and `package.json` when it prints the version (`src/cli.ts` · `version`). Every `JSON.parse` lands in a `const` typed `unknown`, or goes through `parsed`.
 
 ```ts
 // ❌ trusts the shape of a response from the network
@@ -166,10 +168,10 @@ if (run.status !== 0) return fail(`fallback worker exited ${run.status ?? run.si
 
 Guard: `test/transport.test.ts`.
 
-**3.6 ALWAYS choose, per boundary, which way it fails.** The hook fails open: a crash inside the gate lets the `Read` through and leaves a `crash` event, because ccsaver must never block a session; an adapter it cannot load falls back to the default limits the same way, and `src/hook.ts` · `adapterOrDefaults` records that crash too, so the `gate` line beside it is not read as those limits being the adapter's. Egress fails closed: a refused path, a secret or a malformed config stops the call before anything is sent. The event log changes nothing: a failed append is swallowed (`src/state.ts` · `record`).
+**3.6 ALWAYS choose, per boundary, which way it fails.** The hook fails open: a crash inside the gate lets the `Read` through and leaves a `crash` event, because ccsaver must never block a session; an adapter it cannot load falls back to the default limits the same way, and `src/hook.ts` · `adapterOrDefaults` records that crash too, so the `gate` line beside it is not read as those limits being the adapter's. Egress fails closed: a refused path, a secret or a malformed config stops the call before anything is sent. The event log changes nothing: a failed append is swallowed (`src/log.ts` · `record`).
 Guard: `test/events.test.ts`, `test/egress.test.ts`, `test/boundary.test.ts`.
 
-**3.7 NEVER check and then act on a path in two steps.** Resolve each path once, so the file that is judged is the file that is read (`src/worker.ts` · `fileBlock`). Create with `flag: "wx"`, so an existing target is refused by the write itself. Replace a state file by writing a temporary name and renaming it (`src/state.ts` · `writePrivate`). Keep a log line under 4,096 bytes, so appends from two processes stay whole lines. The one place the rule does not reach is two `plug` commands at the same instant: `src/state.ts` · `plug` reads the `plugged` file, filters it and writes it back, and although each write is atomic the three steps are not, so the later command wins and the earlier root is lost. It is typed by hand, one at a time, so it stays a known hole and not a lock.
+**3.7 NEVER check and then act on a path in two steps.** Resolve each path once, so the file that is judged is the file that is read (`src/worker.ts` · `fileBlock`). Create with `flag: "wx"`, so an existing target is refused by the write itself. Replace a state file by writing a temporary name and renaming it (`src/state.ts` · `writePrivate`). Keep a log line under 4,096 bytes, so appends from two processes stay whole lines. The one place the rule does not reach is two `plug` commands at the same instant: `src/config.ts` · `plug` reads the `plugged` file, filters it and writes it back, and although each write is atomic the three steps are not, so the later command wins and the earlier root is lost. It is typed by hand, one at a time, so it stays a known hole and not a lock.
 Guard: `test/egress.test.ts`, `test/code-write.test.ts`, `test/log.test.ts`.
 
 ## 4. Performance and async
@@ -191,7 +193,7 @@ Guard: `test/transport.test.ts`, which also adds up the three waits; a new wait 
 **4.3 ALWAYS await or return every promise**, with `async`/`await` and no `.then` chains. `src/cli.ts` sets `process.exitCode` from `await main()`; the only `process.exit` lives inside `fail`.
 Guard: Biome `noFloatingPromises`, `noMisusedPromises`, `useAwaitThenable`.
 
-**4.4 ALWAYS treat the hook as the hot path: it runs on every `Read`.** The `sh` gate leaves an unplugged project before Node starts. In a plugged one the cost is Node's start-up, so `src/hook.ts` imports `src/state.ts` and `node:` built-ins, nothing else; it counts lines on the bytes and skips measuring a ranged read while the log is off. Touching the hook means measuring it before and after, the README's way: mean of 30 runs, process spawn included.
+**4.4 ALWAYS treat the hook as the hot path: it runs on every `Read`.** The `sh` gate leaves an unplugged project before Node starts. In a plugged one the cost is Node's start-up, so `src/hook.ts` imports `src/state.ts`, `src/log.ts`, `src/config.ts` and `node:` built-ins, nothing else; it counts lines on the bytes and skips measuring a ranged read while the log is off. Touching the hook means measuring it before and after, the README's way: mean of 30 runs, process spawn included. Each module the hook imports costs about 0.85 ms of that, measured when `state.ts` became three files, so a fourth import is paid on every `Read` and needs the same measurement.
 Guard: the import list by `test/conventions.test.ts`; the measurement is *convention*.
 
 **4.5 NEVER optimise, or claim a saving, without a number.** A number in the README carries its sample size.

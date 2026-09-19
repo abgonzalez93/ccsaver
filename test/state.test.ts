@@ -11,7 +11,6 @@ import {
 import { join } from "node:path"
 import { after, test } from "node:test"
 import {
-  isEncrypted,
   loadAdapter,
   plug,
   pluggedRootOf,
@@ -20,7 +19,8 @@ import {
   setFallback,
   unplug,
   writeWorker,
-} from "../src/state.ts"
+} from "../src/config.ts"
+import { isEncrypted } from "../src/state.ts"
 import { tempDir } from "./helpers.ts"
 
 const WORK = tempDir("state-work")
