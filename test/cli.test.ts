@@ -232,7 +232,7 @@ test("doctor stops at a node that is too old, and fails when the hook does not d
   assert.equal(stopped.code, 1)
   assert.equal(
     stopped.stdout,
-    "FAIL node: ccsaver needs Node.js 22.18 or newer, this PATH has v20.11.0\n",
+    "FAIL node: ccsaver needs Node.js 24 or newer, this PATH has v20.11.0\n",
   )
   const open = await run(process.execPath, [CLI, "doctor"], {
     CCSAVER_HOME: HOME,
