@@ -21,6 +21,18 @@ const isSame = (line: string, text: string): boolean =>
 
 const escaped = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 
+const cleaned = (quote: string): string =>
+  quote
+    .trim()
+    .replace(/^`(.*)`$/, "$1")
+    .trim()
+
+const shaped = (quote: string): string =>
+  cleaned(quote.replace(/^\d+:/, "").split(/ @(?=\s|$)/)[0] ?? "")
+
+const placesOf = (lines: string[], text: string): number[] =>
+  lines.flatMap((line, i) => (text !== "" && isSame(line, text) ? [i + 1] : []))
+
 const placeOf = (places: number[], claimed: number): number | undefined => {
   if (places.includes(claimed)) return claimed
   return places.length === 1 ? places[0] : undefined
@@ -43,13 +55,9 @@ export const checked = (answer: string, sent: Cited[]): { text: string; tally: T
       return row
     }
     const claimed = Number(number)
-    const text = quote
-      .trim()
-      .replace(/^`(.*)`$/, "$1")
-      .trim()
-    const places = (trimmed.get(label) ?? []).flatMap((line, i) =>
-      text !== "" && isSame(line, text) ? [i + 1] : [],
-    )
+    const lines = trimmed.get(label) ?? []
+    const literal = placesOf(lines, cleaned(quote))
+    const places = literal.length > 0 ? literal : placesOf(lines, shaped(quote))
     const line = placeOf(places, claimed)
     tally[verdictOf(line, claimed)] += 1
     const kept = before.replace(/^[\s*+-]+/, "") === "" ? `:${quote}` : ""

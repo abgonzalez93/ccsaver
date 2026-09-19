@@ -30,6 +30,28 @@ test("a citation keeps its line, moves to the one line that holds it, or is tagg
   assert.deepEqual(tally, { match: 3, renumbered: 1, unverified: 1, bare: 1 })
 })
 
+test("the shapes the worker writes read as citations, a mis-copied word and a bare number do not", () => {
+  const grepped = { label: "grepped.txt", lines: ["20:export const a = 1", "export const a = 1"] }
+  const answer = [
+    "* the column it invented @ cited.ts:1:10:export const a = 1",
+    "* the dangling at @ cited.ts:2:export const b = 2 @ ",
+    "* the citation twice @ cited.ts:2:export const b = 2 @ cited.ts:2:export const b = 2",
+    "* the line number again @ cited.ts:2:2",
+    "* a word it mis-copied @ cited.ts:2:1:export const b = 3",
+    "* the line itself opens with a number @ grepped.txt:1:20:export const a = 1",
+  ].join("\n")
+  const { text, tally } = checked(answer, [CITED, grepped])
+  assert.deepEqual(text.split("\n"), [
+    "* the column it invented @ cited.ts:1",
+    "* the dangling at @ cited.ts:2",
+    "* the citation twice @ cited.ts:2",
+    "* the line number again @ cited.ts:2 [unverified]",
+    "* a word it mis-copied @ cited.ts:2 [unverified]",
+    "* the line itself opens with a number @ grepped.txt:1",
+  ])
+  assert.deepEqual(tally, { match: 4, renumbered: 0, unverified: 2, bare: 0 })
+})
+
 test("the quoted line may itself hold a path:line: pattern", () => {
   const trace = {
     label: "trace.ts",
