@@ -1,5 +1,7 @@
 import { spawnSync } from "node:child_process"
-import { existsSync, readFileSync, statSync } from "node:fs"
+import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 import {
   DEFAULT_LIMITS,
   encrypted,
@@ -30,6 +32,7 @@ const USAGE = `usage: ccsaver <command>
 `
 
 const PROBE_TIMEOUT_MS = 30_000
+const GATE = join(import.meta.dirname, "..", "hooks", "read-gate")
 
 type Level = "ok" | "warn" | "FAIL"
 
@@ -118,20 +121,41 @@ const fallback = (): Finding => {
     : { level: "FAIL", text: `fallback: ${bin} does not run; set "claude" in worker.json` }
 }
 
+const gate = (root: string, lines: number): Finding => {
+  const dir = mkdtempSync(join(tmpdir(), "ccsaver-doctor-"))
+  const long = join(dir, "long.txt")
+  writeFileSync(long, "x\n".repeat(lines))
+  const run = spawnSync("sh", [GATE], {
+    encoding: "utf8",
+    timeout: 15_000,
+    env: { ...process.env, CLAUDE_PROJECT_DIR: root },
+    input: JSON.stringify({ tool_input: { file_path: long } }),
+  })
+  rmSync(dir, { recursive: true })
+  return run.status === 0 && run.stdout.includes('"permissionDecision":"deny"')
+    ? { level: "ok", text: `gate: ${root} · the hook denied a ${lines}-line read` }
+    : { level: "FAIL", text: `gate: ${root} · the hook let a ${lines}-line read through` }
+}
+
 const projects = (): Finding[] =>
-  readPlugged().map(({ root, adapter }) => {
-    if (!existsSync(root)) return { level: "warn", text: `plugged: ${root} no longer exists` }
+  readPlugged().flatMap(({ root, adapter }) => {
+    if (!existsSync(root)) return [{ level: "warn", text: `plugged: ${root} no longer exists` }]
     try {
       const limits = { ...DEFAULT_LIMITS, ...(adapter === undefined ? {} : loadAdapter(adapter)) }
-      return {
-        level: "ok",
-        text: `plugged: ${root} · adapter ${adapter ?? "none"} · reads over ${limits.maxLines} lines or ${limits.maxTokens} tokens are denied`,
-      }
+      return [
+        {
+          level: "ok",
+          text: `plugged: ${root} · adapter ${adapter ?? "none"} · reads over ${limits.maxLines} lines or ${limits.maxTokens} tokens are denied`,
+        },
+        gate(root, limits.maxLines + 1),
+      ]
     } catch (error) {
-      return {
-        level: "FAIL",
-        text: `plugged: ${root} · ${error instanceof Error ? error.message : "broken adapter"}`,
-      }
+      return [
+        {
+          level: "FAIL",
+          text: `plugged: ${root} · ${error instanceof Error ? error.message : "broken adapter"}`,
+        },
+      ]
     }
   })
 

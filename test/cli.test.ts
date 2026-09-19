@@ -8,6 +8,7 @@ import {
   rmSync,
   statSync,
   symlinkSync,
+  writeFileSync,
 } from "node:fs"
 import { join } from "node:path"
 import { after, before, beforeEach, test } from "node:test"
@@ -156,8 +157,33 @@ test("doctor reports the fallback, the limits of each project and a folder that 
   const out = await ccsaver(["doctor"])
   assert.match(out.stdout, /^ok {3}fallback: .*claude \(9\.9\.9 \(fake\)\)$/m)
   assert.match(out.stdout, /^ok {3}plugged: .*project · adapter strict-ts · reads over 350 lines/m)
+  assert.match(out.stdout, /^ok {3}gate: .*project · the hook denied a 351-line read$/m)
   assert.match(out.stdout, /^warn plugged: .*gone no longer exists$/m)
   assert.equal(out.code, 0)
+})
+
+test("doctor stops at a node that is too old, and fails when the hook does not deny", async () => {
+  const bin = join(WORK, "old-node")
+  mkdirSync(bin)
+  writeFileSync(
+    join(bin, "node"),
+    '#!/bin/sh\n[ "$1" = --version ] && echo v20.11.0 && exit 0\nexit 1\n',
+  )
+  chmodSync(join(bin, "node"), 0o755)
+  const env = { PATH: `${bin}:${process.env["PATH"] ?? ""}` }
+  const stopped = await ccsaver(["doctor"], "", env)
+  assert.equal(stopped.code, 1)
+  assert.equal(
+    stopped.stdout,
+    "FAIL node: ccsaver needs Node.js 22.18 or newer, this PATH has v20.11.0\n",
+  )
+  const open = await run(process.execPath, [CLI, "doctor"], {
+    CCSAVER_HOME: HOME,
+    CLAUDE_CODE_EXECPATH: FAKE,
+    ...env,
+  })
+  assert.equal(open.code, 1)
+  assert.match(open.stdout, /^FAIL gate: .*project · the hook let a 351-line read through$/m)
 })
 
 test("doctor fails on a key readable by others and on a fallback that does not run", async () => {

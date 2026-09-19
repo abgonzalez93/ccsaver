@@ -1,16 +1,16 @@
 ---
 name: code-writer
 description: "Delegate boilerplate code generation to a cheap one-shot worker. Use for tests, fixtures, data entries or type stubs where >80% is predictable from reference files. Domain rules, design choices and debugging stay with you."
-allowed-tools: Bash(${CLAUDE_PLUGIN_ROOT}/bin/ccsaver code-write *)
+allowed-tools: Bash(ccsaver code-write *)
 license: Apache-2.0
 metadata:
   notice: "Contains material adapted from a third-party Apache-2.0 work; modified. See NOTICE in the plugin root."
 ---
 
 ```bash
-${CLAUDE_PLUGIN_ROOT}/bin/ccsaver code-write --project "${CLAUDE_PROJECT_DIR}" --spec="<what to generate>" --reference <reference-file> [<file-under-test> ...] --target <output-path>
+ccsaver code-write --project "${CLAUDE_PROJECT_DIR}" --spec="<what to generate>" --reference <reference-file> [<file-under-test> ...] --target <output-path>
 
-${CLAUDE_PLUGIN_ROOT}/bin/ccsaver code-write --project "${CLAUDE_PROJECT_DIR}" --spec="<what to generate>" --reference <reference-file>
+ccsaver code-write --project "${CLAUDE_PROJECT_DIR}" --spec="<what to generate>" --reference <reference-file>
 ```
 
 The first form writes the target, formatted when the project's adapter names a formatter; the second prints to stdout. Each call is independent. To build on what was just generated, pass that file as a `--reference` for the next call.

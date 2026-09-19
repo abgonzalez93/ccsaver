@@ -12,9 +12,9 @@ const SKILLS = [
 for (const [skill, mode] of SKILLS)
   test(`${skill} pre-approves its own subcommand, and every command it shows starts with it`, () => {
     const text = readFileSync(join(REPO, "skills", skill, "SKILL.md"), "utf8")
-    const prefix = /^allowed-tools: Bash\((\S+\/bin\/ccsaver [a-z-]+ )\*\)$/m.exec(text)?.[1] ?? ""
-    assert.ok(prefix.endsWith(`/bin/ccsaver ${mode} `), prefix)
-    const commands = text.split("\n").filter((line) => /^\S+\/bin\/ccsaver /.test(line))
+    const prefix = /^allowed-tools: Bash\((ccsaver [a-z-]+ )\*\)$/m.exec(text)?.[1] ?? ""
+    assert.equal(prefix, `ccsaver ${mode} `)
+    const commands = text.split("\n").filter((line) => line.startsWith("ccsaver "))
     assert.ok(commands.length > 0)
     for (const command of commands) {
       assert.ok(command.startsWith(prefix), command)
