@@ -2,6 +2,16 @@
 
 Every commit is a version. A git hook writes each section from the commit message, its subject and the bullets of its body ([how](README.md#versions)), and the numbers follow [Semantic Versioning](https://semver.org/). The file keeps the newest versions that fit in 350 lines; `git log` has every one.
 
+## 0.4.0 - 2026-09-20
+
+build!: Node 24.2 is the floor, the version hook's own requirement
+
+- scripts/version.ts runs on import.meta.main, which Node 24.0 and 24.1 leave undefined: there the git hook of .githooks/ runs, versions nothing and says nothing
+- engines, the doctor guard in bin/ccsaver, the README (Requirements and what doctor checks) and CONTRIBUTING 5.3 all say 24.2
+- the guard compared the major number alone and let 24.0 and 24.1 through; it now reads the minor as well
+- the test drives the guard with a node that reports the version it is given, so 24.1.0 is refused and 24.2.0 runs
+- that test took cli.test.ts to 362 lines of the 350 the gate allows, so doctor moved to test/doctor.test.ts with its own state folder
+
 ## 0.3.11 - 2026-09-20
 
 fix: the hook asks for the size before it reads the file
