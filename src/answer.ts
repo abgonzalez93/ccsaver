@@ -43,27 +43,51 @@ const verdictOf = (line: number | undefined, claimed: number): keyof Tally => {
   return line === claimed ? "match" : "renumbered"
 }
 
+interface Citation {
+  before: string
+  label: string
+  number: string
+  quote: string
+}
+
+const NOTHING: Tally = { match: 0, renumbered: 0, unverified: 0, bare: 0 }
+
+const citationOf = (row: string, cited: RegExp): Citation | undefined => {
+  const [, before = "", label = "", number = "", quote = ""] = cited.exec(row) ?? []
+  return label === "" ? undefined : { before, label, number, quote }
+}
+
+const resolved = ({ number, quote }: Citation, lines: string[]): number | undefined => {
+  const literal = placesOf(lines, cleaned(quote))
+  const places = literal.length > 0 ? literal : placesOf(lines, shaped(quote))
+  return placeOf(places, Number(number))
+}
+
+const rewritten = (
+  { before, label, number, quote }: Citation,
+  line: number | undefined,
+): string => {
+  const kept = before.replace(/^[\s*+-]+/, "") === "" ? `:${quote}` : ""
+  return `${before}${label}:${line ?? number}${kept}${line === undefined ? " [unverified]" : ""}`
+}
+
+const counted = (tally: Tally, verdict: keyof Tally | undefined): Tally =>
+  verdict === undefined ? tally : { ...tally, [verdict]: tally[verdict] + 1 }
+
 export const checked = (answer: string, sent: Cited[]): { text: string; tally: Tally } => {
   const labels = sent.map(({ label }) => escaped(label)).join("|")
   const cited = new RegExp(`^(.*? @ |.*)(?<![\\w./-])(${labels}):(\\d+):(.*)$`)
   const trimmed = new Map(sent.map(({ label, lines }) => [label, lines.map((line) => line.trim())]))
-  const tally: Tally = { match: 0, renumbered: 0, unverified: 0, bare: 0 }
-  const rows = answer.split("\n").map((row) => {
-    const [, before = "", label = "", number = "", quote = ""] = cited.exec(row) ?? []
-    if (label === "") {
-      if (row.trim() !== "") tally.bare += 1
-      return row
-    }
-    const claimed = Number(number)
-    const lines = trimmed.get(label) ?? []
-    const literal = placesOf(lines, cleaned(quote))
-    const places = literal.length > 0 ? literal : placesOf(lines, shaped(quote))
-    const line = placeOf(places, claimed)
-    tally[verdictOf(line, claimed)] += 1
-    const kept = before.replace(/^[\s*+-]+/, "") === "" ? `:${quote}` : ""
-    return `${before}${label}:${line ?? number}${kept}${line === undefined ? " [unverified]" : ""}`
+  const rows = answer.split("\n").map((row): [string, keyof Tally | undefined] => {
+    const citation = citationOf(row, cited)
+    if (citation === undefined) return [row, row.trim() === "" ? undefined : "bare"]
+    const line = resolved(citation, trimmed.get(citation.label) ?? [])
+    return [rewritten(citation, line), verdictOf(line, Number(citation.number))]
   })
-  return { text: rows.join("\n"), tally }
+  return {
+    text: rows.map(([row]) => row).join("\n"),
+    tally: rows.reduce((sum, [, verdict]) => counted(sum, verdict), NOTHING),
+  }
 }
 
 const peeled = (code: string): string => {

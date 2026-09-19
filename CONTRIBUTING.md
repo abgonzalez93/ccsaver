@@ -50,11 +50,10 @@ export const fellOf = (error: unknown): Fell => { … }
 Guard: Biome `useConst`; the rest is *convention*.
 
 ```ts
-// ❌
-const entries = readPlugged()
-entries.push(entry)
-// ✅ `src/state.ts` · `plug`
-writePlugged([...readPlugged().filter((other) => other.root !== root), entry])
+// ❌ the tally is counted up inside the map that rewrites the rows
+tally[verdictOf(line, claimed)] += 1
+// ✅ `src/answer.ts` · `counted`, folded over the rows the map returns
+verdict === undefined ? tally : { ...tally, [verdict]: tally[verdict] + 1 }
 ```
 
 Module-level mutable state exists twice, `secret` in `src/state.ts` and `delegation` in `src/transport.ts`, because one process serves one call. Both become parameters the day a process serves two.

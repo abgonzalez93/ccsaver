@@ -2,6 +2,14 @@
 
 Every commit is a version. A git hook writes each section from the commit message, its subject and the bullets of its body ([how](README.md#versions)), and the numbers follow [Semantic Versioning](https://semver.org/). The file keeps the newest versions that fit in 350 lines; `git log` has every one.
 
+## 0.4.8 - 2026-09-20
+
+refactor: checked parses, verifies and rewrites in three named steps
+
+- it did all three in one map and counted the tally up by mutating it inside that map, against rule 1.4
+- citationOf reads a row, resolved finds the line the quote really sits on, rewritten prints the row back, and counted folds the verdicts into the tally with reduce
+- CONTRIBUTING 1.4 shows the case it was written for instead of one that was never wrong
+
 ## 0.4.7 - 2026-09-20
 
 refactor: one fetch site carries the headers, the timeout and the redirect
