@@ -33,6 +33,8 @@ type Mode = keyof typeof MODES
 
 const HOUSE_RULES = " House rules, they win over the reference: "
 const FORMAT_TIMEOUT_MS = 60_000
+const FORMAT_FLOOR_MS = 1_000
+const BASH_BUDGET_MS = 115_000
 
 export const isMode = (value: string | undefined): value is Mode =>
   value !== undefined && Object.hasOwn(MODES, value)
@@ -76,10 +78,11 @@ const blocksOf = (files: string[], numbered: boolean, root: string): Sent[] => {
 const format = (adapter: Adapter, root: string, target: string): void => {
   const [command, ...args] = adapter.format ?? []
   if (command === undefined) return
+  const left = BASH_BUDGET_MS - Math.round(performance.now())
   const run = spawnSync(
     command.includes("/") ? resolve(root, command) : command,
     [...args, target],
-    { cwd: root, timeout: FORMAT_TIMEOUT_MS },
+    { cwd: root, timeout: Math.max(FORMAT_FLOOR_MS, Math.min(FORMAT_TIMEOUT_MS, left)) },
   )
   delegation["format"] = run.error
     ? "error"

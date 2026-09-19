@@ -163,16 +163,26 @@ test("the fallback runs bare and bounded, whatever the session has configured", 
   )
 })
 
-test("the two waits of a delegation fit inside the 120 s the Bash tool gives a command", () => {
-  const text = readFileSync(join(REPO, "src", "transport.ts"), "utf8")
-  const msOf = (name: string): number =>
-    Number(new RegExp(`^const ${name} = ([\\d_]+)$`, "m").exec(text)?.[1]?.replaceAll("_", ""))
-  const waits = [msOf("EXTERNAL_TIMEOUT_MS"), msOf("FALLBACK_TIMEOUT_MS")]
+test("the three waits of a delegation fit inside the 120 s the Bash tool gives a command", () => {
+  const msOf = (file: string, name: string): number =>
+    Number(
+      new RegExp(`^const ${name} = ([\\d_]+)$`, "m")
+        .exec(readFileSync(join(REPO, "src", file), "utf8"))?.[1]
+        ?.replaceAll("_", ""),
+    )
+  const external = msOf("transport.ts", "EXTERNAL_TIMEOUT_MS")
+  const fallback = msOf("transport.ts", "FALLBACK_TIMEOUT_MS")
+  const formatter = msOf("worker.ts", "FORMAT_TIMEOUT_MS")
+  const budget = msOf("worker.ts", "BASH_BUDGET_MS")
+  const floor = msOf("worker.ts", "FORMAT_FLOOR_MS")
+  const waits = [external, fallback, formatter, budget, floor]
   assert.ok(
     waits.every((ms) => ms > 0),
     String(waits),
   )
-  assert.ok(waits.reduce((sum, ms) => sum + ms, 0) < 120_000, String(waits))
+  assert.ok(external + fallback <= budget, String([external, fallback, budget]))
+  assert.ok(budget + floor < 120_000, String([budget, floor]))
+  assert.ok(formatter <= budget, String([formatter, budget]))
 })
 
 test("never follows a redirect with the file in hand", async () => {

@@ -136,7 +136,7 @@ An adapter is a small JSON file with what is specific to one project. ccsaver lo
 }
 ```
 
-Every field is optional. `format` runs from the project root with the written file appended, for at most 60 s, and a failing formatter is reported, not fatal; `after` lines are printed as `next:` commands for the model to run, with `{target}` replaced by the absolute path, shell-quoted when it needs it, so do not add quotes of your own; `maxLines` and `maxTokens` move the hook's thresholds (`maxTokens` counts bytes/4). [`adapters/strict-ts.json`](adapters/strict-ts.json) is a working example: with those rules the worker imported from the right module in 4 of 4 runs, against 0 of 4 without them.
+Every field is optional. `format` runs from the project root with the written file appended, for at most 60 s and never past what is left of the 115 s the command gives itself inside the 120 s of a Bash call, so a slow worker leaves the formatter less and it always keeps at least 1 s; a failing formatter is reported, not fatal; `after` lines are printed as `next:` commands for the model to run, with `{target}` replaced by the absolute path, shell-quoted when it needs it, so do not add quotes of your own; `maxLines` and `maxTokens` move the hook's thresholds (`maxTokens` counts bytes/4). [`adapters/strict-ts.json`](adapters/strict-ts.json) is a working example: with those rules the worker imported from the right module in 4 of 4 runs, against 0 of 4 without them.
 
 ## What leaves your machine
 

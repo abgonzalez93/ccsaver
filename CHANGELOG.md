@@ -2,6 +2,15 @@
 
 Every commit is a version. A git hook writes each section from the commit message, its subject and the bullets of its body ([how](README.md#versions)), and the numbers follow [Semantic Versioning](https://semver.org/). The file keeps the newest versions that fit in 350 lines; `git log` has every one.
 
+## 0.3.9 - 2026-09-20
+
+fix: the formatter takes what is left of the budget, not a fixed minute
+
+- the worst case added up to 175 s (30 s of the external worker, 85 s of the fallback, 60 s of the formatter) against the 120 s Claude Code gives a Bash command
+- past that the Bash tool kills the process with the target already written and perhaps half formatted, Claude never reads the "wrote ..." line, and a retry hits "refusing to overwrite"
+- format now waits min(60 s, 115 s minus what this process has already spent), and never less than 1 s
+- the test that added up the waits added up two of the three; it now reads all of them, from both files, and pins that the budget plus the floor stays under 120 s
+
 ## 0.3.8 - 2026-09-20
 
 fix: the worker url is printed without its query and refused with userinfo
