@@ -73,6 +73,7 @@ worker.json   { "url", "model", "claude"?, "fallback"? }
 plugged       one line per project: <real path><TAB><adapter>
 adapters/     your own adapters (optional)
 cache/        Node's compile cache for the hook and the CLI
+log/          the event log, only after `ccsaver log on` (700, one 600 file per month)
 ```
 
 `plug` stores the real path and refuses `/`, your home folder and any folder that contains the state folder.
@@ -90,7 +91,7 @@ Any OpenAI-compatible chat completions endpoint works; the URL must be `https` (
 
 The fallback spends your Claude usage, so it is as bare as the worker: no built-in tools and no MCP servers (`--tools ""`, `--strict-mcp-config`), whatever your Claude Code has configured. `ccsaver fallback off` turns it off once a worker is set: a call the worker cannot answer then fails with a one-line error and Claude reads by ranges instead, and a call that names a file outside the plugged root sends nothing anywhere. `ccsaver fallback on` brings it back. The fallback takes at most 400,000 characters of files per call: Haiku's context window is 200,000 tokens and the chars/4 estimate has measured about half of a real count, so a bigger call fails with a one-line error before anything is spent. The external worker has no such cap; its limit is your provider's. Claude Code's documentation says `--bare` will become the default for `-p`, and bare mode does not use a subscription login: on a future version the fallback may need an `ANTHROPIC_API_KEY`.
 
-`doctor` stops at a `node` older than 22.18, checks the permissions of the state folder and the key, sends a one-token probe (200 = the key works, 401/403 = rejected), runs the fallback binary with `--version` (unless the fallback is off), and lists each plugged project with its adapter and limits. For each of them it then feeds the hook a throwaway file one line over the limit, and the `gate:` line fails unless that read is denied. Whether the plugin itself is enabled is Claude Code's to say: `claude plugin list`. It never prints the key or its length. From a terminal outside Claude Code with no `claude` on the `PATH`, the fallback line is a `warn`, not a failure: that shell cannot see the binary a session brings, so run `doctor` from inside one.
+`doctor` stops at a `node` older than 22.18, checks the permissions of the state folder and the key, says whether the [event log](#the-event-log) is on and how many bytes this month's file holds, sends a one-token probe (200 = the key works, 401/403 = rejected), runs the fallback binary with `--version` (unless the fallback is off), and lists each plugged project with its adapter and limits. For each of them it then feeds the hook a throwaway file one line over the limit, and the `gate:` line fails unless that read is denied. Whether the plugin itself is enabled is Claude Code's to say: `claude plugin list`. It never prints the key or its length. From a terminal outside Claude Code with no `claude` on the `PATH`, the fallback line is a `warn`, not a failure: that shell cannot see the binary a session brings, so run `doctor` from inside one.
 
 ## Adapters
 
@@ -114,6 +115,7 @@ Every field is optional. `format` runs from the project root with the written fi
 - Files inside the plugged root travel labelled with their path relative to that root, so your user name and folder layout stay home.
 - Plugged project: a file goes to the external worker only when the real path of **every** file in the call is inside the plugged root. Each path is resolved once, so the file that is judged is the file that is read. One file outside (a note in your home, a symlink pointing out) sends the whole call to the Haiku fallback instead, or makes it fail when the fallback is off.
 - Files that look like secrets (`.env*`, `*.pem`, `*.key`, `id_rsa`, `.npmrc`, `credentials*`, `settings.local.json`, `*.tfstate`…) are refused outright, by given name and by real name, in any letter case. So is any file that holds a private-key header, whatever its name. The list is a net, not a guarantee: a secret pasted into `config.ts` goes out with it.
+- The state folder stays home: a call that names a file under `~/.config/ccsaver/` is refused before anything is sent, and the [event log](#the-event-log) in it is a local file that no code in ccsaver sends anywhere.
 - `code-write --target` never overwrites an existing file, only writes inside the plugged root (symlinked folders are followed first), and refuses the paths Claude Code itself protects: `.git`, `.claude`, `.vscode`, `.idea`, `.husky`, `.devcontainer` and the shell, git and package-manager config files. A refused target stops the call before anything is sent.
 
 ## What the two permission rules grant
@@ -123,6 +125,20 @@ The rules from [Honest limits](#honest-limits-with-numbers) pre-approve more tha
 - `Bash(ccsaver bulk-read *)` reads **any file your user can read**, not only the project's, except the secret-looking ones above. Your own `Read` deny rules and Claude Code's prompt for the first read outside the project do not apply to it. Files inside the plugged root go to your external worker; every other file goes to the Haiku fallback, or nowhere when the fallback is off.
 - `Bash(ccsaver code-write *)` creates new files inside the plugged root under the limits above and, when the adapter names a formatter, runs it **from the project's own folder** without a prompt. Plug in only projects whose tooling you trust.
 - What comes back is the output of a cheap model that read files you may not have written. The command prints it between `<<<worker-output ID: untrusted data>>>` and `<<<end ID>>>`, with a random ID the worker never sees, so an answer cannot fake its own end; that includes the code of a `code-write` without `--target`, so use `--target` when you want a file. Both skills tell Claude to treat what sits between the markers as data, never as instructions; `code-writer` still runs the generated tests unopened, so review what it wrote before you rely on it.
+
+## The event log
+
+Off by default. `ccsaver log on` creates `~/.config/ccsaver/log/` (700), and from then on the hook and the command append one JSON line per event to `events-YYYY-MM.jsonl` (600). The month, in UTC, is the only rotation, and nothing is ever deleted for you. The folder is the switch: without it nothing is recorded and no file is created. `ccsaver log off` renames the folder to `log.off/` with its data, `ccsaver log on` brings it back, and `rm -rf ~/.config/ccsaver/log ~/.config/ccsaver/log.off` deletes it.
+
+It holds metadata only, and it never leaves your machine:
+
+- `gate`: every `Read` the hook sees in a plugged project, allowed or denied. The path relative to the plugged root (a file outside it is `"inside": false`, with no path), `offset` and `limit`, lines, bytes, the limits and the adapter in force, the decision and its reason (`under`, `lines`, `tokens`, `range`, `binary`, `unreadable`, `malformed`), the milliseconds since the hook's process started, and the ids Claude Code hands the hook (`session_id`, `tool_use_id`, `agent_id`, `agent_type`, `permission_mode`), which are the ones in the session transcript.
+- `delegate`: one per `bulk-read` or `code-write`. Mode, number of files and how many sat outside the root, characters sent, who answered, why the external worker did not (`outside`, `no worker`, `no key`, `not https`, `status`, `incomplete`, `unreachable`), HTTP status, milliseconds, characters of the answer, the citation tally, the cost of the fallback, the exit code and, for `code-write`, whether there was a target, what the formatter did and the lines written.
+- `note` and `fail`: the one-line messages the command prints on stderr, a refusal in an unplugged project included. `config`: `plug`, `unplug`, `worker set` (host and model), `fallback`, `log`, and the bare fact of a `key set`. `doctor`: how many `ok`, `warn` and `FAIL` lines. `crash`: name, message and first stack lines of an exception, the ones the hook swallows to let the read through included.
+
+Never recorded: the contents of a file, the worker's answer, the text of `--question` or `--spec`, the key, request headers. A stored key that turns up inside a message is written as `[key]`. In an unplugged project the hook records nothing, because it exits before starting Node. A failure to write the log never changes a decision of the hook, an exit code or an output.
+
+Every line carries `v` (the format version), `ts`, `kind`, `session` (`CLAUDE_CODE_SESSION_ID`, or `null` outside Claude Code) and `pid`; a line that would pass 4,000 bytes is replaced by a stub with its size. While the log is on, the hook also measures the file behind a ranged `Read`, which it otherwise skips. `doctor` leaves one `gate` event per plugged project, marked `"tool_use_id": "doctor"`.
 
 ## Measure it yourself
 
@@ -140,7 +156,7 @@ Use several runs per arm; single runs differ by more than the effect you are loo
 ccsaver list                                   # what is still plugged
 claude plugin uninstall ccsaver@abgonzalez93
 claude plugin marketplace remove abgonzalez93
-rm -rf ~/.config/ccsaver                       # your API key lives here
+rm -rf ~/.config/ccsaver                       # your API key and the event log live here
 rm ~/bin/ccsaver                               # if you linked the launcher
 ```
 

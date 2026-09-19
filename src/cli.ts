@@ -3,15 +3,20 @@ import { existsSync, mkdtempSync, rmSync, statSync, writeFileSync } from "node:f
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import {
+  crashed,
   DEFAULT_LIMITS,
   encrypted,
   keyFile,
   loadAdapter,
+  logDir,
+  logFile,
   plug,
   readKey,
   readPlugged,
   readWorker,
+  record,
   setFallback,
+  setLog,
   stateHome,
   unplug,
   type Worker,
@@ -27,6 +32,7 @@ const USAGE = `usage: ccsaver <command>
   worker set <url> <model>  point at an OpenAI-compatible chat completions endpoint
   key set                   store the API key (typed on the terminal, never an argument)
   fallback on|off           whether a call the worker cannot take goes to paid Claude Haiku
+  log on|off                record events (metadata only) in a local file; off by default
   doctor                    check permissions, key, worker, fallback and projects
 
   bulk-read  --question=<q> --paths <file>... [--project <dir>]
@@ -125,7 +131,7 @@ const gate = (root: string, lines: number): Finding => {
     encoding: "utf8",
     timeout: 15_000,
     env: { ...process.env, CLAUDE_PROJECT_DIR: root },
-    input: JSON.stringify({ tool_input: { file_path: long } }),
+    input: JSON.stringify({ tool_use_id: "doctor", tool_input: { file_path: long } }),
   })
   rmSync(dir, { recursive: true })
   return run.status === 0 && run.stdout.includes('"permissionDecision":"deny"')
@@ -155,17 +161,31 @@ const projects = (): Finding[] =>
     }
   })
 
+const log = (): Finding => {
+  const mode = modeOf(logDir())
+  if (mode === undefined)
+    return { level: "ok", text: "log: off (ccsaver log on records events, on this machine only)" }
+  const file = logFile()
+  const bytes = existsSync(file) ? statSync(file).size : 0
+  return mode === 0o700 && (modeOf(file) ?? 0o600) === 0o600
+    ? { level: "ok", text: `log: on · ${logDir()} (700) · ${bytes} bytes this month` }
+    : { level: "FAIL", text: `log: ${logDir()} must be 700 and its files 600` }
+}
+
 const doctor = async (): Promise<number> => {
   const plugged = projects()
   const worker = readWorker()
   const findings = [
     permissions("state", stateHome(), 0o700),
+    log(),
     ...(await external(worker)),
     fallback(worker),
     ...(plugged.length > 0 ? plugged : [NOTHING_PLUGGED]),
   ]
   for (const { level, text } of findings) process.stdout.write(`${level.padEnd(4)} ${text}\n`)
-  return findings.some(({ level }) => level === "FAIL") ? 1 : 0
+  const count = (wanted: Level): number => findings.filter(({ level }) => level === wanted).length
+  record("doctor", { ok: count("ok"), warn: count("warn"), fail: count("FAIL") })
+  return count("FAIL") > 0 ? 1 : 0
 }
 
 const main = async (): Promise<number> => {
@@ -207,6 +227,12 @@ const main = async (): Promise<number> => {
       process.stdout.write(`fallback ${first}\n`)
       return 0
     }
+    case "log": {
+      if (first !== "on" && first !== "off") break
+      setLog(first === "on")
+      process.stdout.write(`log ${first}\n`)
+      return 0
+    }
     case "key":
       process.stderr.write("Error: run the ccsaver launcher (bin/ccsaver key set)\n")
       return 1
@@ -222,6 +248,7 @@ const main = async (): Promise<number> => {
 try {
   process.exitCode = await main()
 } catch (error) {
+  crashed("cli", error)
   process.stderr.write(`Error: ${error instanceof Error ? error.message : String(error)}\n`)
   process.exitCode = 1
 }

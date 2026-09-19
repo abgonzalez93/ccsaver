@@ -16,6 +16,8 @@ import {
   readKey,
   readWorker,
   real,
+  record,
+  stateHome,
   type Worker,
 } from "./state.ts"
 
@@ -46,12 +48,16 @@ const PROTECTED_NAME =
 export const isMode = (value: string | undefined): value is Mode =>
   value !== undefined && Object.hasOwn(MODES, value)
 
+const delegation: Record<string, unknown> = {}
+
 const fail: (message: string) => never = (message) => {
+  record("fail", { text: message })
   process.stderr.write(`Error: ${message}\n`)
   process.exit(1)
 }
 
 const note = (text: string): void => {
+  record("note", { text })
   process.stderr.write(`[ccsaver: ${text}]\n`)
 }
 
@@ -76,6 +82,8 @@ const fileBlock = (given: string, numbered: boolean, root: string): Sent => {
   const path = real(given)
   const inside = isUnder(path, root)
   const label = inside ? relative(root, path) : given
+  if (isUnder(path, real(stateHome())))
+    fail(`refusing to send a file from the ccsaver state folder: ${given}`)
   if ([given, path].some((name) => SECRET_NAME.test(basename(name))))
     fail(`refusing to send a secrets file to a worker: ${given}`)
   const text = ((): string => {
@@ -123,6 +131,7 @@ const checked = (answer: string, sent: Sent[]): string => {
     const kept = before.replace(/^[\s*+-]+/, "") === "" ? `:${quoted}` : ""
     return `${before}${label}:${line ?? claimed}${kept}${line === undefined ? " [unverified]" : ""}`
   })
+  delegation["cited"] = tally
   note(
     `cited lines: ${tally.match} match the files, ${tally.renumbered} renumbered, ${tally.unverified} unverified${tally.bare > 0 ? `; answer lines without a citation: ${tally.bare}` : ""}`,
   )
@@ -139,6 +148,7 @@ const invokeClaude = (
     return fail(
       `the files are ~${Math.round(message.length / 4)} tokens by chars/4, over the ${FALLBACK_MAX_CHARS / 4} the Haiku fallback takes: ask about fewer files`,
     )
+  const started = performance.now()
   const run = spawnSync(
     claudeBin(worker),
     [
@@ -166,6 +176,7 @@ const invokeClaude = (
       env: { ...process.env, MAX_THINKING_TOKENS: "0" },
     },
   )
+  delegation["fallbackMs"] = Math.round(performance.now() - started)
   if (run.error) return fail(`fallback worker could not run: ${run.error.message}`)
   if (run.status !== 0)
     return fail(`fallback worker exited ${run.status ?? run.signal}: ${run.stderr.slice(0, 400)}`)
@@ -175,6 +186,12 @@ const invokeClaude = (
   if (raw["is_error"] === true)
     return fail(`fallback worker failed: ${raw["result"].slice(0, 400)}`)
   const cost = typeof raw["total_cost_usd"] === "number" ? raw["total_cost_usd"].toFixed(4) : "?"
+  Object.assign(delegation, {
+    answered: "fallback",
+    model: FALLBACK_MODEL,
+    answerChars: raw["result"].length,
+    cost: typeof raw["total_cost_usd"] === "number" ? raw["total_cost_usd"] : null,
+  })
   note(
     `~${Math.round(message.length / 4)} input tokens by chars/4 | $${cost} | ${FALLBACK_MODEL} | delegated to ${mode}`,
   )
@@ -197,11 +214,16 @@ const invokeExternal = async (
   worker: Worker | undefined,
 ): Promise<string | undefined> => {
   const key = readKey()
-  if (worker === undefined || key === undefined) return undefined
+  if (worker === undefined || key === undefined) {
+    delegation["fell"] = worker === undefined ? "no worker" : "no key"
+    return undefined
+  }
   if (!encrypted(worker.url)) {
+    delegation["fell"] = "not https"
     note("the worker url is not https, falling back")
     return undefined
   }
+  const started = performance.now()
   try {
     const response = await fetch(worker.url, {
       method: "POST",
@@ -217,19 +239,29 @@ const invokeExternal = async (
         ],
       }),
     })
+    delegation["status"] = response.status
     const raw: unknown = response.ok ? await response.json() : undefined
     const content = contentOf(raw)
     if (content === undefined) {
+      delegation["fell"] = response.ok ? "incomplete" : "status"
       note(`${worker.model} answered ${response.status} without a complete result, falling back`)
       return undefined
     }
+    Object.assign(delegation, {
+      answered: "external",
+      model: worker.model,
+      answerChars: content.length,
+    })
     note(
       `~${Math.round(message.length / 4)} input tokens by chars/4 | external | ${worker.model} | delegated to ${mode}`,
     )
     return content
   } catch {
+    delegation["fell"] = "unreachable"
     note(`${worker.model} unreachable, falling back`)
     return undefined
+  } finally {
+    delegation["externalMs"] = Math.round(performance.now() - started)
   }
 }
 
@@ -248,6 +280,11 @@ const format = (adapter: Adapter, root: string, target: string): void => {
     [...args, target],
     { cwd: root, timeout: FORMAT_TIMEOUT_MS },
   )
+  delegation["format"] = run.error
+    ? "error"
+    : run.status === 0
+      ? "ok"
+      : `exit ${run.status ?? run.signal}`
   if (run.error)
     note(`the formatter could not run (${run.error.message}), ${target} is unformatted`)
   else if (run.status !== 0)
@@ -273,6 +310,9 @@ const marked = (output: string): string => {
 }
 
 export const runWorker = async (mode: Mode, argv: string[]): Promise<void> => {
+  process.once("exit", (exit) => {
+    record("delegate", { mode, ...delegation, exit, ms: Math.round(performance.now()) })
+  })
   const { values, positionals } = parseArgs({
     args: argv,
     allowPositionals: true,
@@ -289,6 +329,7 @@ export const runWorker = async (mode: Mode, argv: string[]): Promise<void> => {
   const project = pluggedRootOf(projectDir)
   if (project === undefined)
     fail(`${projectDir} is not plugged in, nothing was sent (ccsaver plug <dir> turns it on)`)
+  Object.assign(delegation, { root: project.root, adapter: project.adapter ?? null })
   const adapter = ((): Adapter => {
     try {
       return project.adapter === undefined ? {} : loadAdapter(project.adapter)
@@ -304,6 +345,12 @@ export const runWorker = async (mode: Mode, argv: string[]): Promise<void> => {
   const worker = readWorker()
   const invoke = async (message: string, sent: Sent[]): Promise<string> => {
     const inside = sent.every((file) => file.inside)
+    Object.assign(delegation, {
+      files: sent.length,
+      outside: sent.filter((file) => !file.inside).length,
+      chars: message.length,
+      ...(inside ? {} : { fell: "outside" }),
+    })
     const answer = inside ? await invokeExternal(mode, system, message, worker) : undefined
     if (answer !== undefined) return answer
     if (worker?.fallback === false)
@@ -324,6 +371,7 @@ export const runWorker = async (mode: Mode, argv: string[]): Promise<void> => {
   }
   if (!values.spec) fail("--spec is required")
   const target = values.target ? targetIn(project.root, values.target) : undefined
+  delegation["target"] = target !== undefined
   const sent = files.map((path) => fileBlock(path, false, project.root))
   const corpus = sent.map(({ block }) => block).join("")
   const code = unwrapped(await invoke(`${corpus}Spec: ${values.spec}\n`, sent))
@@ -343,6 +391,7 @@ export const runWorker = async (mode: Mode, argv: string[]): Promise<void> => {
   }
   format(adapter, project.root, target)
   const written = readFileSync(target, "utf8")
+  delegation["written"] = written.split("\n").length - 1
   process.stdout.write(
     [
       `wrote ${values.target} (${written.split("\n").length - 1} lines)`,

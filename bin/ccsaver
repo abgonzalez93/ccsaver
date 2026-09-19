@@ -27,6 +27,10 @@ if [ "$1" = key ] && [ "$2" = set ]; then
   fi
   printf '%s\n' "$key" > "$home/api-key.new" && mv "$home/api-key.new" "$home/api-key" || exit 1
   chmod 600 "$home/api-key"
+  if [ -d "$home/log" ]; then
+    now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
+    (printf '{"v":1,"ts":"%s","kind":"config","session":null,"pid":%s,"action":"key set"}\n' "$now" "$$" >> "$home/log/events-${now%%-[0-9][0-9]T*}.jsonl") 2>/dev/null
+  fi
   echo "key stored in $home/api-key (600); check it with: ccsaver doctor" >&2
   exit 0
 fi
