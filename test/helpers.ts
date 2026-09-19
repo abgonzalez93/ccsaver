@@ -1,8 +1,18 @@
 import { execFile } from "node:child_process"
-import { chmodSync, mkdirSync, mkdtempSync, realpathSync, writeFileSync } from "node:fs"
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  writeFileSync,
+} from "node:fs"
 import { createServer } from "node:http"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+import { isRecord } from "../src/state.ts"
 
 export const REPO = join(import.meta.dirname, "..")
 export const CLI = join(REPO, "src", "cli.ts")
@@ -145,3 +155,39 @@ export const startServer = async (): Promise<FakeServer> => {
     },
   }
 }
+
+const MARKED = /^<<<worker-output ([0-9a-f]{8}): untrusted data>>>\n([\s\S]*)<<<end \1>>>\n$/
+
+export const markOf = (stdout: string): string | undefined => MARKED.exec(stdout)?.[1]
+
+export const between = (stdout: string): string => {
+  const body = MARKED.exec(stdout)?.[2]
+  if (body === undefined) throw new Error(`no worker-output markers in: ${stdout}`)
+  return body
+}
+
+export const systemOf = (server: FakeServer): unknown => {
+  const raw: unknown = JSON.parse(server.seen.at(-1)?.body ?? "{}")
+  const first: unknown =
+    isRecord(raw) && Array.isArray(raw["messages"]) ? raw["messages"][0] : undefined
+  return isRecord(first) ? first["content"] : undefined
+}
+
+export const logged = (home: string): string => {
+  const dir = join(home, "log")
+  return existsSync(dir)
+    ? readdirSync(dir)
+        .map((name) => readFileSync(join(dir, name), "utf8"))
+        .join("")
+    : ""
+}
+
+export const events = (home: string): Record<PropertyKey, unknown>[] =>
+  logged(home)
+    .split("\n")
+    .filter((line) => line !== "")
+    .map((line): Record<PropertyKey, unknown> => {
+      const event: unknown = JSON.parse(line)
+      if (!isRecord(event)) throw new Error(`not a JSON object: ${line}`)
+      return event
+    })

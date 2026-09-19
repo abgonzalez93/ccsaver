@@ -2,6 +2,16 @@
 
 Every commit is a version. A git hook writes each section from the commit message, its subject and the bullets of its body ([how](README.md#versions)), and the numbers follow [Semantic Versioning](https://semver.org/). The file keeps the newest versions that fit in 350 lines; `git log` has every one.
 
+## 0.3.6 - 2026-09-20
+
+test: the two tests at their line limit split by responsibility
+
+- log.test.ts stood at 349 lines of the 350 the gate allows and worker.test.ts at 345, so the next test in either would have forced the split mid-fix
+- log.test.ts keeps the log as a facility (the switch, its permissions, the key it never holds, the 4,000-byte line cap, fail against crash) and events.test.ts takes what the hook and the command record: gate, delegate, doctor, crash
+- worker.test.ts becomes bulk-read.test.ts and code-write.test.ts, one flow each
+- the readers both copies needed live in test/helpers.ts now: logged, events, between, markOf and systemOf
+- CONTRIBUTING 3.6 and 3.7 name the files that hold those guards today
+
 ## 0.3.5 - 2026-09-20
 
 docs: the measurement notes move out of the README table

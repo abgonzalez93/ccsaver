@@ -166,10 +166,10 @@ if (run.status !== 0) return fail(`fallback worker exited ${run.status ?? run.si
 Guard: `test/transport.test.ts`.
 
 **3.6 ALWAYS choose, per boundary, which way it fails.** The hook fails open: a crash inside the gate lets the `Read` through and leaves a `crash` event, because ccsaver must never block a session. Egress fails closed: a refused path, a secret or a malformed config stops the call before anything is sent. The event log changes nothing: a failed append is swallowed (`src/state.ts` · `record`).
-Guard: `test/log.test.ts`, `test/egress.test.ts`, `test/boundary.test.ts`.
+Guard: `test/events.test.ts`, `test/egress.test.ts`, `test/boundary.test.ts`.
 
 **3.7 NEVER check and then act on a path in two steps.** Resolve each path once, so the file that is judged is the file that is read (`src/worker.ts` · `fileBlock`). Create with `flag: "wx"`, so an existing target is refused by the write itself. Replace a state file by writing a temporary name and renaming it (`src/state.ts` · `writePrivate`). Keep a log line under 4,096 bytes, so appends from two processes stay whole lines.
-Guard: `test/egress.test.ts`, `test/worker.test.ts`, `test/log.test.ts`.
+Guard: `test/egress.test.ts`, `test/code-write.test.ts`, `test/log.test.ts`.
 
 ## 4. Performance and async
 
