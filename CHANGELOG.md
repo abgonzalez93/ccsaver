@@ -2,6 +2,14 @@
 
 Every commit is a version. A git hook writes each section from the commit message, its subject and the bullets of its body ([how](README.md#versions)), and the numbers follow [Semantic Versioning](https://semver.org/). The file keeps the newest versions that fit in 350 lines; `git log` has every one.
 
+## 0.3.5 - 2026-09-20
+
+docs: the measurement notes move out of the README table
+
+- the "Honest limits" table had grown into a lab notebook, with cells of thousands of characters, and the README sat at 30,416 bytes of the 32,000 the gate allows
+- each row now carries its number and its sample size and links to docs/measurements.md, which holds the method and the raw figures
+- README: 28,580 bytes
+
 ## 0.3.4 - 2026-09-19
 
 docs: the citation check confirmed live on fresh answers
