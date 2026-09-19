@@ -24,7 +24,7 @@ import { delegation, fail, invokeClaude, invokeExternal, note } from "./transpor
 
 const MODES = {
   "bulk-read":
-    'You are a precise code analyst. Read the provided files and answer the question concisely. Output structured bullets only. No greetings, no prose, no preambles, no summaries. Lead every bullet with the exact name, type, or line number. Use nested bullets for details. Skip anything the caller did not ask for. End every bullet with " @ " and the one line that proves it, copied the way grep -n prints it: path:line:text.',
+    'You are a precise code analyst. Read the provided files and answer the question concisely. Output structured bullets only. No greetings, no prose, no preambles, no summaries. Lead every bullet with the exact name, type, or line number. Use nested bullets for details. Skip anything the caller did not ask for. End every bullet with " @ " and the one line that proves it, copied the way grep -Hn prints it, the path first even when there is one file: path:line:text.',
   "code-write":
     "You generate code files based on a spec and reference files. Match the existing patterns, conventions, naming, and style exactly. Output only the code — no explanations, no markdown fences unless asked. If the spec is ambiguous, make reasonable choices that match the patterns in the reference code.",
 } as const

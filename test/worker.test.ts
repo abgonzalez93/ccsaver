@@ -22,6 +22,9 @@ import {
   writeHome,
 } from "./helpers.ts"
 
+const PINNED_BULK_READ =
+  'You are a precise code analyst. Read the provided files and answer the question concisely. Output structured bullets only. No greetings, no prose, no preambles, no summaries. Lead every bullet with the exact name, type, or line number. Use nested bullets for details. Skip anything the caller did not ask for. End every bullet with " @ " and the one line that proves it, copied the way grep -Hn prints it, the path first even when there is one file: path:line:text.'
+
 const PINNED_CODE_WRITE =
   "You generate code files based on a spec and reference files. Match the existing patterns, conventions, naming, and style exactly. Output only the code — no explanations, no markdown fences unless asked. If the spec is ambiguous, make reasonable choices that match the patterns in the reference code. House rules, they win over the reference: no comments of any kind; every function is an arrow const with an explicit return type, never the function keyword; no any; no non-null assertion (!); no type assertion (as) other than as const; relative imports carry the real file extension."
 
@@ -180,7 +183,12 @@ test("bulk-read checks each cited line against the file it sent", async () => {
     out.stderr,
     /cited lines: 3 match the files, 1 renumbered, 1 unverified; answer lines without a citation: 1\]$/m,
   )
-  assert.ok(String(systemSeen()).endsWith("the way grep -n prints it: path:line:text."))
+})
+
+test("the measured bulk-read instruction asks for the path in every citation, byte for byte", async () => {
+  await bulkRead(SOURCE)
+  assert.equal(PINNED_BULK_READ.length, 465)
+  assert.equal(systemSeen(), PINNED_BULK_READ)
 })
 
 test("the answer travels between two markers whose id the worker cannot guess", async () => {

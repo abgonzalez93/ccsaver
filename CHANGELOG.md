@@ -2,6 +2,16 @@
 
 Every commit is a version. A git hook writes each section from the commit message, its subject and the bullets of its body ([how](README.md#versions)), and the numbers follow [Semantic Versioning](https://semver.org/). The file keeps the newest versions that fit in 350 lines; `git log` has every one.
 
+## 0.3.2 - 2026-09-19
+
+fix: bulk-read asks for the path in every citation, also when there is one file
+
+- the instruction said "the way grep -n prints it", and grep -n on one file prints no path: the Haiku fallback cited `line:text`, the check could not read it, and the quoted line reached Claude whole and unchecked
+- it now names grep -Hn and says the path goes first even when there is one file; the check itself is untouched
+- measured on the Haiku fallback, three single files, 5 calls per file per wording: answers with no readable citation 10 of 15 -> 1 of 15, citations without their path 58 -> 0, bytes that reach Claude 13,551 -> 8,949
+- measured on the free worker, 18 answers per wording: the new wording is tagged as often as the old one (41 of 183 against 38 of 278); the false alarms are the worker's own shapes, an invented column above all, and the README row now says so with today's numbers
+- a test pins the bulk-read instruction byte for byte, as the code-write one already was
+
 ## 0.3.1 - 2026-09-19
 
 fix: the paid fallback asks for no session title, writes a 5-minute cache and has a budget
