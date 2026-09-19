@@ -2,6 +2,13 @@
 
 Every commit is a version. A git hook writes each section from the commit message, its subject and the bullets of its body ([how](README.md#versions)), and the numbers follow [Semantic Versioning](https://semver.org/). The file keeps the newest versions that fit in 350 lines; `git log` has every one.
 
+## 0.4.10 - 2026-09-20
+
+refactor: the fake claude binary takes its cost, so spent.test writes no second copy
+
+- spent.test.ts carried its own hand-written copy of fakeClaude, byte for byte, only to report total_cost_usd 0.0125
+- fakeClaude takes the cost as a fourth default parameter; every other caller keeps the zero it had
+
 ## 0.4.9 - 2026-09-20
 
 refactor: a refusal is called a refusal

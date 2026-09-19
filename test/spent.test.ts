@@ -2,7 +2,16 @@ import assert from "node:assert/strict"
 import { mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { after, before, test } from "node:test"
-import { CLI, type FakeServer, type Ran, run, startServer, tempDir, writeHome } from "./helpers.ts"
+import {
+  CLI,
+  type FakeServer,
+  fakeClaude,
+  type Ran,
+  run,
+  startServer,
+  tempDir,
+  writeHome,
+} from "./helpers.ts"
 
 const HOME = tempDir("spent-home")
 const WORK = tempDir("spent-work")
@@ -10,7 +19,7 @@ const OUTSIDE = tempDir("spent-outside")
 const PROJECT = join(WORK, "project")
 const SOURCE = join(PROJECT, "source.ts")
 const NOTES = join(OUTSIDE, "notes.md")
-const PAID = join(WORK, "paid-claude")
+const PAID = fakeClaude(WORK, "paid-claude", "FROM-CLAUDE", 0.0125)
 
 let server: FakeServer
 
@@ -25,11 +34,6 @@ before(async () => {
   mkdirSync(PROJECT, { recursive: true })
   writeFileSync(SOURCE, "export const a = 1\n")
   writeFileSync(NOTES, "notes\n")
-  writeFileSync(
-    PAID,
-    '#!/usr/bin/env node\nprocess.stdout.write(process.argv.includes("--version") ? "9.9.9 (fake)\\n" : JSON.stringify({ result: "FROM-CLAUDE", total_cost_usd: 0.0125 }))\n',
-    { mode: 0o755 },
-  )
   writeHome(HOME, {
     plugged: [[PROJECT]],
     worker: { url: server.url, model: "cheap-1" },

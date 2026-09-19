@@ -76,11 +76,16 @@ export const run = (
     child.stdin?.end(input)
   })
 
-export const fakeClaude = (dir: string, name = "claude", result = "FROM-CLAUDE"): string => {
+export const fakeClaude = (
+  dir: string,
+  name = "claude",
+  result = "FROM-CLAUDE",
+  cost = 0,
+): string => {
   const path = join(dir, name)
   writeFileSync(
     path,
-    `#!/usr/bin/env node\nprocess.stdout.write(process.argv.includes("--version") ? "9.9.9 (fake)\\n" : JSON.stringify({ result: "${result}", total_cost_usd: 0 }))\n`,
+    `#!/usr/bin/env node\nprocess.stdout.write(process.argv.includes("--version") ? "9.9.9 (fake)\\n" : JSON.stringify({ result: "${result}", total_cost_usd: ${cost} }))\n`,
   )
   chmodSync(path, 0o755)
   return path
