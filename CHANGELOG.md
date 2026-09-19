@@ -2,6 +2,13 @@
 
 Every commit is a version. A git hook writes each section from the commit message, its subject and the bullets of its body ([how](README.md#versions)), and the numbers follow [Semantic Versioning](https://semver.org/). The file keeps the newest versions that fit in 350 lines; `git log` has every one.
 
+## 0.4.9 - 2026-09-20
+
+refactor: a refusal is called a refusal
+
+- fileBlock called one kept and another held, and targetIn called a third kept, for values that are the message of pathRefusal, contentRefusal and targetRefusal
+- refuse takes the reason and the path and stops the call, so the three sites read as what they do and no local has to be named twice in one scope
+
 ## 0.4.8 - 2026-09-20
 
 refactor: checked parses, verifies and rewrites in three named steps

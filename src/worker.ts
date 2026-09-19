@@ -61,16 +61,18 @@ interface Sent {
 
 type Ask = (message: string, sent: Sent[]) => Promise<string>
 
+const refuse = (reason: string | undefined, given: string): void => {
+  if (reason !== undefined) fail(`${reason}: ${given}`)
+}
+
 const fileBlock = (given: string, numbered: boolean, root: string): Sent => {
   const path = real(given)
   const inside = isUnder(path, root)
   const label = inside ? relative(root, path) : given
-  const kept = pathRefusal(given, path, root, real(stateHome()))
-  if (kept !== undefined) fail(`${kept}: ${given}`)
+  refuse(pathRefusal(given, path, root, real(stateHome())), given)
   const text =
     attempt(() => readFileSync(path, "utf8")) ?? fail(`file not found or unreadable: ${given}`)
-  const held = contentRefusal(text)
-  if (held !== undefined) fail(`${held}: ${given}`)
+  refuse(contentRefusal(text), given)
   const lines = (text.endsWith("\n") ? text.slice(0, -1) : text).split("\n")
   const body = numbered ? lines.map((line, i) => `${i + 1}\t${line}`).join("\n") : text
   const named = label.replaceAll('"', "&quot;")
@@ -105,8 +107,7 @@ const format = (adapter: Adapter, root: string, target: string): void => {
 const targetIn = (root: string, given: string): string => {
   const wanted = resolve(given)
   const target = join(real(dirname(wanted)), basename(wanted))
-  const kept = targetRefusal(target, root)
-  if (kept !== undefined) fail(`${kept}: ${given}`)
+  refuse(targetRefusal(target, root), given)
   if (existsSync(target)) fail(`refusing to overwrite ${given}: move or delete it first`)
   return target
 }
