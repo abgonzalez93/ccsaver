@@ -80,7 +80,7 @@ Guard: `test/conventions.test.ts`.
 | `src/state.ts` | the state folder, the guards, `Refusal`, the event log | `node:` only |
 | `src/answer.ts` | pure text work on the worker's answer | nothing |
 | `src/boundary.ts` | what may leave the machine | `state` |
-| `src/transport.ts` | the two ways out: `fetch` to the worker, spawn of the fallback | `state` |
+| `src/transport.ts` | the two ways out: `fetch` to the worker, spawn of the fallback | `state`, the `Tally` type of `answer` |
 | `src/worker.ts` | the `bulk-read` and `code-write` flows | `answer`, `boundary`, `state`, `transport` |
 | `src/cli.ts` | arguments, `doctor`, the exit code | `state`, `transport`, `worker` |
 | `src/hook.ts` | the `Read` gate | `state` |

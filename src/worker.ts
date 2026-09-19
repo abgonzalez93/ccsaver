@@ -20,7 +20,14 @@ import {
   stateHome,
   type Worker,
 } from "./state.ts"
-import { delegation, fail, invokeClaude, invokeExternal, note } from "./transport.ts"
+import {
+  type Delegation,
+  delegation,
+  fail,
+  invokeClaude,
+  invokeExternal,
+  note,
+} from "./transport.ts"
 
 const MODES = {
   "bulk-read":
@@ -84,7 +91,7 @@ const format = (adapter: Adapter, root: string, target: string): void => {
     [...args, target],
     { cwd: root, timeout: Math.max(FORMAT_FLOOR_MS, Math.min(FORMAT_TIMEOUT_MS, left)) },
   )
-  delegation["format"] = run.error
+  delegation.format = run.error
     ? "error"
     : run.status === 0
       ? "ok"
@@ -125,13 +132,13 @@ const invoke = async (
     outside: sent.filter((file) => !file.inside).length,
     chars: message.length,
     ...(inside ? {} : { fell: "outside" }),
-  })
+  } satisfies Delegation)
   const answer = inside ? await invokeExternal(mode, system, message, worker) : undefined
   if (answer !== undefined) return answer
   if (worker?.fallback === false)
     return fail(
       inside
-        ? `the worker gave no answer (${String(delegation["fell"])}) and the fallback is off (ccsaver fallback on)`
+        ? `the worker gave no answer (${String(delegation.fell)}) and the fallback is off (ccsaver fallback on)`
         : "a file is outside the plugged project and the fallback is off, nothing was sent (ccsaver fallback on)",
     )
   return invokeClaude(mode, system, message, worker)
@@ -187,7 +194,7 @@ const bulkRead = async (
   const sent = blocksOf(files, true, root)
   const corpus = sent.map(({ block }) => block).join("")
   const { text, tally } = checked(await ask(`${corpus}Question: ${question}\n`, sent), sent)
-  delegation["cited"] = tally
+  delegation.cited = tally
   note(
     `cited lines: ${tally.match} match the files, ${tally.renumbered} renumbered, ${tally.unverified} unverified${tally.bare > 0 ? `; answer lines without a citation: ${tally.bare}` : ""}`,
   )
@@ -204,7 +211,7 @@ const codeWrite = async (
 ): Promise<void> => {
   if (!spec) fail("--spec is required")
   const target = wanted ? targetIn(root, wanted) : undefined
-  delegation["target"] = target !== undefined
+  delegation.target = target !== undefined
   const sent = blocksOf(files, false, root)
   const corpus = sent.map(({ block }) => block).join("")
   const code = unwrapped(await ask(`${corpus}Spec: ${spec}\n`, sent))
@@ -227,7 +234,7 @@ const codeWrite = async (
     attempt(() => readFileSync(target, "utf8")) ?? fail(`${wanted} is gone after the formatter ran`)
   const lines = written.split("\n").length - 1
   const touched = risky(written)
-  Object.assign(delegation, { written: lines, risky: touched.length })
+  Object.assign(delegation, { written: lines, risky: touched.length } satisfies Delegation)
   process.stdout.write(
     [
       `wrote ${wanted} (${lines} lines)`,
@@ -252,7 +259,10 @@ export const runWorker = async (mode: Mode, argv: string[]): Promise<void> => {
   const project = pluggedRootOf(projectDir)
   if (project === undefined)
     fail(`${projectDir} is not plugged in, nothing was sent (ccsaver plug <dir> turns it on)`)
-  Object.assign(delegation, { root: project.root, adapter: project.adapter ?? null })
+  Object.assign(delegation, {
+    root: project.root,
+    adapter: project.adapter ?? null,
+  } satisfies Delegation)
   const adapter: Adapter = project.adapter === undefined ? {} : loadAdapter(project.adapter)
   const given = [...(values.paths ?? []), ...(values.reference ?? []), ...positionals]
   const files = [...new Set(given.map((path) => resolve(path)))]

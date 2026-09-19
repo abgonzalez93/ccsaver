@@ -2,6 +2,14 @@
 
 Every commit is a version. A git hook writes each section from the commit message, its subject and the bullets of its body ([how](README.md#versions)), and the numbers follow [Semantic Versioning](https://semver.org/). The file keeps the newest versions that fit in 350 lines; `git log` has every one.
 
+## 0.4.6 - 2026-09-20
+
+refactor: the delegate event has a shape three files can see
+
+- delegation was a Record<string, unknown> that transport and worker filled blind, so a typo in a field name was a silent missing column in the log
+- Delegation names every field the README already documents for the delegate event; single writes are dot access and grouped ones carry satisfies Delegation, so both are checked
+- cited takes the Tally of answer.ts by a type-only import, erased at runtime, rather than a second copy of its four fields; CONTRIBUTING 2.1 records that arrow
+
 ## 0.4.5 - 2026-09-20
 
 refactor: the hook's gate reads as five named steps

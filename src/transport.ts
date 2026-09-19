@@ -1,6 +1,7 @@
 // Portions of this file are adapted from a third-party Apache-2.0 work and were modified; see NOTICE.
 import { spawnSync } from "node:child_process"
 import { tmpdir } from "node:os"
+import type { Tally } from "./answer.ts"
 import {
   isEncrypted,
   isRecord,
@@ -34,7 +35,29 @@ type Fell = "timeout" | "not json" | "unreachable"
 
 export const CLAUDE_ON_PATH = "claude"
 
-export const delegation: Record<string, unknown> = {}
+export interface Delegation {
+  root?: string
+  adapter?: string | null
+  mode?: string
+  files?: number
+  outside?: number
+  chars?: number
+  fell?: string
+  status?: number
+  answered?: string
+  model?: string
+  answerChars?: number
+  cost?: number | null
+  externalMs?: number
+  fallbackMs?: number
+  cited?: Tally
+  target?: boolean
+  format?: string
+  written?: number
+  risky?: number
+}
+
+export const delegation: Delegation = {}
 
 export const fail: (message: string) => never = (message) => {
   record("fail", { text: message })
@@ -101,7 +124,7 @@ export const invokeClaude = (
       env: { ...process.env, ...BARE_ENV },
     },
   )
-  delegation["fallbackMs"] = Math.round(performance.now() - started)
+  delegation.fallbackMs = Math.round(performance.now() - started)
   const trouble = troubleOf(run.error)
   if (trouble !== undefined) return fail(trouble)
   const raw = parsed(run.stdout)
@@ -117,7 +140,7 @@ export const invokeClaude = (
     model: FALLBACK_MODEL,
     answerChars: raw["result"].length,
     cost,
-  })
+  } satisfies Delegation)
   note(
     `~${tokensOf(message)} input tokens by chars/4 | $${cost?.toFixed(4) ?? "?"} | ${FALLBACK_MODEL} | delegated to ${mode}`,
   )
@@ -167,7 +190,7 @@ const contentOf = (raw: unknown): string | undefined => {
 
 const gaveNothing = (model: string, response: Response, raw: unknown): void => {
   const cut = isCutShort(raw)
-  delegation["fell"] = response.ok ? (cut ? "length" : "incomplete") : "status"
+  delegation.fell = response.ok ? (cut ? "length" : "incomplete") : "status"
   note(
     cut
       ? `${model} cut its answer short (finish_reason length), falling back`
@@ -192,18 +215,18 @@ export const invokeExternal = async (
   worker: Worker | undefined,
 ): Promise<string | undefined> => {
   if (worker === undefined) {
-    delegation["fell"] = "no worker"
+    delegation.fell = "no worker"
     return undefined
   }
   const key = readKey()
   if (key === undefined) {
     const { fell, said } = keyless()
-    delegation["fell"] = fell
+    delegation.fell = fell
     note(`${said}, falling back`)
     return undefined
   }
   if (!isEncrypted(worker.url)) {
-    delegation["fell"] = "not https"
+    delegation.fell = "not https"
     note("the worker url is not https, falling back")
     return undefined
   }
@@ -216,7 +239,7 @@ export const invokeExternal = async (
       redirect: "error",
       body: JSON.stringify(requestOf(worker.model, system, message)),
     })
-    delegation["status"] = response.status
+    delegation.status = response.status
     const raw: unknown = response.ok ? await response.json() : undefined
     const content = contentOf(raw)
     if (content === undefined) {
@@ -227,17 +250,17 @@ export const invokeExternal = async (
       answered: "external",
       model: worker.model,
       answerChars: content.length,
-    })
+    } satisfies Delegation)
     note(
       `~${tokensOf(message)} input tokens by chars/4 | external | ${worker.model} | delegated to ${mode}`,
     )
     return content
   } catch (error) {
     const fell = fellOf(error)
-    delegation["fell"] = fell
+    delegation.fell = fell
     note(`${worker.model} ${fell}, falling back`)
     return undefined
   } finally {
-    delegation["externalMs"] = Math.round(performance.now() - started)
+    delegation.externalMs = Math.round(performance.now() - started)
   }
 }
