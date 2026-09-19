@@ -2,6 +2,14 @@
 
 Every commit is a version. A git hook writes each section from the commit message, its subject and the bullets of its body ([how](README.md#versions)), and the numbers follow [Semantic Versioning](https://semver.org/). The file keeps the newest versions that fit in 350 lines; `git log` has every one.
 
+## 0.3.4 - 2026-09-19
+
+docs: the citation check confirmed live on fresh answers
+
+- the numbers in the row came from re-reading the 72 saved answers, so the free worker was called once more to see the check work end to end: 6 answers, the 6 questions that had carried every tag of that wording
+- 40 citations, 40 matched, 0 tagged, and each one quotes the line it resolves to; the check as it stood tagged 9 of those same 40, a column written `path:69:7: text` this time
+- the run went to a throwaway state folder with the fallback off, so no paid call could happen and the real event log kept its rows
+
 ## 0.3.3 - 2026-09-19
 
 fix: the citation check reads the shapes the worker writes, not only the one it asks for
