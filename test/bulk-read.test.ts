@@ -172,6 +172,23 @@ test("sends a file once however many times it is named", async () => {
   assert.equal(body.split('<file path=\\"source.ts\\">').length - 1, 1)
 })
 
+test("refuses the options of the other mode instead of running and saying nothing", async () => {
+  const strayed = await cli([
+    "bulk-read",
+    "--project",
+    PROJECT,
+    "--question=q",
+    "--target",
+    join(PROJECT, "out.ts"),
+    "--spec",
+    "s",
+    "--paths",
+    SOURCE,
+  ])
+  assert.deepEqual([strayed.code, strayed.stdout], [1, ""])
+  assert.match(strayed.stderr, /^Error: Unknown option .--target./)
+})
+
 test("fails loudly on a missing file and on a missing question", async () => {
   assert.equal((await bulkRead(join(PROJECT, "nope.ts"))).code, 1)
   assert.equal((await cli(["bulk-read", "--project", PROJECT, "--paths", SOURCE])).code, 1)

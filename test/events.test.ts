@@ -22,6 +22,7 @@ const HOME = tempDir("events-home")
 const WORK = tempDir("events-work")
 const PROJECT = join(WORK, "project")
 const UNPLUGGED = join(WORK, "unplugged")
+const BROKEN = join(WORK, "broken")
 const LOG = join(HOME, "log")
 const SOURCE = join(PROJECT, "source.ts")
 const LONG = join(PROJECT, "deep", "long.txt")
@@ -55,12 +56,14 @@ const ask = (...paths: string[]): Promise<Ran> =>
 
 before(async () => {
   server = await startServer()
-  for (const dir of [join(PROJECT, "deep"), UNPLUGGED]) mkdirSync(dir, { recursive: true })
+  for (const dir of [join(PROJECT, "deep"), UNPLUGGED, BROKEN, join(HOME, "adapters")])
+    mkdirSync(dir, { recursive: true })
   writeFileSync(SOURCE, "export const CONTENT_SENTINEL = 1\n")
   writeFileSync(LONG, "x\n".repeat(351))
   writeFileSync(HEAVY, `${"word ".repeat(8000)}\n`)
   writeFileSync(BLOB, Buffer.from([120, 10, 0]))
   writeFileSync(OUTSIDE, "x\n")
+  writeFileSync(join(HOME, "adapters", "broken.json"), JSON.stringify({ maxLines: "abc" }))
   writeHome(HOME, { plugged: [[PROJECT]], worker: { url: server.url, model: KEY }, key: KEY })
   mkdirSync(LOG, { recursive: true, mode: 0o700 })
   chmodSync(LOG, 0o700)
@@ -120,6 +123,21 @@ test("one gate event per decision, with the ids of the call", async () => {
   )
   assert.deepEqual(seen.map(({ offset, limit, lines }) => [offset, limit, lines])[3], [10, 5, 351])
   assert.deepEqual([seen[7]?.["inside"], seen[7]?.["path"]], [false, undefined])
+})
+
+test("an adapter the hook cannot load leaves a crash next to the gate event it explains", async () => {
+  const before = events(HOME).length
+  writeHome(HOME, { plugged: [[PROJECT], [BROKEN, "broken"]] })
+  const out = await hook({ tool_input: { file_path: LONG } }, BROKEN)
+  writeHome(HOME, { plugged: [[PROJECT]] })
+  assert.match(out.stdout, /"permissionDecision":"deny"/)
+  const [crash, gate] = events(HOME).slice(before)
+  assert.deepEqual([crash?.["kind"], crash?.["where"]], ["crash", "hook adapter"])
+  assert.match(String(crash?.["message"]), /broken is malformed/)
+  assert.deepEqual(
+    [gate?.["adapter"], gate?.["maxLines"], gate?.["reason"]],
+    ["broken", 350, "lines"],
+  )
 })
 
 test("an unplugged project records nothing, not even a crash", async () => {

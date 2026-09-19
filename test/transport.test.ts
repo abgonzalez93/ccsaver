@@ -1,9 +1,9 @@
 import assert from "node:assert/strict"
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { chmodSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { createServer } from "node:http"
 import { join } from "node:path"
 import { after, before, beforeEach, test } from "node:test"
-import { fellOf } from "../src/transport.ts"
+import { fellOf, troubleOf } from "../src/transport.ts"
 import {
   CLI,
   type FakeServer,
@@ -275,6 +275,31 @@ test("says why before it pays: a worker with no key, and an answer that is not J
   const garbled = await bulkRead(SOURCE)
   assert.match(garbled.stderr, /^\[ccsaver: cheap-1 not json, falling back\]$/m)
   assert.match(garbled.stdout, /FROM-CLAUDE/)
+})
+
+test("the fallback names the cause it used to hide behind spawnSync", () => {
+  const ran = (code: string): Error =>
+    Object.assign(new Error(`spawnSync claude ${code}`), { code })
+  assert.equal(troubleOf(undefined), undefined)
+  assert.equal(troubleOf(ran("EPIPE")), undefined)
+  assert.equal(troubleOf(ran("ETIMEDOUT")), "fallback worker timed out after 85 s")
+  assert.equal(troubleOf(ran("ENOENT")), "fallback worker could not run: spawnSync claude ENOENT")
+})
+
+test("a key that cannot be read is named, never taken for a key that was never stored", async () => {
+  if (process.getuid?.() === 0) return
+  const locked = join(WORK, "home-locked")
+  writeHome(locked, {
+    plugged: PLUGGED,
+    worker: { url: server.url, model: "cheap-1" },
+    key: "k-test",
+  })
+  chmodSync(join(locked, "api-key"), 0o000)
+  const out = await bulkRead(SOURCE, { CCSAVER_HOME: locked })
+  chmodSync(join(locked, "api-key"), 0o600)
+  assert.match(out.stderr, /^\[ccsaver: .*api-key cannot be read .*falling back\]$/m)
+  assert.equal(out.stderr.includes("no API key is stored"), false)
+  assert.match(out.stdout, /FROM-CLAUDE/)
 })
 
 test("tells a timeout from a dead port and from a body that is not JSON", async () => {

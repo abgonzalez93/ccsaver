@@ -9,6 +9,7 @@ import {
   isEncrypted,
   isRecord,
   keyFile,
+  keyIsStored,
   loadAdapter,
   logDir,
   logFile,
@@ -116,7 +117,12 @@ const external = async (worker: Worker | undefined): Promise<Finding[]> => {
   }
   const key = readKey()
   if (key === undefined)
-    return [configured, { level: "FAIL", text: "key: missing, run: ccsaver key set" }]
+    return [
+      configured,
+      keyIsStored()
+        ? { level: "FAIL", text: `key: ${keyFile()} cannot be read: check its owner and its mode` }
+        : { level: "FAIL", text: "key: missing, run: ccsaver key set" },
+    ]
   return [
     configured,
     permissions("key", keyFile(), 0o600),

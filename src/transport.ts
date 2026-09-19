@@ -1,7 +1,17 @@
 // Portions of this file are adapted from a third-party Apache-2.0 work and were modified; see NOTICE.
 import { spawnSync } from "node:child_process"
 import { tmpdir } from "node:os"
-import { isEncrypted, isRecord, parsed, readKey, record, type Worker } from "./state.ts"
+import {
+  isEncrypted,
+  isRecord,
+  keyFile,
+  keyIsStored,
+  messageOf,
+  parsed,
+  readKey,
+  record,
+  type Worker,
+} from "./state.ts"
 
 const FALLBACK_MODEL = "haiku"
 const FALLBACK_BUDGET_USD = "0.5"
@@ -92,9 +102,8 @@ export const invokeClaude = (
     },
   )
   delegation["fallbackMs"] = Math.round(performance.now() - started)
-  const stoppedReading = isRecord(run.error) && run.error["code"] === "EPIPE"
-  if (run.error && !stoppedReading)
-    return fail(`fallback worker could not run: ${run.error.message}`)
+  const trouble = troubleOf(run.error)
+  if (trouble !== undefined) return fail(trouble)
   const raw = parsed(run.stdout)
   const reason = reasonOf(raw)
   if (reason !== undefined) return fail(`fallback worker failed: ${reason.slice(0, 400)}`)
@@ -129,6 +138,13 @@ export const requestOf = (
   ],
 })
 
+export const troubleOf = (error: unknown): string | undefined => {
+  const code = isRecord(error) ? error["code"] : undefined
+  if (code === "ETIMEDOUT") return `fallback worker timed out after ${FALLBACK_TIMEOUT_MS / 1000} s`
+  if (code === "EPIPE" || error === undefined) return undefined
+  return `fallback worker could not run: ${messageOf(error)}`
+}
+
 export const fellOf = (error: unknown): Fell => {
   if (error instanceof Error && error.name === "TimeoutError") return "timeout"
   return error instanceof SyntaxError ? "not json" : "unreachable"
@@ -159,16 +175,31 @@ const gaveNothing = (model: string, response: Response, raw: unknown): void => {
   )
 }
 
+const keyless = (): { fell: string; said: string } => {
+  const unreadable = keyIsStored()
+  return {
+    fell: unreadable ? "key unreadable" : "no key",
+    said: unreadable
+      ? `${keyFile()} cannot be read (check its owner and mode with ccsaver doctor)`
+      : "no API key is stored (ccsaver key set)",
+  }
+}
+
 export const invokeExternal = async (
   mode: string,
   system: string,
   message: string,
   worker: Worker | undefined,
 ): Promise<string | undefined> => {
+  if (worker === undefined) {
+    delegation["fell"] = "no worker"
+    return undefined
+  }
   const key = readKey()
-  if (worker === undefined || key === undefined) {
-    delegation["fell"] = worker === undefined ? "no worker" : "no key"
-    if (worker !== undefined) note("no API key is stored (ccsaver key set), falling back")
+  if (key === undefined) {
+    const { fell, said } = keyless()
+    delegation["fell"] = fell
+    note(`${said}, falling back`)
     return undefined
   }
   if (!isEncrypted(worker.url)) {

@@ -149,20 +149,29 @@ interface Args {
   positionals: string[]
 }
 
-const argsOf = (argv: string[]): Args => {
+const argsOf = (mode: Mode, args: string[]): Args => {
+  const project = { type: "string" } as const
   try {
-    return parseArgs({
-      args: argv,
-      allowPositionals: true,
-      options: {
-        project: { type: "string" },
-        question: { type: "string" },
-        paths: { type: "string", multiple: true },
-        spec: { type: "string" },
-        reference: { type: "string", multiple: true },
-        target: { type: "string" },
-      },
-    })
+    return mode === "bulk-read"
+      ? parseArgs({
+          args,
+          allowPositionals: true,
+          options: {
+            project,
+            question: { type: "string" },
+            paths: { type: "string", multiple: true },
+          },
+        })
+      : parseArgs({
+          args,
+          allowPositionals: true,
+          options: {
+            project,
+            spec: { type: "string" },
+            reference: { type: "string", multiple: true },
+            target: { type: "string" },
+          },
+        })
   } catch (error) {
     return fail(messageOf(error))
   }
@@ -238,7 +247,7 @@ export const runWorker = async (mode: Mode, argv: string[]): Promise<void> => {
   process.once("exit", (exit) => {
     record("delegate", { mode, ...delegation, exit, ms: Math.round(performance.now()) })
   })
-  const { values, positionals } = argsOf(argv)
+  const { values, positionals } = argsOf(mode, argv)
   const projectDir = values.project ? values.project : process.cwd()
   const project = pluggedRootOf(projectDir)
   if (project === undefined)

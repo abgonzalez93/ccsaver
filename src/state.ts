@@ -76,6 +76,8 @@ export const readKey = (): string | undefined => {
   return secret
 }
 
+export const keyIsStored = (): boolean => existsSync(keyFile())
+
 const pluggedFile = (): string => join(stateHome(), "plugged")
 
 const workerFile = (): string => join(stateHome(), "worker.json")

@@ -193,6 +193,21 @@ test("the adapter rules complete the measured code-write instruction, byte for b
   assert.equal(systemOf(server), PINNED.slice(0, 299))
 })
 
+test("refuses the options of the other mode instead of running and saying nothing", async () => {
+  const strayed = await cli([
+    "code-write",
+    "--project",
+    PROJECT,
+    "--spec=s",
+    "--question",
+    "q",
+    "--reference",
+    join(PROJECT, "source.ts"),
+  ])
+  assert.deepEqual([strayed.code, strayed.stdout], [1, ""])
+  assert.match(strayed.stderr, /^Error: Unknown option .--question./)
+})
+
 test("names the real reason when the target cannot be written", async () => {
   server.reply.content = "export const c = 3\n"
   const out = await codeWrite(PROJECT, join(PROJECT, "missing", "out.ts"))

@@ -41,8 +41,15 @@ const measure = (path: string): Measured => {
     : { lines: linesIn(bytes), bytes: bytes.length }
 }
 
-const adapterOrDefaults = (name: string | undefined): Adapter =>
-  (name === undefined ? undefined : attempt(() => loadAdapter(name))) ?? {}
+const adapterOrDefaults = (name: string | undefined): Adapter => {
+  if (name === undefined) return {}
+  try {
+    return loadAdapter(name)
+  } catch (error) {
+    crashed("hook adapter", error)
+    return {}
+  }
+}
 
 const isPresent = (value: unknown): boolean => value !== undefined && value !== null
 

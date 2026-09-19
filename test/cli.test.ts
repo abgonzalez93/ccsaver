@@ -321,6 +321,18 @@ test("doctor fails on a missing key, a worker that is down and a broken adapter"
   assert.match(down.stdout, /^FAIL probe: .* is unreachable$/m)
 })
 
+test("doctor tells a key it cannot read from a key that is not there", async () => {
+  if (process.getuid?.() === 0) return
+  const home = join(WORK, "locked-home")
+  writeHome(home, { worker: { url: server.url, model: "cheap-1" }, key: OLD_KEY })
+  chmodSync(join(home, "api-key"), 0o000)
+  const out = await ccsaver(["doctor"], "", { CCSAVER_HOME: home })
+  chmodSync(join(home, "api-key"), 0o600)
+  assert.equal(out.code, 1)
+  assert.match(out.stdout, /^FAIL key: .*api-key cannot be read/m)
+  assert.equal(out.stdout.includes("key: missing"), false)
+})
+
 test("doctor on a machine with no state only warns, and creates nothing", async () => {
   const home = join(WORK, "no-home")
   const out = await ccsaver(["doctor"], "", { CCSAVER_HOME: home })

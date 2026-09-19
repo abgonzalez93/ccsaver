@@ -2,6 +2,16 @@
 
 Every commit is a version. A git hook writes each section from the commit message, its subject and the bullets of its body ([how](README.md#versions)), and the numbers follow [Semantic Versioning](https://semver.org/). The file keeps the newest versions that fit in 350 lines; `git log` has every one.
 
+## 0.3.10 - 2026-09-20
+
+fix: the four failures that used to stay quiet now name their cause
+
+- a fallback killed at 85 s printed "fallback worker could not run: spawnSync claude ETIMEDOUT"; troubleOf reads ETIMEDOUT the way the EPIPE branch reads a child that stopped reading, and says it timed out
+- a key that exists but cannot be read (wrong owner, mode 000) was read as no key at all, so the note said "no API key is stored" and doctor said "key: missing" while the call was paid in Haiku; keyIsStored tells the two apart in both places, and the delegate event falls as "key unreadable"
+- an adapter the hook cannot load still fails open, as it must, but now leaves a crash event: without it the gate line named the adapter beside limits that were not its own
+- bulk-read --target --spec and code-write --question ran and said nothing; parseArgs is handed the options of the mode it was called for, so anything else stops the call
+- invokeExternal was the fourth function over cognitive complexity 15, so the reason for a missing key moved into keyless
+
 ## 0.3.9 - 2026-09-20
 
 fix: the formatter takes what is left of the budget, not a fixed minute
