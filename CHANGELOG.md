@@ -2,6 +2,10 @@
 
 Every commit is a version. A git hook writes each section from the commit message, its subject and the bullets of its body ([how](README.md#versions)), and the numbers follow [Semantic Versioning](https://semver.org/). The file keeps the newest versions that fit in 350 lines; `git log` has every one.
 
+## 0.4.14 - 2026-09-20
+
+ci: dependabot leaves @types/node on the minimum supported Node
+
 ## 0.4.13 - 2026-09-20
 
 ci: dependabot keeps the pinned action SHAs and the dev dependencies moving
