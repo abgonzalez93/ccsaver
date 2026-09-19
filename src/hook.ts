@@ -1,7 +1,9 @@
+// Portions of this file are adapted from a third-party Apache-2.0 work and were modified; see NOTICE.
 import { existsSync, readFileSync } from "node:fs"
 import { relative } from "node:path"
 import {
   type Adapter,
+  attempt,
   crashed,
   DEFAULT_LIMITS,
   isRecord,
@@ -15,6 +17,7 @@ import {
 
 const BYTES_PER_TOKEN = 4
 const NUL = 0
+const LINE_BREAK = 10
 const IDS = ["tool_use_id", "agent_id", "agent_type", "permission_mode"]
 
 interface Measured {
@@ -23,25 +26,25 @@ interface Measured {
   blind?: "binary" | "unreadable"
 }
 
-const measure = (path: string): Measured => {
-  try {
-    const bytes = readFileSync(path)
-    if (bytes.includes(NUL)) return { lines: 0, bytes: bytes.length, blind: "binary" }
-    const text = bytes.toString("utf8")
-    const breaks = text.split("\n").length
-    return { lines: text.endsWith("\n") ? breaks - 1 : breaks, bytes: bytes.length }
-  } catch {
-    return { lines: 0, bytes: 0, blind: "unreadable" }
-  }
+const linesIn = (bytes: Buffer): number => {
+  let lines = bytes.length > 0 && bytes.at(-1) !== LINE_BREAK ? 1 : 0
+  for (let at = bytes.indexOf(LINE_BREAK); at !== -1; at = bytes.indexOf(LINE_BREAK, at + 1))
+    lines += 1
+  return lines
 }
 
-const adapterOrDefaults = (name: string | undefined): Adapter => {
-  try {
-    return name === undefined ? {} : loadAdapter(name)
-  } catch {
-    return {}
-  }
+const measure = (path: string): Measured => {
+  const bytes = attempt(() => readFileSync(path))
+  if (bytes === undefined) return { lines: 0, bytes: 0, blind: "unreadable" }
+  return bytes.includes(NUL)
+    ? { lines: 0, bytes: bytes.length, blind: "binary" }
+    : { lines: linesIn(bytes), bytes: bytes.length }
 }
+
+const adapterOrDefaults = (name: string | undefined): Adapter =>
+  (name === undefined ? undefined : attempt(() => loadAdapter(name))) ?? {}
+
+const isPresent = (value: unknown): boolean => value !== undefined && value !== null
 
 const deny = (reason: string): void => {
   process.stdout.write(
@@ -60,7 +63,7 @@ const gate = (root: string, adapterName: string | undefined): void => {
   const call = isRecord(input) ? input : {}
   const asked = isRecord(call["tool_input"]) ? call["tool_input"] : {}
   const { file_path: given, offset, limit } = asked
-  const ranged = offset !== undefined || limit !== undefined
+  const ranged = isPresent(offset) || isPresent(limit)
   const logging = existsSync(logDir())
   if (ranged && !logging) return
   const seen = (fields: Record<string, unknown>): void => {
@@ -101,18 +104,9 @@ const gate = (root: string, adapterName: string | undefined): void => {
   })
 }
 
-const main = (): void => {
-  const project = pluggedRootOf(process.env["CLAUDE_PROJECT_DIR"] || process.cwd())
-  if (project === undefined) return
-  try {
-    gate(project.root, project.adapter)
-  } catch (error) {
-    crashed("hook", error)
-  }
-}
-
 try {
-  main()
-} catch {
-  process.exitCode = 0
+  const project = pluggedRootOf(process.env["CLAUDE_PROJECT_DIR"] || process.cwd())
+  if (project !== undefined) gate(project.root, project.adapter)
+} catch (error) {
+  crashed("hook", error)
 }

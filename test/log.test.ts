@@ -286,7 +286,7 @@ test("doctor says whether the log is on, records its tally and marks its own pro
   chmodSync(LOG, 0o700)
 })
 
-test("key set leaves the bare fact, never the key", async () => {
+test("key set leaves the bare fact, never the key, in the format of every other line", async () => {
   assert.equal((await ccsaver(["key", "set"], `${KEY}\n`)).code, 0)
   const last = events().at(-1) ?? NONE
   assert.match(String(last["ts"]), /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.000Z$/)
@@ -294,5 +294,40 @@ test("key set leaves the bare fact, never the key", async () => {
     { ...last, ts: 0, pid: 0 },
     { v: 1, ts: 0, kind: "config", session: null, pid: 0, action: "key set" },
   )
+  assert.deepEqual([...new Set(events().map(({ v }) => v))], [last["v"]])
   assert.equal(logged().includes(KEY), false)
+})
+
+test("a command that never reads the key still keeps it out of the log", async () => {
+  assert.equal((await ccsaver(["worker", "set", server.url, KEY])).code, 0)
+  const last = events().at(-1) ?? NONE
+  assert.deepEqual([last["action"], last["model"]], ["worker set", "[key]"])
+  assert.equal(logged().includes(KEY), false)
+})
+
+test("a mistake in the command line is a fail, never a crash", async () => {
+  const before = events().length
+  const typo = await ccsaver(["bulk-read", "--project", PROJECT, "--path", SOURCE])
+  const nowhere = await ccsaver(["plug", join(WORK, "nowhere")])
+  assert.deepEqual([typo.code, nowhere.code], [1, 1])
+  assert.match(typo.stderr, /^Error: Unknown option '--path'/)
+  assert.deepEqual(
+    events()
+      .slice(before)
+      .map(({ kind }) => kind),
+    ["fail", "delegate", "fail"],
+  )
+})
+
+test("log off refuses to bury an older log.off, and says so in the log it keeps", async () => {
+  mkdirSync(`${LOG}.off`)
+  const out = await ccsaver(["log", "off"])
+  rmSync(`${LOG}.off`, { recursive: true })
+  assert.equal(out.code, 1)
+  assert.match(out.stderr, /^Error: .*log\.off already exists: move it away/)
+  assert.equal(existsSync(LOG), true)
+  assert.deepEqual(
+    [events().at(-1)?.["kind"], events().at(-1)?.["text"]],
+    ["fail", out.stderr.slice(7, -1)],
+  )
 })

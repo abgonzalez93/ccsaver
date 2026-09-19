@@ -71,9 +71,10 @@ test("fails open on input that is not JSON", async () => {
   assert.equal(out.stdout, "")
 })
 
-test("allows any ranged Read", async () => {
+test("allows any ranged Read, and a null range is no range", async () => {
   assert.equal(await denied({ tool_input: { file_path: LONG, limit: 2000 } }), false)
   assert.equal(await denied({ tool_input: { file_path: LONG, offset: 10 } }), false)
+  assert.equal(await denied({ tool_input: { file_path: LONG, offset: null, limit: null } }), true)
 })
 
 test("applies to subagents too", async () => {

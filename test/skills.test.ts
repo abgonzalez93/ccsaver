@@ -2,12 +2,28 @@ import assert from "node:assert/strict"
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { test } from "node:test"
+import { isRecord } from "../src/state.ts"
 import { REPO } from "./helpers.ts"
 
 const SKILLS = [
   ["bulk-reader", "bulk-read"],
   ["code-writer", "code-write"],
 ] as const
+
+test("a plugin manifest that carries a version carries the package's", () => {
+  const versionOf = (file: string): unknown => {
+    const raw: unknown = JSON.parse(readFileSync(join(REPO, file), "utf8"))
+    return isRecord(raw) ? raw["version"] : undefined
+  }
+  const [mine, plugin] = ["package.json", join(".claude-plugin", "plugin.json")].map(versionOf)
+  assert.match(String(mine), /^\d+\.\d+\.\d+$/)
+  assert.ok(plugin === undefined || plugin === mine, `plugin.json says ${String(plugin)}`)
+})
+
+test("code-writer tells Claude what a warn: line asks for", () => {
+  const text = readFileSync(join(REPO, "skills", "code-writer", "SKILL.md"), "utf8")
+  assert.match(text, /`warn:` line/)
+})
 
 for (const [skill, mode] of SKILLS)
   test(`${skill} pre-approves its own subcommand, and every command it shows starts with it`, () => {

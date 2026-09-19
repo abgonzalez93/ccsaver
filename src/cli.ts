@@ -1,20 +1,26 @@
 import { spawnSync } from "node:child_process"
-import { existsSync, mkdtempSync, rmSync, statSync, writeFileSync } from "node:fs"
+import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import {
+  attempt,
   crashed,
   DEFAULT_LIMITS,
-  encrypted,
+  isEncrypted,
+  isRecord,
   keyFile,
   loadAdapter,
   logDir,
   logFile,
+  messageOf,
+  parsed,
   plug,
+  Refusal,
   readKey,
   readPlugged,
   readWorker,
   record,
+  setClaude,
   setFallback,
   setLog,
   stateHome,
@@ -22,18 +28,21 @@ import {
   type Worker,
   writeWorker,
 } from "./state.ts"
-import { CLAUDE_ON_PATH, claudeBin, isMode, runWorker } from "./worker.ts"
+import { CLAUDE_ON_PATH, claudeBin, fellOf, requestOf } from "./transport.ts"
+import { isMode, runWorker } from "./worker.ts"
 
 const USAGE = `usage: ccsaver <command>
 
-  plug <dir> [adapter]      turn ccsaver on for one project
-  unplug <dir>              turn it off again
-  list                      show the plugged projects
-  worker set <url> <model>  point at an OpenAI-compatible chat completions endpoint
-  key set                   store the API key (typed on the terminal, never an argument)
-  fallback on|off           whether a call the worker cannot take goes to paid Claude Haiku
-  log on|off                record events (metadata only) in a local file; off by default
-  doctor                    check permissions, key, worker, fallback and projects
+  plug <dir> [adapter]       turn ccsaver on for one project
+  unplug <dir>               turn it off again
+  list                       show the plugged projects
+  worker set <url> <model>   point at an OpenAI-compatible chat completions endpoint
+  worker claude <path>|auto  pin the claude binary the fallback runs (auto: the session's own)
+  key set                    store the API key (typed on the terminal, never an argument)
+  fallback on|off            whether a call the worker cannot take goes to paid Claude Haiku
+  log on|off                 record events (metadata only) in a local file; off by default
+  doctor                     check permissions, key, worker, fallback and projects
+  version                    print the version
 
   bulk-read  --question=<q> --paths <file>... [--project <dir>]
   code-write --spec=<s> --reference <file>... [--target <out>] [--project <dir>]
@@ -41,6 +50,13 @@ const USAGE = `usage: ccsaver <command>
 
 const PROBE_TIMEOUT_MS = 30_000
 const GATE = join(import.meta.dirname, "..", "hooks", "read-gate")
+const PACKAGE = join(import.meta.dirname, "..", "package.json")
+const HELP = [undefined, "help", "--help", "-h"]
+const WHY = {
+  timeout: "timed out",
+  "not json": "did not answer JSON",
+  unreachable: "is unreachable",
+} as const
 
 type Level = "ok" | "warn" | "FAIL"
 
@@ -51,13 +67,7 @@ interface Finding {
 
 const NOTHING_PLUGGED: Finding = { level: "warn", text: "plugged: nothing" }
 
-const modeOf = (path: string): number | undefined => {
-  try {
-    return statSync(path).mode & 0o777
-  } catch {
-    return undefined
-  }
-}
+const modeOf = (path: string): number | undefined => attempt(() => statSync(path).mode & 0o777)
 
 const permissions = (label: string, path: string, expected: number): Finding => {
   const mode = modeOf(path)
@@ -78,7 +88,7 @@ const probe = async (url: string, model: string, key: string): Promise<Finding> 
       headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
       signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
       redirect: "error",
-      body: JSON.stringify({ model, max_tokens: 1, messages: [{ role: "user", content: "ping" }] }),
+      body: JSON.stringify({ ...requestOf(model, "ping", "ping"), max_tokens: 1 }),
     })
     const took = `${Math.round(performance.now() - started)} ms`
     if (response.status === 200)
@@ -86,15 +96,15 @@ const probe = async (url: string, model: string, key: string): Promise<Finding> 
     return response.status === 401 || response.status === 403
       ? { level: "FAIL", text: `probe: the key was rejected (${response.status})` }
       : { level: "FAIL", text: `probe: ${model} answered ${response.status} in ${took}` }
-  } catch {
-    return { level: "FAIL", text: `probe: ${url} is unreachable` }
+  } catch (error) {
+    return { level: "FAIL", text: `probe: ${url} ${WHY[fellOf(error)]}` }
   }
 }
 
 const external = async (worker: Worker | undefined): Promise<Finding[]> => {
   if (worker === undefined)
     return [{ level: "warn", text: "worker: not configured, every delegation uses the fallback" }]
-  if (!encrypted(worker.url)) return [{ level: "FAIL", text: "worker: the url is not https" }]
+  if (!isEncrypted(worker.url)) return [{ level: "FAIL", text: "worker: the url is not https" }]
   const configured: Finding = { level: "ok", text: `worker: ${worker.url} · ${worker.model}` }
   const key = readKey()
   if (key === undefined)
@@ -125,18 +135,21 @@ const fallback = (worker: Worker | undefined): Finding => {
 
 const gate = (root: string, lines: number): Finding => {
   const dir = mkdtempSync(join(tmpdir(), "ccsaver-doctor-"))
-  const long = join(dir, "long.txt")
-  writeFileSync(long, "x\n".repeat(lines))
-  const run = spawnSync("sh", [GATE], {
-    encoding: "utf8",
-    timeout: 15_000,
-    env: { ...process.env, CLAUDE_PROJECT_DIR: root },
-    input: JSON.stringify({ tool_use_id: "doctor", tool_input: { file_path: long } }),
-  })
-  rmSync(dir, { recursive: true })
-  return run.status === 0 && run.stdout.includes('"permissionDecision":"deny"')
-    ? { level: "ok", text: `gate: ${root} · the hook denied a ${lines}-line read` }
-    : { level: "FAIL", text: `gate: ${root} · the hook let a ${lines}-line read through` }
+  try {
+    const long = join(dir, "long.txt")
+    writeFileSync(long, "x\n".repeat(lines))
+    const run = spawnSync("sh", [GATE], {
+      encoding: "utf8",
+      timeout: 15_000,
+      env: { ...process.env, CLAUDE_PROJECT_DIR: root },
+      input: JSON.stringify({ tool_use_id: "doctor", tool_input: { file_path: long } }),
+    })
+    return run.status === 0 && run.stdout.includes('"permissionDecision":"deny"')
+      ? { level: "ok", text: `gate: ${root} · the hook denied a ${lines}-line read` }
+      : { level: "FAIL", text: `gate: ${root} · the hook let a ${lines}-line read through` }
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
 }
 
 const projects = (): Finding[] =>
@@ -152,12 +165,7 @@ const projects = (): Finding[] =>
         gate(root, limits.maxLines + 1),
       ]
     } catch (error) {
-      return [
-        {
-          level: "FAIL",
-          text: `plugged: ${root} · ${error instanceof Error ? error.message : "broken adapter"}`,
-        },
-      ]
+      return [{ level: "FAIL", text: `plugged: ${root} · ${messageOf(error)}` }]
     }
   })
 
@@ -172,14 +180,26 @@ const log = (): Finding => {
     : { level: "FAIL", text: `log: ${logDir()} must be 700 and its files 600` }
 }
 
+const workers = async (): Promise<Finding[]> => {
+  try {
+    const worker = readWorker()
+    return [...(await external(worker)), fallback(worker)]
+  } catch (error) {
+    return [{ level: "FAIL", text: `worker: ${messageOf(error)}` }]
+  }
+}
+
+const version = (): string => {
+  const raw = parsed(attempt(() => readFileSync(PACKAGE, "utf8")) ?? "")
+  return isRecord(raw) && typeof raw["version"] === "string" ? raw["version"] : "unknown"
+}
+
 const doctor = async (): Promise<number> => {
   const plugged = projects()
-  const worker = readWorker()
   const findings = [
     permissions("state", stateHome(), 0o700),
     log(),
-    ...(await external(worker)),
-    fallback(worker),
+    ...(await workers()),
     ...(plugged.length > 0 ? plugged : [NOTHING_PLUGGED]),
   ]
   for (const { level, text } of findings) process.stdout.write(`${level.padEnd(4)} ${text}\n`)
@@ -216,9 +236,15 @@ const main = async (): Promise<number> => {
       return 0
     }
     case "worker": {
+      if (first === "claude" && second !== undefined) {
+        const pinned = setClaude(second === "auto" ? undefined : second)
+        process.stdout.write(`fallback binary: ${pinned ?? "the session's own claude"}\n`)
+        return 0
+      }
       if (first !== "set" || second === undefined || third === undefined) break
-      writeWorker(second, third)
+      const advice = writeWorker(second, third)
       process.stdout.write(`worker set to ${second} · ${third}\n`)
+      if (advice !== undefined) process.stderr.write(`warn: ${advice}\n`)
       return 0
     }
     case "fallback": {
@@ -234,21 +260,29 @@ const main = async (): Promise<number> => {
       return 0
     }
     case "key":
+      if (first !== "set") break
       process.stderr.write("Error: run the ccsaver launcher (bin/ccsaver key set)\n")
       return 1
     case "doctor":
       return doctor()
+    case "version":
+    case "--version":
+      process.stdout.write(`${version()}\n`)
+      return 0
     default:
       break
   }
-  process.stderr.write(USAGE)
-  return command === undefined || command === "help" || command === "--help" ? 0 : 1
+  const asked = HELP.includes(command)
+  const stream = asked ? process.stdout : process.stderr
+  stream.write(USAGE)
+  return asked ? 0 : 1
 }
 
 try {
   process.exitCode = await main()
 } catch (error) {
-  crashed("cli", error)
-  process.stderr.write(`Error: ${error instanceof Error ? error.message : String(error)}\n`)
+  if (error instanceof Refusal) record("fail", { text: error.message })
+  else crashed("cli", error)
+  process.stderr.write(`Error: ${messageOf(error)}\n`)
   process.exitCode = 1
 }

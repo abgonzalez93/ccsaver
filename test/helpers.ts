@@ -27,6 +27,7 @@ interface Reply {
   finish: string
   accepts: string | undefined
   location: string | undefined
+  raw: string | undefined
 }
 
 export interface FakeServer {
@@ -38,7 +39,7 @@ export interface FakeServer {
 }
 
 export const tempDir = (label: string): string =>
-  realpathSync(mkdtempSync(join(tmpdir(), `ccsaver-${label}-`)))
+  realpathSync.native(mkdtempSync(join(tmpdir(), `ccsaver-${label}-`)))
 
 export const run = (
   file: string,
@@ -59,6 +60,9 @@ export const run = (
           stderr,
         }),
     )
+    child.stdin?.on("error", (error: NodeJS.ErrnoException) => {
+      if (error.code !== "EPIPE") throw error
+    })
     child.stdin?.end(input)
   })
 
@@ -96,6 +100,7 @@ export const startServer = async (): Promise<FakeServer> => {
     finish: "stop",
     accepts: undefined,
     location: undefined,
+    raw: undefined,
   }
   const server = createServer((request, response) => {
     let body = ""
@@ -111,9 +116,10 @@ export const startServer = async (): Promise<FakeServer> => {
         ...(reply.location === undefined ? {} : { location: reply.location }),
       })
       response.end(
-        JSON.stringify({
-          choices: [{ message: { content: reply.content }, finish_reason: reply.finish }],
-        }),
+        reply.raw ??
+          JSON.stringify({
+            choices: [{ message: { content: reply.content }, finish_reason: reply.finish }],
+          }),
       )
     })
   })
@@ -132,6 +138,7 @@ export const startServer = async (): Promise<FakeServer> => {
       reply.finish = "stop"
       reply.accepts = undefined
       reply.location = undefined
+      reply.raw = undefined
     },
     close: (): void => {
       server.close()

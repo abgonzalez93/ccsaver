@@ -43,6 +43,19 @@ const SCRUB_FROM = 8
 
 let secret: string | undefined
 
+export class Refusal extends Error {}
+
+export const attempt = <T>(run: () => T): T | undefined => {
+  try {
+    return run()
+  } catch {
+    return undefined
+  }
+}
+
+export const messageOf = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error)
+
 export const isRecord = (value: unknown): value is Record<PropertyKey, unknown> =>
   typeof value === "object" && value !== null
 
@@ -58,36 +71,27 @@ export const stateHome = (): string =>
 export const keyFile = (): string => join(stateHome(), "api-key")
 
 export const readKey = (): string | undefined => {
-  try {
-    secret = readFileSync(keyFile(), "utf8").trim() || undefined
-    return secret
-  } catch {
-    return undefined
-  }
+  secret = attempt(() => readFileSync(keyFile(), "utf8").trim()) || undefined
+  return secret
 }
 
 const pluggedFile = (): string => join(stateHome(), "plugged")
 
 const workerFile = (): string => join(stateHome(), "worker.json")
 
-export const real = (path: string): string => {
-  try {
-    return realpathSync(path)
-  } catch {
-    return resolve(path)
-  }
-}
+export const real = (path: string): string =>
+  attempt(() => realpathSync.native(path)) ?? resolve(path)
 
 export const isUnder = (path: string, root: string): boolean =>
   path === root || path.startsWith(`${root}/`)
 
-export const encrypted = (url: string): boolean => {
-  try {
-    const { protocol, hostname } = new URL(url)
-    return protocol === "https:" || hostname === "127.0.0.1" || hostname === "localhost"
-  } catch {
-    return false
-  }
+export const isEncrypted = (url: string): boolean => {
+  const parts = attempt(() => new URL(url))
+  return (
+    parts?.protocol === "https:" ||
+    parts?.hostname === "127.0.0.1" ||
+    parts?.hostname === "localhost"
+  )
 }
 
 const writePrivate = (path: string, text: string): void => {
@@ -116,11 +120,10 @@ export const record = (kind: string, fields: Record<string, unknown>, session?: 
       pid: process.pid,
     }
     const full = JSON.stringify({ ...head, ...fields })
-    const line =
-      Buffer.byteLength(full) > LOG_LINE_BYTES
-        ? JSON.stringify({ ...head, dropped: Buffer.byteLength(full) })
-        : full
-    const known = secret !== undefined && secret.length >= SCRUB_FROM ? secret : undefined
+    const size = Buffer.byteLength(full)
+    const line = size > LOG_LINE_BYTES ? JSON.stringify({ ...head, dropped: size }) : full
+    const stored = secret ?? readKey()
+    const known = stored !== undefined && stored.length >= SCRUB_FROM ? stored : undefined
     const clean =
       known === undefined ? line : line.replaceAll(JSON.stringify(known).slice(1, -1), "[key]")
     appendFileSync(logFile(now), `${clean}\n`, { mode: 0o600 })
@@ -151,25 +154,20 @@ export const setLog = (on: boolean): void => {
     mkdirSync(dir, { recursive: true, mode: 0o700 })
     chmodSync(dir, 0o700)
   } else if (existsSync(dir) && existsSync(aside))
-    throw new Error(`${aside} already exists: move it away, then run ccsaver log off again`)
+    throw new Refusal(`${aside} already exists: move it away, then run ccsaver log off again`)
   record("config", { action: "log", on })
   if (!on && existsSync(dir)) renameSync(dir, aside)
 }
 
-export const readPlugged = (): Plugged[] => {
-  try {
-    return readFileSync(pluggedFile(), "utf8")
-      .split("\n")
-      .filter((line) => line.length > 0)
-      .map((line) => {
-        const [root = "", adapter] = line.split("\t")
-        return adapter ? { root, adapter } : { root }
-      })
-      .filter(({ root }) => root.startsWith("/") && root !== "/")
-  } catch {
-    return []
-  }
-}
+export const readPlugged = (): Plugged[] =>
+  (attempt(() => readFileSync(pluggedFile(), "utf8")) ?? "")
+    .split("\n")
+    .filter((line) => line.length > 0)
+    .map((line): Plugged => {
+      const [root = "", adapter] = line.split("\t")
+      return adapter ? { root, adapter } : { root }
+    })
+    .filter(({ root }) => root.startsWith("/") && root !== "/")
 
 const writePlugged = (entries: Plugged[]): void => {
   writePrivate(
@@ -203,50 +201,32 @@ const adapterOf = (raw: unknown): Adapter | undefined => {
   }
 }
 
-export const parsed = (text: string): unknown => {
-  try {
-    return JSON.parse(text)
-  } catch {
-    return undefined
-  }
-}
+export const parsed = (text: string): unknown => attempt<unknown>(() => JSON.parse(text))
 
 export const loadAdapter = (name: string): Adapter => {
-  if (!ADAPTER_NAME.test(name)) throw new Error(`invalid adapter name: ${name}`)
+  if (!ADAPTER_NAME.test(name)) throw new Refusal(`invalid adapter name: ${name}`)
   const places = [
     join(stateHome(), "adapters", `${name}.json`),
     join(import.meta.dirname, "..", "adapters", `${name}.json`),
   ]
   for (const place of places) {
-    const text = ((): string | undefined => {
-      try {
-        return readFileSync(place, "utf8")
-      } catch {
-        return undefined
-      }
-    })()
+    const text = attempt(() => readFileSync(place, "utf8"))
     if (text === undefined) continue
     const adapter = adapterOf(parsed(text))
-    if (adapter === undefined) throw new Error(`adapter ${name} is malformed: ${place}`)
+    if (adapter === undefined) throw new Refusal(`adapter ${name} is malformed: ${place}`)
     return adapter
   }
-  throw new Error(`adapter ${name} not found in ${places.join(" or ")}`)
+  throw new Refusal(`adapter ${name} not found in ${places.join(" or ")}`)
 }
 
 export const plug = (dir: string, adapter?: string): Plugged => {
-  const root = ((): string => {
-    try {
-      const found = realpathSync(dir)
-      return statSync(found).isDirectory() ? found : ""
-    } catch {
-      return ""
-    }
-  })()
-  if (root === "") throw new Error(`not a directory: ${dir}`)
+  const root = attempt(() => realpathSync.native(dir))
+  if (root === undefined || attempt(() => statSync(root).isDirectory()) !== true)
+    throw new Refusal(`not a directory: ${dir}`)
   if (LINE_BREAKERS.test(root))
-    throw new Error("a root with a tab or a line break cannot be stored")
+    throw new Refusal("a root with a tab or a line break cannot be stored")
   if (root === "/" || isUnder(real(homedir()), root) || isUnder(real(stateHome()), root))
-    throw new Error(`refusing to plug ${root}: it would expose far more than one project`)
+    throw new Refusal(`refusing to plug ${root}: it would expose far more than one project`)
   if (adapter !== undefined) loadAdapter(adapter)
   const entry: Plugged = adapter === undefined ? { root } : { root, adapter }
   writePlugged([...readPlugged().filter((other) => other.root !== root), entry])
@@ -265,19 +245,22 @@ export const unplug = (dir: string): boolean => {
 }
 
 export const readWorker = (): Worker | undefined => {
-  try {
-    const raw: unknown = JSON.parse(readFileSync(workerFile(), "utf8"))
-    if (!isRecord(raw) || typeof raw["url"] !== "string" || typeof raw["model"] !== "string")
-      return undefined
-    const { claude, fallback } = raw
-    return {
-      url: raw["url"],
-      model: raw["model"],
-      ...(typeof claude === "string" && claude.length > 0 ? { claude } : {}),
-      ...(typeof fallback === "boolean" ? { fallback } : {}),
-    }
-  } catch {
-    return undefined
+  const text = attempt(() => readFileSync(workerFile(), "utf8"))
+  if (text === undefined) return undefined
+  const raw = parsed(text)
+  const { url, model, claude, fallback } = isRecord(raw) ? raw : {}
+  if (
+    typeof url !== "string" ||
+    typeof model !== "string" ||
+    (claude !== undefined && typeof claude !== "string") ||
+    (fallback !== undefined && typeof fallback !== "boolean")
+  )
+    throw new Refusal(`${workerFile()} is malformed: fix it or delete it, nothing was sent`)
+  return {
+    url,
+    model,
+    ...(claude ? { claude } : {}),
+    ...(fallback === undefined ? {} : { fallback }),
   }
 }
 
@@ -285,19 +268,43 @@ const storeWorker = (worker: Worker): void => {
   writePrivate(workerFile(), `${JSON.stringify(worker, null, 2)}\n`)
 }
 
-export const writeWorker = (url: string, model: string): void => {
-  if (!encrypted(url)) throw new Error("the worker url must be https (localhost excepted)")
-  if (model.length === 0) throw new Error("the worker model is required")
-  storeWorker({ ...readWorker(), url, model })
-  record("config", { action: "worker set", host: new URL(url).host, model })
+export const writeWorker = (url: string, model: string): string | undefined => {
+  if (!isEncrypted(url)) throw new Refusal("the worker url must be https (localhost excepted)")
+  if (model.length === 0) throw new Refusal("the worker model is required")
+  const before = readWorker()
+  const host = new URL(url).host
+  storeWorker({ ...before, url, model })
+  record("config", { action: "worker set", host, model })
+  if (before === undefined || readKey() === undefined) return undefined
+  const old = attempt(() => new URL(before.url).host)
+  return old === host
+    ? undefined
+    : `the worker moved from ${old ?? "another host"} to ${host} and the stored key stays: run ccsaver key set unless the key belongs to ${host}`
 }
 
 export const setFallback = (on: boolean): void => {
   const worker = readWorker()
   if (worker === undefined) {
     if (on) return
-    throw new Error("set a worker first: without one the fallback is the only worker")
+    throw new Refusal("set a worker first: without one the fallback is the only worker")
   }
   storeWorker({ ...worker, fallback: on })
   record("config", { action: "fallback", on })
+}
+
+export const setClaude = (path: string | undefined): string | undefined => {
+  const worker = readWorker()
+  if (worker === undefined)
+    throw new Refusal("set a worker first: ccsaver worker set <url> <model>")
+  const claude = path === undefined ? undefined : resolve(path)
+  if (claude !== undefined && attempt(() => statSync(claude).isFile()) !== true)
+    throw new Refusal(`not a file: ${path}`)
+  storeWorker({
+    url: worker.url,
+    model: worker.model,
+    ...(claude === undefined ? {} : { claude }),
+    ...(worker.fallback === undefined ? {} : { fallback: worker.fallback }),
+  })
+  record("config", { action: "worker claude", pinned: claude !== undefined })
+  return claude
 }

@@ -149,3 +149,22 @@ test("the fallback switch is stored, survives a new worker and needs a worker to
   assert.equal(readWorker(), undefined)
   assert.throws(() => setFallback(false), /set a worker first/)
 })
+
+test("a worker.json that is there but wrong is an error, never the same as no worker", () => {
+  const file = join(HOME, "worker.json")
+  const wrong = [
+    "{",
+    "[]",
+    JSON.stringify({ url: "https://a.invalid" }),
+    JSON.stringify({ url: "https://a.invalid", model: "a", fallback: "false" }),
+    JSON.stringify({ url: "https://a.invalid", model: "a", claude: 7 }),
+  ]
+  for (const text of wrong) {
+    writeFileSync(file, text)
+    assert.throws(readWorker, /worker\.json is malformed: fix it or delete it/, text)
+    assert.throws(() => setFallback(true), /malformed/, text)
+  }
+  writeFileSync(file, JSON.stringify({ url: "https://a.invalid", model: "a", claude: "" }))
+  assert.deepEqual(readWorker(), { url: "https://a.invalid", model: "a" })
+  rmSync(file)
+})

@@ -12,12 +12,14 @@ import {
 } from "node:fs"
 import { join } from "node:path"
 import { after, before, beforeEach, test } from "node:test"
+import { isRecord } from "../src/state.ts"
 import {
   CLI,
   type FakeServer,
   fakeClaude,
   LAUNCHER,
   type Ran,
+  REPO,
   run,
   startServer,
   tempDir,
@@ -39,6 +41,12 @@ const ccsaver = (args: string[], input = "", env: NodeJS.ProcessEnv = {}): Promi
   run(LAUNCHER, args, { CCSAVER_HOME: HOME, CLAUDE_CODE_EXECPATH: FAKE, ...env }, input)
 
 const everything = (out: Ran): string => `${out.stdout}${out.stderr}`
+
+const jsonOf = (path: string): Record<PropertyKey, unknown> => {
+  const raw: unknown = JSON.parse(readFileSync(path, "utf8"))
+  assert.ok(isRecord(raw))
+  return raw
+}
 
 before(async () => {
   server = await startServer()
@@ -130,6 +138,20 @@ test("plug, list and unplug from the command line", async () => {
   assert.equal((await ccsaver([])).code, 0)
 })
 
+test("help goes to stdout, a mistake gets the usage on stderr, and version is the package's", async () => {
+  const help = await ccsaver(["--help"])
+  assert.deepEqual([help.code, help.stderr], [0, ""])
+  assert.match(help.stdout, /^usage: ccsaver <command>/)
+  assert.equal((await ccsaver(["-h"])).stdout, help.stdout)
+  for (const mistake of [["frobnicate"], ["key"], ["key", "get"], ["worker", "claude"]]) {
+    const out = await ccsaver(mistake)
+    assert.deepEqual([out.code, out.stdout, out.stderr], [1, "", help.stdout], mistake.join(" "))
+  }
+  const { version } = jsonOf(join(REPO, "package.json"))
+  assert.equal((await ccsaver(["version"])).stdout, `${String(version)}\n`)
+  assert.equal((await ccsaver(["--version"])).stdout, `${String(version)}\n`)
+})
+
 test("doctor fails on a rejected key, and passes once the key is rotated", async () => {
   server.reply.accepts = NEW_KEY
   assert.equal((await ccsaver(["worker", "set", server.url, "cheap-1"])).code, 0)
@@ -150,6 +172,41 @@ test("doctor fails on a rejected key, and passes once the key is rotated", async
       `ok   key: ${join(HOME, "api-key")} (600)`,
     )
   }
+})
+
+test("worker claude pins the fallback binary, and auto gives it back to the session", async () => {
+  const file = join(HOME, "worker.json")
+  assert.equal((await ccsaver(["worker", "claude", FAKE])).stdout, `fallback binary: ${FAKE}\n`)
+  assert.equal(jsonOf(file)["claude"], FAKE)
+  const missing = await ccsaver(["worker", "claude", join(WORK, "no-such-bin")])
+  assert.equal(missing.code, 1)
+  assert.match(missing.stderr, /^Error: not a file: /)
+  assert.equal(jsonOf(file)["claude"], FAKE)
+  const auto = await ccsaver(["worker", "claude", "auto"])
+  assert.equal(auto.stdout, "fallback binary: the session's own claude\n")
+  assert.deepEqual(Object.keys(jsonOf(file)), ["url", "model"])
+})
+
+test("moving the worker to another host warns that the stored key stays", async () => {
+  const moved = await ccsaver(["worker", "set", "https://other.invalid/v1", "cheap-1"])
+  assert.equal(moved.code, 0)
+  assert.match(
+    moved.stderr,
+    /^warn: the worker moved from 127\.0\.0\.1:\d+ to other\.invalid and the stored key stays: run ccsaver key set /,
+  )
+  const back = await ccsaver(["worker", "set", server.url, "cheap-2"])
+  assert.match(back.stderr, /^warn: the worker moved from other\.invalid to 127\.0\.0\.1:\d+ /)
+  assert.equal((await ccsaver(["worker", "set", server.url, "cheap-1"])).stderr, "")
+})
+
+test("doctor fails on a worker.json it cannot trust", async () => {
+  const home = join(WORK, "garbled-home")
+  writeHome(home, { plugged: [[PROJECT]] })
+  writeFileSync(join(home, "worker.json"), "{")
+  const out = await ccsaver(["doctor"], "", { CCSAVER_HOME: home })
+  assert.equal(out.code, 1)
+  assert.match(out.stdout, /^FAIL worker: .*worker\.json is malformed: fix it or delete it/m)
+  assert.match(out.stdout, /^ok {3}gate: /m)
 })
 
 test("doctor reports the fallback, the limits of each project and a folder that is gone", async () => {
