@@ -223,5 +223,5 @@ fix: a malformed worker.json stops the call
 **5.4 NEVER add a runtime dependency.** A plugin installed from GitHub never runs `pnpm install`, so `src/` imports `node:` built-ins and its own files. A development dependency needs numbers, the owner's approval and the 24-hour release cooldown of `pnpm-workspace.yaml`; CI installs with `--frozen-lockfile`.
 Guard: `test/conventions.test.ts`.
 
-**5.5 ALWAYS leave CI read-only:** `permissions: contents: read`, actions pinned by commit SHA, Ubuntu and macOS on Node 24 and 26.
+**5.5 ALWAYS leave CI read-only:** `permissions: contents: read`, actions pinned by commit SHA, Ubuntu and macOS on Node 24 and 26. A pinned SHA never updates itself, so `.github/dependabot.yml` opens one weekly pull request per action and per development dependency: the action ones say `ci:` and the dependency ones `build:`, which is what the hook of 5.3 needs to version them, and the npm ones wait a day, the same `minimumReleaseAge` that `pnpm-workspace.yaml` enforces at install time (5.4). A pull request is a proposal: it still needs the numbers and the approval that 5.4 asks for.
 Guard: *convention*.

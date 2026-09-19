@@ -2,6 +2,15 @@
 
 Every commit is a version. A git hook writes each section from the commit message, its subject and the bullets of its body ([how](README.md#versions)), and the numbers follow [Semantic Versioning](https://semver.org/). The file keeps the newest versions that fit in 350 lines; `git log` has every one.
 
+## 0.4.13 - 2026-09-20
+
+ci: dependabot keeps the pinned action SHAs and the dev dependencies moving
+
+- CONTRIBUTING 5.5 asks for actions pinned by commit SHA, and a pinned SHA never updates itself: nothing in the repository proposed a newer one
+- one weekly pull request per action (ci:) and per development dependency (build:), the prefixes the version hook of 5.3 needs to bump the patch number
+- the npm updates wait a day, matching the minimumReleaseAge of pnpm-workspace.yaml that 5.4 relies on
+- nothing is merged by itself: a pull request is still the proposal 5.4 asks for numbers and approval on
+
 ## 0.4.12 - 2026-09-20
 
 refactor: state.ts becomes state, log and config
