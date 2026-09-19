@@ -10,7 +10,7 @@ import {
   writeFileSync,
 } from "node:fs"
 import { homedir } from "node:os"
-import { join, resolve } from "node:path"
+import { basename, join, resolve } from "node:path"
 
 interface Plugged {
   root: string
@@ -37,6 +37,8 @@ export const DEFAULT_LIMITS = { maxLines: 350, maxTokens: 8000 } as const
 const ADAPTER_KEYS = ["rules", "format", "after", "maxLines", "maxTokens"]
 const ADAPTER_NAME = /^[a-z0-9][a-z0-9-]*$/
 const LINE_BREAKERS = /[\t\n\r]/
+const SECRET_PLACE =
+  /(^|\/)(\.?secrets?|\.ssh|\.aws|\.gnupg|\.kube|\.git)(\/|$)|(^|\/)\.docker\/config\.json$/i
 const LOCAL_HOSTS = ["127.0.0.1", "localhost", "[::1]"]
 const LOG_VERSION = 1
 const LOG_LINE_BYTES = 4000
@@ -84,6 +86,8 @@ export const workerFile = (): string => join(stateHome(), "worker.json")
 
 export const real = (path: string): string =>
   attempt(() => realpathSync.native(path)) ?? resolve(path)
+
+export const isSecretPlace = (place: string): boolean => SECRET_PLACE.test(place)
 
 export const isUnder = (path: string, root: string): boolean =>
   path === root || path.startsWith(`${root}/`)
@@ -226,6 +230,8 @@ export const plug = (dir: string, adapter?: string): Plugged => {
     throw new Refusal("a root with a tab or a line break cannot be stored")
   if (root === "/" || isUnder(real(homedir()), root) || isUnder(real(stateHome()), root))
     throw new Refusal(`refusing to plug ${root}: it would expose far more than one project`)
+  if (isSecretPlace(basename(root)))
+    throw new Refusal(`refusing to plug ${root}: it is a place where credentials live`)
   if (adapter !== undefined) loadAdapter(adapter)
   const entry: Plugged = adapter === undefined ? { root } : { root, adapter }
   writePlugged([...readPlugged().filter((other) => other.root !== root), entry])

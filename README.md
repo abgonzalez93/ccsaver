@@ -103,7 +103,7 @@ cache/        Node's compile cache for the hook and the CLI
 log/          the event log, only after `ccsaver log on` (700, one 600 file per month)
 ```
 
-`plug` stores the real path and refuses `/`, your home folder and any folder that contains the state folder.
+`plug` stores the real path and refuses `/`, your home folder, any folder that contains the state folder, and a folder that is itself a store of credentials (`.ssh`, `.aws`, `.gnupg`, `.kube`, `.git`, `secrets`, `.secrets`): from such a root the files below it are judged by their name alone, so `config` and `known_hosts` would go out. A project *inside* one of them, `~/secrets/my-app`, still plugs.
 
 ## Point it at a cheap worker
 

@@ -2,6 +2,15 @@
 
 Every commit is a version. A git hook writes each section from the commit message, its subject and the bullets of its body ([how](README.md#versions)), and the numbers follow [Semantic Versioning](https://semver.org/). The file keeps the newest versions that fit in 350 lines; `git log` has every one.
 
+## 0.4.2 - 2026-09-20
+
+fix: plug refuses a root that is itself a store of credentials
+
+- ccsaver plug ~/.ssh was accepted, and because a place is judged from the plugged root down, config and known_hosts then left as ordinary files
+- it is the same class of mistake plug already refuses for / and for the home folder, so it refuses the same way
+- the secrets-place pattern moved to src/state.ts as isSecretPlace, which boundary already imports and which plug can reach without an arrow that turns back: the check stays inside plug, so the path is still resolved once (rule 3.7)
+- only the root's own last segment counts, so a project inside ~/secrets/ still plugs, as the README says it should
+
 ## 0.4.1 - 2026-09-20
 
 fix: doctor checks the mode of every file in the state folder

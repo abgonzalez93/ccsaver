@@ -70,6 +70,18 @@ test("plug refuses the filesystem root, the home and any root holding the state 
   assert.throws(() => plug(HOME), /refusing to plug/)
 })
 
+test("plug refuses a root that is itself a store of credentials", () => {
+  const stores = [".ssh", ".aws", ".gnupg", ".kube", ".git", "secrets", ".secrets"]
+  for (const name of stores) {
+    const store = join(WORK, name)
+    mkdirSync(store, { recursive: true })
+    assert.throws(() => plug(store), /credentials live/, name)
+  }
+  const inside = join(WORK, "secrets", "project")
+  mkdirSync(inside, { recursive: true })
+  assert.deepEqual(plug(inside), { root: inside })
+  unplug(inside)
+})
 test("plug refuses what is not a folder and a path that would break the state file", () => {
   const file = join(WORK, "a-file.txt")
   const broken = join(WORK, "injected\n/etc")
