@@ -33,7 +33,7 @@ Other limits:
 
 - **Linux and macOS only.** The gate is a POSIX `sh` script.
 - The cheap worker ignores style rules now and then. That is why `code-writer` treats your project's checks as the reviewer and why adapters can list follow-up commands.
-- **Line citations are checked, claims are not.** `bulk-read` asks the worker to end each bullet with the line that proves it, the way `grep -n` prints it, and compares that text with the file: a match is cut down to `path:line`, a quote found on one other line is renumbered, and anything else is tagged `[unverified]`. What the worker *says* about the code is still the word of a cheap model.
+- **Line citations are checked, claims are not.** `bulk-read` asks the worker to end each bullet with the line that proves it, the way `grep -n` prints it, and compares that text with the file: a match is cut down to `path:line`, a quote found on one other line is renumbered, and anything else is tagged `[unverified]`. The note on stderr adds up the three, and says how many answer lines carry no citation at all. What the worker *says* about the code is still the word of a cheap model.
 - If most of your files are under 300 lines, the hook will rarely fire and the honest expectation is a small saving.
 - **Permission prompts.** Each skill pre-approves its own subcommand and nothing else. Claude Code 2.1.274 applies that grant when you type `/ccsaver:bulk-reader` yourself; when Claude invokes the skill on its own, which is what the hook's message asks for, it registers the grant but does not apply it, so your usual permission flow decides. Answer "don't ask again" once, or add `Bash(/path/to/ccsaver/bin/ccsaver bulk-read *)` and `Bash(/path/to/ccsaver/bin/ccsaver code-write *)` to `permissions.allow` in `~/.claude/settings.json`.
 
@@ -75,7 +75,7 @@ api-key       600, the key of the external worker
 worker.json   { "url", "model", "claude"?, "fallback"? }
 plugged       one line per project: <real path><TAB><adapter>
 adapters/     your own adapters (optional)
-cache/        Node's compile cache for the hook
+cache/        Node's compile cache for the hook and the CLI
 ```
 
 `plug` stores the real path and refuses `/`, your home folder and any folder that contains the state folder.

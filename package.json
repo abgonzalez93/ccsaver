@@ -14,8 +14,8 @@
     "typecheck": "tsc -p tsconfig.json",
     "lint": "biome check . --error-on-warnings",
     "format": "biome check . --write",
-    "deps:check": "pnpm outdated -r || true",
-    "deps:update": "pnpm update -r --latest"
+    "deps:check": "pnpm outdated || true",
+    "deps:update": "pnpm update --latest"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14",

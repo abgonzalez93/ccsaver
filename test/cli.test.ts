@@ -1,9 +1,18 @@
 import assert from "node:assert/strict"
 import { spawn, spawnSync } from "node:child_process"
-import { chmodSync, mkdirSync, readFileSync, rmSync, statSync, symlinkSync } from "node:fs"
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+} from "node:fs"
 import { join } from "node:path"
 import { after, before, beforeEach, test } from "node:test"
 import {
+  CLI,
   type FakeServer,
   fakeClaude,
   LAUNCHER,
@@ -11,6 +20,7 @@ import {
   run,
   startServer,
   tempDir,
+  writeHome,
 } from "./helpers.ts"
 
 const OLD_KEY = "k-old-0123456789-0123456789-012345678"
@@ -94,12 +104,23 @@ test("the launcher works through a symlink", async () => {
   const out = await run(link, ["list"], { CCSAVER_HOME: HOME })
   assert.equal(out.code, 0)
   assert.equal(out.stdout, "nothing is plugged in\n")
+  assert.equal(existsSync(join(HOME, "cache")), true)
+})
+
+test("key set needs the launcher", async () => {
+  const out = await run("node", [CLI, "key", "set"], { CCSAVER_HOME: HOME })
+  assert.equal(out.code, 1)
+  assert.match(out.stderr, /^Error: run the ccsaver launcher/)
 })
 
 test("plug, list and unplug from the command line", async () => {
   assert.equal((await ccsaver(["plug", PROJECT, "strict-ts"])).code, 0)
   assert.equal((await ccsaver(["plug", GONE])).code, 0)
   assert.equal((await ccsaver(["list"])).stdout, `${PROJECT}\tstrict-ts\n${GONE}\t\n`)
+  assert.equal((await ccsaver(["unplug", GONE])).stdout, `unplugged ${GONE}\n`)
+  assert.equal((await ccsaver(["unplug", GONE])).stdout, `${GONE} was not plugged\n`)
+  assert.equal((await ccsaver(["unplug"])).code, 1)
+  assert.equal((await ccsaver(["plug", GONE])).code, 0)
   const refused = await ccsaver(["plug", "/"])
   assert.equal(refused.code, 1)
   assert.match(refused.stderr, /^Error: refusing to plug \/: /)
@@ -178,4 +199,29 @@ test("fallback off shows in doctor without running the binary, and on brings it 
     /^ok {3}fallback: .*claude \(9\.9\.9 \(fake\)\)$/m,
   )
   assert.equal((await ccsaver(["fallback", "sideways"])).code, 1)
+})
+
+test("doctor fails on a missing key, a worker that is down and a broken adapter", async () => {
+  const home = join(WORK, "sick-home")
+  const dead = await startServer()
+  dead.close()
+  writeHome(home, {
+    plugged: [[PROJECT, "no-such-adapter"]],
+    worker: { url: dead.url, model: "cheap-1" },
+  })
+  const keyless = await ccsaver(["doctor"], "", { CCSAVER_HOME: home })
+  assert.equal(keyless.code, 1)
+  assert.match(keyless.stdout, /^FAIL key: missing, run: ccsaver key set$/m)
+  assert.match(keyless.stdout, /^FAIL plugged: .*project · adapter no-such-adapter not found in /m)
+  writeHome(home, { key: OLD_KEY })
+  const down = await ccsaver(["doctor"], "", { CCSAVER_HOME: home })
+  assert.match(down.stdout, /^FAIL probe: .* is unreachable$/m)
+})
+
+test("doctor on a machine with no state only warns, and creates nothing", async () => {
+  const home = join(WORK, "no-home")
+  const out = await ccsaver(["doctor"], "", { CCSAVER_HOME: home })
+  assert.match(out.stdout, /^warn state: .*no-home does not exist yet$/m)
+  assert.equal(out.code, 0)
+  assert.equal(existsSync(home), false)
 })

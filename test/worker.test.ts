@@ -160,7 +160,10 @@ test("bulk-read checks each cited line against the file it sent", async () => {
       "* no citation here\n",
     ].join("\n"),
   )
-  assert.match(out.stderr, /cited lines: 3 match the files, 1 renumbered, 1 unverified\]$/m)
+  assert.match(
+    out.stderr,
+    /cited lines: 3 match the files, 1 renumbered, 1 unverified; answer lines without a citation: 1\]$/m,
+  )
   assert.ok(String(systemSeen()).endsWith("the way grep -n prints it: path:line:text."))
 })
 
@@ -242,9 +245,11 @@ test("code-write strips the markdown fence, writes the target and never overwrit
   assert.equal(out.code, 0)
   assert.equal(out.stdout, `wrote ${target} (1 lines)\n`)
   assert.equal(readFileSync(target, "utf8"), "export const c = 3\n")
+  const sent = server.seen.length
   const again = await cli([...args, "--target", target])
   assert.equal(again.code, 1)
   assert.match(again.stderr, /refusing to overwrite/)
+  assert.equal(server.seen.length, sent)
   assert.equal((await cli(args)).stdout, "export const c = 3\n")
 })
 

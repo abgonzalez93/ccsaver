@@ -10,12 +10,12 @@ import {
 import { homedir } from "node:os"
 import { join, resolve } from "node:path"
 
-export interface Plugged {
+interface Plugged {
   root: string
   adapter?: string
 }
 
-export interface Worker {
+interface Worker {
   url: string
   model: string
   claude?: string

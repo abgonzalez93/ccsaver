@@ -5,9 +5,9 @@ while [ -L "$self" ]; do
   case $link in /*) self=$link ;; *) self=$(dirname "$self")/$link ;; esac
 done
 root=$(cd "$(dirname "$self")/.." && pwd -P) || exit 1
+home=${CCSAVER_HOME:-$HOME/.config/ccsaver}
 
 if [ "$1" = key ] && [ "$2" = set ]; then
-  home=${CCSAVER_HOME:-$HOME/.config/ccsaver}
   umask 077
   mkdir -p "$home" && chmod 700 "$home" || exit 1
   if [ -t 0 ]; then
@@ -31,4 +31,8 @@ if [ "$1" = key ] && [ "$2" = set ]; then
   exit 0
 fi
 
+if [ -d "$home" ]; then
+  NODE_COMPILE_CACHE="$home/cache"
+  export NODE_COMPILE_CACHE
+fi
 exec node "$root/src/cli.ts" "$@"

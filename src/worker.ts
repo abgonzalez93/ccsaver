@@ -1,6 +1,6 @@
 // Portions of this file are adapted from a third-party Apache-2.0 work and were modified; see NOTICE.
 import { spawnSync } from "node:child_process"
-import { readFileSync, writeFileSync } from "node:fs"
+import { existsSync, readFileSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { basename, dirname, join, relative, resolve } from "node:path"
 import { parseArgs } from "node:util"
@@ -95,10 +95,13 @@ const escaped = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, "\
 const checked = (answer: string, sent: Sent[]): string => {
   const labels = sent.map(({ label }) => escaped(label)).join("|")
   const cited = new RegExp(`^(.*)(?<![\\w./-])(${labels}):(\\d+):(.*)$`)
-  const tally = { match: 0, renumbered: 0, unverified: 0 }
+  const tally = { match: 0, renumbered: 0, unverified: 0, bare: 0 }
   const rows = answer.split("\n").map((row) => {
     const [, before = "", label = "", claimed = "", quoted = ""] = cited.exec(row) ?? []
-    if (label === "") return row
+    if (label === "") {
+      if (row.trim() !== "") tally.bare += 1
+      return row
+    }
     const text = quoted
       .trim()
       .replace(/^`(.*)`$/, "$1")
@@ -117,7 +120,7 @@ const checked = (answer: string, sent: Sent[]): string => {
     return `${before}${label}:${line ?? claimed}${kept}${line === undefined ? " [unverified]" : ""}`
   })
   note(
-    `cited lines: ${tally.match} match the files, ${tally.renumbered} renumbered, ${tally.unverified} unverified`,
+    `cited lines: ${tally.match} match the files, ${tally.renumbered} renumbered, ${tally.unverified} unverified${tally.bare > 0 ? `; answer lines without a citation: ${tally.bare}` : ""}`,
   )
   return rows.join("\n")
 }
@@ -256,6 +259,7 @@ const targetIn = (root: string, given: string): string => {
   if (!isUnder(target, root)) fail(`refusing to write outside the plugged project: ${given}`)
   if (PROTECTED_PLACE.test(relative(root, target)) || PROTECTED_NAME.test(basename(target)))
     fail(`refusing to write a path that Claude Code protects: ${given}`)
+  if (existsSync(target)) fail(`refusing to overwrite ${given}: move or delete it first`)
   return target
 }
 

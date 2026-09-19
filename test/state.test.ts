@@ -121,6 +121,7 @@ test("the deepest plugged root wins and a sibling prefix never matches", () => {
 
 test("the worker url must be encrypted and the pinned fallback survives a new worker", () => {
   assert.throws(() => writeWorker("http://example.invalid/v1", "m"), /https/)
+  assert.throws(() => writeWorker("not a url", "m"), /https/)
   assert.throws(() => writeWorker("https://example.invalid/v1", ""), /model/)
   writeFileSync(
     join(HOME, "worker.json"),

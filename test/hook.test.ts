@@ -64,6 +64,13 @@ test("allows a file at the threshold, a missing file and a malformed input", asy
   assert.equal(await denied("not even an object"), false)
 })
 
+test("fails open on input that is not JSON", async () => {
+  const env = { CCSAVER_HOME: HOME, CLAUDE_PROJECT_DIR: PROJECT }
+  const out = await run("node", [HOOK], env, "not json")
+  assert.equal(out.code, 0)
+  assert.equal(out.stdout, "")
+})
+
 test("allows any ranged Read", async () => {
   assert.equal(await denied({ tool_input: { file_path: LONG, limit: 2000 } }), false)
   assert.equal(await denied({ tool_input: { file_path: LONG, offset: 10 } }), false)
