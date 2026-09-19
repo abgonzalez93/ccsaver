@@ -2,6 +2,14 @@
 
 Every commit is a version. A git hook writes each section from the commit message, its subject and the bullets of its body ([how](README.md#versions)), and the numbers follow [Semantic Versioning](https://semver.org/). The file keeps the newest versions that fit in 350 lines; `git log` has every one.
 
+## 0.4.7 - 2026-09-20
+
+refactor: one fetch site carries the headers, the timeout and the redirect
+
+- probe in cli.ts repeated the content-type, the bearer header, AbortSignal.timeout and redirect: "error" of invokeExternal, so a change to how ccsaver talks to a worker had two places to reach
+- postJson in transport.ts takes the url, the key, the body and its own wait; probe still spends PROBE_TIMEOUT_MS and invokeExternal EXTERNAL_TIMEOUT_MS
+- CONTRIBUTING 4.1 names one fetch site with two callers
+
 ## 0.4.6 - 2026-09-20
 
 refactor: the delegate event has a shape three files can see

@@ -168,6 +168,20 @@ export const troubleOf = (error: unknown): string | undefined => {
   return `fallback worker could not run: ${messageOf(error)}`
 }
 
+export const postJson = (
+  url: string,
+  key: string,
+  body: Record<string, unknown>,
+  waitMs: number,
+): Promise<Response> =>
+  fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
+    signal: AbortSignal.timeout(waitMs),
+    redirect: "error",
+    body: JSON.stringify(body),
+  })
+
 export const fellOf = (error: unknown): Fell => {
   if (error instanceof Error && error.name === "TimeoutError") return "timeout"
   return error instanceof SyntaxError ? "not json" : "unreachable"
@@ -232,13 +246,12 @@ export const invokeExternal = async (
   }
   const started = performance.now()
   try {
-    const response = await fetch(worker.url, {
-      method: "POST",
-      headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
-      signal: AbortSignal.timeout(EXTERNAL_TIMEOUT_MS),
-      redirect: "error",
-      body: JSON.stringify(requestOf(worker.model, system, message)),
-    })
+    const response = await postJson(
+      worker.url,
+      key,
+      requestOf(worker.model, system, message),
+      EXTERNAL_TIMEOUT_MS,
+    )
     delegation.status = response.status
     const raw: unknown = response.ok ? await response.json() : undefined
     const content = contentOf(raw)

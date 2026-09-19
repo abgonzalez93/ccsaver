@@ -31,7 +31,7 @@ import {
   workerFile,
   writeWorker,
 } from "./state.ts"
-import { CLAUDE_ON_PATH, claudeBin, fellOf, requestOf } from "./transport.ts"
+import { CLAUDE_ON_PATH, claudeBin, fellOf, postJson, requestOf } from "./transport.ts"
 import { isMode, runWorker } from "./worker.ts"
 
 const USAGE = `usage: ccsaver <command>
@@ -91,13 +91,7 @@ const permissions = (label: string, path: string, expected: number): Finding => 
 const probe = async (url: string, model: string, key: string): Promise<Finding> => {
   const started = performance.now()
   try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
-      signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
-      redirect: "error",
-      body: JSON.stringify(requestOf(model, "ping", "ping")),
-    })
+    const response = await postJson(url, key, requestOf(model, "ping", "ping"), PROBE_TIMEOUT_MS)
     const took = `${Math.round(performance.now() - started)} ms`
     if (response.status === 200)
       return { level: "ok", text: `probe: ${model} accepted the key in ${took}` }

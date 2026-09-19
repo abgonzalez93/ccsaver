@@ -175,7 +175,7 @@ Guard: `test/egress.test.ts`, `test/code-write.test.ts`, `test/log.test.ts`.
 
 ## 4. Performance and async
 
-**4.1 PREFER synchronous file I/O.** One process serves one call and has nothing to interleave, so `src/` reads and writes with the `*Sync` calls and awaits only the network: two `fetch` sites, `src/cli.ts` · `probe` and `src/transport.ts` · `invokeExternal`.
+**4.1 PREFER synchronous file I/O.** One process serves one call and has nothing to interleave, so `src/` reads and writes with the `*Sync` calls and awaits only the network: one `fetch` site, `src/transport.ts` · `postJson`, which carries the headers, the timeout and `redirect: "error"` for both callers, `src/cli.ts` · `probe` and `invokeExternal`.
 Guard: *convention*. Revisit for a long-lived process or a call that gains from reading files in parallel.
 
 **4.2 ALWAYS bound what waits or grows.** A `fetch` carries `AbortSignal.timeout` and `redirect: "error"`; a spawn carries `timeout` and `maxBuffer`; an answer takes at most 8,192 tokens; the paid fallback takes at most 400,000 characters, 85 s and 0.50 $. The worker's 30 s and the fallback's 85 s are `src/worker.ts` · `BASH_BUDGET_MS`, 115 s, and the formatter takes what is left of it rather than a fixed minute, never less than `FORMAT_FLOOR_MS`, so the worst case stays inside the 120 s a Bash command gets. A log line takes at most 4,000 bytes.
