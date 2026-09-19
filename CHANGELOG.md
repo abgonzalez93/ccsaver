@@ -28,6 +28,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - `ccsaver version`.
 - A `warn:` line under `wrote …` when the generated code names a shell, the network or the environment, and the `code-writer` skill reads the file before running anything.
 - `SECURITY.md`, this file, and a table of the environment variables in the README.
+- A logo, `assets/icon.svg`, at the top of the README.
 
 ## 0.1.0
 

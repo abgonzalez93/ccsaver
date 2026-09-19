@@ -1,3 +1,5 @@
+<img src="assets/icon.svg" width="96" alt="ccsaver logo">
+
 # ccsaver
 
 A Claude Code plugin that keeps two expensive habits out of the main model's context, only in the projects you plug in:

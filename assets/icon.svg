@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>ccsaver</title>
+  <rect width="512" height="512" rx="112" fill="#123C46"/>
+  <path d="M 275 333 A 130 130 0 1 1 323 155" fill="none" stroke="#BFE3DF" stroke-width="34" stroke-linecap="round"/>
+  <circle cx="210" cy="220" r="36" fill="#BFE3DF"/>
+  <path d="M 246 250 L 292 289" stroke="#BFE3DF" stroke-width="22" stroke-linecap="round" opacity=".5"/>
+  <g transform="translate(314 282)">
+    <rect width="120" height="150" rx="22" fill="#F5B83D"/>
+    <rect x="24" y="34" width="72" height="15" rx="7.5" fill="#123C46"/>
+    <rect x="24" y="68" width="54" height="15" rx="7.5" fill="#123C46"/>
+    <rect x="24" y="102" width="72" height="15" rx="7.5" fill="#123C46"/>
+  </g>
+</svg>
