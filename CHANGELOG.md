@@ -2,6 +2,15 @@
 
 Every commit is a version. A git hook writes each section from the commit message, its subject and the bullets of its body ([how](README.md#versions)), and the numbers follow [Semantic Versioning](https://semver.org/). The file keeps the newest versions that fit in 350 lines; `git log` has every one.
 
+## 0.3.8 - 2026-09-20
+
+fix: the worker url is printed without its query and refused with userinfo
+
+- doctor printed the full url twice and worker set once, so a key passed as ?key=... (a form some providers suggest) landed in the session's context when either ran inside one
+- external, probe and the worker case of main now print origin and pathname; the query is still sent, because some endpoints need it
+- writeWorker refuses a url whose username or password is set: fetch rejects one, so until now every call fell through to the paid fallback and doctor called the host unreachable
+- isEncrypted counts [::1] as local: the URL class returns that host with its brackets, so the comparison carries them
+
 ## 0.3.7 - 2026-09-20
 
 fix: the secrets net catches the places and the tokens it used to miss

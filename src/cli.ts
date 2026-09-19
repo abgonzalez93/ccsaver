@@ -67,6 +67,11 @@ interface Finding {
 
 const NOTHING_PLUGGED: Finding = { level: "warn", text: "plugged: nothing" }
 
+const shown = (url: string): string => {
+  const parts = attempt(() => new URL(url))
+  return parts === undefined ? "(an unreadable url)" : `${parts.origin}${parts.pathname}`
+}
+
 const modeOf = (path: string): number | undefined => attempt(() => statSync(path).mode & 0o777)
 
 const permissions = (label: string, path: string, expected: number): Finding => {
@@ -97,7 +102,7 @@ const probe = async (url: string, model: string, key: string): Promise<Finding> 
       ? { level: "FAIL", text: `probe: the key was rejected (${response.status})` }
       : { level: "FAIL", text: `probe: ${model} answered ${response.status} in ${took}` }
   } catch (error) {
-    return { level: "FAIL", text: `probe: ${url} ${WHY[fellOf(error)]}` }
+    return { level: "FAIL", text: `probe: ${shown(url)} ${WHY[fellOf(error)]}` }
   }
 }
 
@@ -105,7 +110,10 @@ const external = async (worker: Worker | undefined): Promise<Finding[]> => {
   if (worker === undefined)
     return [{ level: "warn", text: "worker: not configured, every delegation uses the fallback" }]
   if (!isEncrypted(worker.url)) return [{ level: "FAIL", text: "worker: the url is not https" }]
-  const configured: Finding = { level: "ok", text: `worker: ${worker.url} · ${worker.model}` }
+  const configured: Finding = {
+    level: "ok",
+    text: `worker: ${shown(worker.url)} · ${worker.model}`,
+  }
   const key = readKey()
   if (key === undefined)
     return [configured, { level: "FAIL", text: "key: missing, run: ccsaver key set" }]
@@ -268,7 +276,7 @@ const main = async (): Promise<number> => {
       }
       if (first !== "set" || second === undefined || third === undefined) break
       const advice = writeWorker(second, third)
-      process.stdout.write(`worker set to ${second} · ${third}\n`)
+      process.stdout.write(`worker set to ${shown(second)} · ${third}\n`)
       if (advice !== undefined) process.stderr.write(`warn: ${advice}\n`)
       return 0
     }

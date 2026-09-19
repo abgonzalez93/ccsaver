@@ -152,6 +152,26 @@ test("help goes to stdout, a mistake gets the usage on stderr, and version is th
   assert.equal((await ccsaver(["--version"])).stdout, `${String(version)}\n`)
 })
 
+test("a key in the worker url never reaches the terminal, and one in userinfo is refused", async () => {
+  const keyed = `${server.url}?key=QUERY_SENTINEL`
+  const set = await ccsaver(["worker", "set", keyed, "cheap-1"])
+  assert.equal(set.code, 0)
+  assert.equal(set.stdout, `worker set to ${server.url} · cheap-1\n`)
+  assert.equal(everything(set).includes("QUERY_SENTINEL"), false)
+  const seen = await ccsaver(["doctor"])
+  assert.equal(everything(seen).includes("QUERY_SENTINEL"), false)
+  assert.match(
+    seen.stdout,
+    /^ok {3}worker: http:\/\/127\.0\.0\.1:\d+\/v1\/chat\/completions · cheap-1$/m,
+  )
+  assert.equal(jsonOf(join(HOME, "worker.json"))["url"], keyed)
+  assert.ok(server.seen.at(-1)?.body.includes("cheap-1"))
+  const inside = await ccsaver(["worker", "set", "https://me:token@example.invalid/v1", "cheap-1"])
+  assert.deepEqual([inside.code, inside.stdout], [1, ""])
+  assert.match(inside.stderr, /^Error: the worker url must carry no user name or password/)
+  await ccsaver(["worker", "set", server.url, "cheap-1"])
+})
+
 test("doctor fails on a rejected key, and passes once the key is rotated", async () => {
   server.reply.accepts = NEW_KEY
   assert.equal((await ccsaver(["worker", "set", server.url, "cheap-1"])).code, 0)

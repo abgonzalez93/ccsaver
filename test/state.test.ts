@@ -11,6 +11,7 @@ import {
 import { join } from "node:path"
 import { after, test } from "node:test"
 import {
+  isEncrypted,
   loadAdapter,
   plug,
   pluggedRootOf,
@@ -123,6 +124,19 @@ test("the worker url must be encrypted and the pinned fallback survives a new wo
   assert.throws(() => writeWorker("http://example.invalid/v1", "m"), /https/)
   assert.throws(() => writeWorker("not a url", "m"), /https/)
   assert.throws(() => writeWorker("https://example.invalid/v1", ""), /model/)
+  for (const carried of [
+    "https://me:token@example.invalid/v1",
+    "https://:token@example.invalid/v1",
+  ])
+    assert.throws(() => writeWorker(carried, "m"), /user name or password/, carried)
+  assert.deepEqual(
+    ["http://[::1]:8080/v1", "http://localhost/v1", "http://127.0.0.1/v1"].map(isEncrypted),
+    [true, true, true],
+  )
+  assert.deepEqual(["http://[::2]/v1", "http://example.invalid/v1"].map(isEncrypted), [
+    false,
+    false,
+  ])
   writeFileSync(
     join(HOME, "worker.json"),
     JSON.stringify({ url: "https://a.invalid", model: "a", claude: "/opt/claude" }),

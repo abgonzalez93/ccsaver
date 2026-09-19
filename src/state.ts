@@ -37,6 +37,7 @@ export const DEFAULT_LIMITS = { maxLines: 350, maxTokens: 8000 } as const
 const ADAPTER_KEYS = ["rules", "format", "after", "maxLines", "maxTokens"]
 const ADAPTER_NAME = /^[a-z0-9][a-z0-9-]*$/
 const LINE_BREAKERS = /[\t\n\r]/
+const LOCAL_HOSTS = ["127.0.0.1", "localhost", "[::1]"]
 const LOG_VERSION = 1
 const LOG_LINE_BYTES = 4000
 const SCRUB_FROM = 8
@@ -87,11 +88,7 @@ export const isUnder = (path: string, root: string): boolean =>
 
 export const isEncrypted = (url: string): boolean => {
   const parts = attempt(() => new URL(url))
-  return (
-    parts?.protocol === "https:" ||
-    parts?.hostname === "127.0.0.1" ||
-    parts?.hostname === "localhost"
-  )
+  return parts?.protocol === "https:" || LOCAL_HOSTS.includes(parts?.hostname ?? "")
 }
 
 const writePrivate = (path: string, text: string): void => {
@@ -271,8 +268,13 @@ const storeWorker = (worker: Worker): void => {
 export const writeWorker = (url: string, model: string): string | undefined => {
   if (!isEncrypted(url)) throw new Refusal("the worker url must be https (localhost excepted)")
   if (model.length === 0) throw new Refusal("the worker model is required")
+  const parts = new URL(url)
+  if (parts.username !== "" || parts.password !== "")
+    throw new Refusal(
+      "the worker url must carry no user name or password: fetch refuses one, and the key belongs in ccsaver key set",
+    )
   const before = readWorker()
-  const host = new URL(url).host
+  const host = parts.host
   storeWorker({ ...before, url, model })
   record("config", { action: "worker set", host, model })
   if (before === undefined || readKey() === undefined) return undefined
