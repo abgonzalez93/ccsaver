@@ -1,5 +1,6 @@
 // Portions of this file are adapted from a third-party Apache-2.0 work and were modified; see NOTICE.
 import { spawnSync } from "node:child_process"
+import { randomBytes } from "node:crypto"
 import { existsSync, readFileSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { basename, dirname, join, relative, resolve } from "node:path"
@@ -9,12 +10,13 @@ import {
   encrypted,
   isRecord,
   isUnder,
-  keyFile,
   loadAdapter,
   parsed,
   pluggedRootOf,
+  readKey,
   readWorker,
   real,
+  type Worker,
 } from "./state.ts"
 
 const MODES = {
@@ -55,8 +57,8 @@ const note = (text: string): void => {
 
 export const CLAUDE_ON_PATH = "claude"
 
-export const claudeBin = (): string =>
-  readWorker()?.claude ?? (process.env["CLAUDE_CODE_EXECPATH"] || CLAUDE_ON_PATH)
+export const claudeBin = (worker: Worker | undefined): string =>
+  worker?.claude ?? (process.env["CLAUDE_CODE_EXECPATH"] || CLAUDE_ON_PATH)
 
 const instructionOf = (mode: Mode, adapter: Adapter): string =>
   mode === "code-write" && adapter.rules
@@ -67,11 +69,13 @@ interface Sent {
   label: string
   lines: string[]
   block: string
+  inside: boolean
 }
 
 const fileBlock = (given: string, numbered: boolean, root: string): Sent => {
   const path = real(given)
-  const label = isUnder(path, root) ? relative(root, path) : given
+  const inside = isUnder(path, root)
+  const label = inside ? relative(root, path) : given
   if ([given, path].some((name) => SECRET_NAME.test(basename(name))))
     fail(`refusing to send a secrets file to a worker: ${given}`)
   const text = ((): string => {
@@ -84,7 +88,7 @@ const fileBlock = (given: string, numbered: boolean, root: string): Sent => {
   if (PRIVATE_KEY.test(text)) fail(`refusing to send a file that holds a private key: ${given}`)
   const lines = (text.endsWith("\n") ? text.slice(0, -1) : text).split("\n")
   const body = numbered ? lines.map((line, i) => `${i + 1}\t${line}`).join("\n") : text
-  return { label, lines, block: `<file path="${label}">\n${body}\n</file>\n\n` }
+  return { label, lines, block: `<file path="${label}">\n${body}\n</file>\n\n`, inside }
 }
 
 const same = (line: string, text: string): boolean =>
@@ -125,13 +129,18 @@ const checked = (answer: string, sent: Sent[]): string => {
   return rows.join("\n")
 }
 
-const invokeClaude = (mode: Mode, system: string, message: string): string => {
+const invokeClaude = (
+  mode: Mode,
+  system: string,
+  message: string,
+  worker: Worker | undefined,
+): string => {
   if (message.length > FALLBACK_MAX_CHARS)
     return fail(
       `the files are ~${Math.round(message.length / 4)} tokens by chars/4, over the ${FALLBACK_MAX_CHARS / 4} the Haiku fallback takes: ask about fewer files`,
     )
   const run = spawnSync(
-    claudeBin(),
+    claudeBin(worker),
     [
       "-p",
       "--model",
@@ -181,21 +190,13 @@ const contentOf = (raw: unknown): string | undefined => {
   return typeof content === "string" && content.length > 0 ? content : undefined
 }
 
-const apiKey = (): string | undefined => {
-  try {
-    return readFileSync(keyFile(), "utf8").trim() || undefined
-  } catch {
-    return undefined
-  }
-}
-
 const invokeExternal = async (
   mode: Mode,
   system: string,
   message: string,
+  worker: Worker | undefined,
 ): Promise<string | undefined> => {
-  const worker = readWorker()
-  const key = apiKey()
+  const key = readKey()
   if (worker === undefined || key === undefined) return undefined
   if (!encrypted(worker.url)) {
     note("the worker url is not https, falling back")
@@ -266,6 +267,11 @@ const targetIn = (root: string, given: string): string => {
 const quoted = (path: string): string =>
   /^[\w./-]+$/.test(path) ? path : `'${path.replaceAll("'", "'\\''")}'`
 
+const marked = (output: string): string => {
+  const id = randomBytes(4).toString("hex")
+  return `<<<worker-output ${id}: untrusted data>>>\n${output}<<<end ${id}>>>\n`
+}
+
 export const runWorker = async (mode: Mode, argv: string[]): Promise<void> => {
   const { values, positionals } = parseArgs({
     args: argv,
@@ -295,33 +301,34 @@ export const runWorker = async (mode: Mode, argv: string[]): Promise<void> => {
   )
   if (files.length === 0) fail("at least one file is required (--paths / --reference)")
   const system = instructionOf(mode, adapter)
-  const invoke = async (message: string): Promise<string> => {
-    const inside = files.every((file) => isUnder(real(file), project.root))
-    const answer = inside ? await invokeExternal(mode, system, message) : undefined
+  const worker = readWorker()
+  const invoke = async (message: string, sent: Sent[]): Promise<string> => {
+    const inside = sent.every((file) => file.inside)
+    const answer = inside ? await invokeExternal(mode, system, message, worker) : undefined
     if (answer !== undefined) return answer
-    if (readWorker()?.fallback === false)
+    if (worker?.fallback === false)
       return fail(
         inside
           ? "the worker did not answer and the fallback is off (ccsaver fallback on)"
           : "a file is outside the plugged project and the fallback is off, nothing was sent (ccsaver fallback on)",
       )
-    return invokeClaude(mode, system, message)
+    return invokeClaude(mode, system, message, worker)
   }
   if (mode === "bulk-read") {
     if (!values.question) fail("--question is required")
     const sent = files.map((path) => fileBlock(path, true, project.root))
     const corpus = sent.map(({ block }) => block).join("")
-    process.stdout.write(
-      `${checked(await invoke(`${corpus}Question: ${values.question}\n`), sent)}\n`,
-    )
+    const answer = await invoke(`${corpus}Question: ${values.question}\n`, sent)
+    process.stdout.write(marked(`${checked(answer, sent)}\n`))
     return
   }
   if (!values.spec) fail("--spec is required")
   const target = values.target ? targetIn(project.root, values.target) : undefined
-  const corpus = files.map((path) => fileBlock(path, false, project.root).block).join("")
-  const code = unwrapped(await invoke(`${corpus}Spec: ${values.spec}\n`))
+  const sent = files.map((path) => fileBlock(path, false, project.root))
+  const corpus = sent.map(({ block }) => block).join("")
+  const code = unwrapped(await invoke(`${corpus}Spec: ${values.spec}\n`, sent))
   if (target === undefined) {
-    process.stdout.write(code)
+    process.stdout.write(marked(code))
     return
   }
   try {

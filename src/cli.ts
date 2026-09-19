@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process"
-import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs"
+import { existsSync, mkdtempSync, rmSync, statSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import {
@@ -8,11 +8,13 @@ import {
   keyFile,
   loadAdapter,
   plug,
+  readKey,
   readPlugged,
   readWorker,
   setFallback,
   stateHome,
   unplug,
+  type Worker,
   writeWorker,
 } from "./state.ts"
 import { CLAUDE_ON_PATH, claudeBin, isMode, runWorker } from "./worker.ts"
@@ -83,20 +85,14 @@ const probe = async (url: string, model: string, key: string): Promise<Finding> 
   }
 }
 
-const external = async (): Promise<Finding[]> => {
-  const worker = readWorker()
+const external = async (worker: Worker | undefined): Promise<Finding[]> => {
   if (worker === undefined)
     return [{ level: "warn", text: "worker: not configured, every delegation uses the fallback" }]
   if (!encrypted(worker.url)) return [{ level: "FAIL", text: "worker: the url is not https" }]
   const configured: Finding = { level: "ok", text: `worker: ${worker.url} · ${worker.model}` }
-  const key = ((): string => {
-    try {
-      return readFileSync(keyFile(), "utf8").trim()
-    } catch {
-      return ""
-    }
-  })()
-  if (key === "") return [configured, { level: "FAIL", text: "key: missing, run: ccsaver key set" }]
+  const key = readKey()
+  if (key === undefined)
+    return [configured, { level: "FAIL", text: "key: missing, run: ccsaver key set" }]
   return [
     configured,
     permissions("key", keyFile(), 0o600),
@@ -104,13 +100,13 @@ const external = async (): Promise<Finding[]> => {
   ]
 }
 
-const fallback = (): Finding => {
-  if (readWorker()?.fallback === false)
+const fallback = (worker: Worker | undefined): Finding => {
+  if (worker?.fallback === false)
     return {
       level: "ok",
       text: "fallback: off, a call the worker cannot take fails instead of going to Claude Haiku",
     }
-  const bin = claudeBin()
+  const bin = claudeBin(worker)
   const run = spawnSync(bin, ["--version"], { encoding: "utf8", timeout: 15_000 })
   if (run.status === 0) return { level: "ok", text: `fallback: ${bin} (${run.stdout.trim()})` }
   return bin === CLAUDE_ON_PATH && process.env["CLAUDE_CODE_CHILD_SESSION"] !== "1"
@@ -161,10 +157,11 @@ const projects = (): Finding[] =>
 
 const doctor = async (): Promise<number> => {
   const plugged = projects()
+  const worker = readWorker()
   const findings = [
     permissions("state", stateHome(), 0o700),
-    ...(await external()),
-    fallback(),
+    ...(await external(worker)),
+    fallback(worker),
     ...(plugged.length > 0 ? plugged : [NOTHING_PLUGGED]),
   ]
   for (const { level, text } of findings) process.stdout.write(`${level.padEnd(4)} ${text}\n`)

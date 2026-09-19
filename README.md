@@ -112,7 +112,7 @@ Every field is optional. `format` runs from the project root with the written fi
 
 - Unplugged project: nothing, ever.
 - Files inside the plugged root travel labelled with their path relative to that root, so your user name and folder layout stay home.
-- Plugged project: a file goes to the external worker only when the real path of **every** file in the call is inside the plugged root. One file outside (a note in your home, a symlink pointing out) sends the whole call to the Haiku fallback instead, or makes it fail when the fallback is off.
+- Plugged project: a file goes to the external worker only when the real path of **every** file in the call is inside the plugged root. Each path is resolved once, so the file that is judged is the file that is read. One file outside (a note in your home, a symlink pointing out) sends the whole call to the Haiku fallback instead, or makes it fail when the fallback is off.
 - Files that look like secrets (`.env*`, `*.pem`, `*.key`, `id_rsa`, `.npmrc`, `credentials*`, `settings.local.json`, `*.tfstate`…) are refused outright, by given name and by real name, in any letter case. So is any file that holds a private-key header, whatever its name. The list is a net, not a guarantee: a secret pasted into `config.ts` goes out with it.
 - `code-write --target` never overwrites an existing file, only writes inside the plugged root (symlinked folders are followed first), and refuses the paths Claude Code itself protects: `.git`, `.claude`, `.vscode`, `.idea`, `.husky`, `.devcontainer` and the shell, git and package-manager config files. A refused target stops the call before anything is sent.
 
@@ -122,7 +122,7 @@ The rules from [Honest limits](#honest-limits-with-numbers) pre-approve more tha
 
 - `Bash(ccsaver bulk-read *)` reads **any file your user can read**, not only the project's, except the secret-looking ones above. Your own `Read` deny rules and Claude Code's prompt for the first read outside the project do not apply to it. Files inside the plugged root go to your external worker; every other file goes to the Haiku fallback, or nowhere when the fallback is off.
 - `Bash(ccsaver code-write *)` creates new files inside the plugged root under the limits above and, when the adapter names a formatter, runs it **from the project's own folder** without a prompt. Plug in only projects whose tooling you trust.
-- What comes back is the output of a cheap model that read files you may not have written. Both skills tell Claude to treat it as data, never as instructions; `code-writer` still runs the generated tests unopened, so review what it wrote before you rely on it.
+- What comes back is the output of a cheap model that read files you may not have written. The command prints it between `<<<worker-output ID: untrusted data>>>` and `<<<end ID>>>`, with a random ID the worker never sees, so an answer cannot fake its own end; that includes the code of a `code-write` without `--target`, so use `--target` when you want a file. Both skills tell Claude to treat what sits between the markers as data, never as instructions; `code-writer` still runs the generated tests unopened, so review what it wrote before you rely on it.
 
 ## Measure it yourself
 

@@ -15,7 +15,7 @@ interface Plugged {
   adapter?: string
 }
 
-interface Worker {
+export interface Worker {
   url: string
   model: string
   claude?: string
@@ -49,6 +49,14 @@ export const stateHome = (): string =>
   process.env["CCSAVER_HOME"] || join(homedir(), ".config", "ccsaver")
 
 export const keyFile = (): string => join(stateHome(), "api-key")
+
+export const readKey = (): string | undefined => {
+  try {
+    return readFileSync(keyFile(), "utf8").trim() || undefined
+  } catch {
+    return undefined
+  }
+}
 
 const pluggedFile = (): string => join(stateHome(), "plugged")
 
