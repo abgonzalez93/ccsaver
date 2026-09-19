@@ -2,6 +2,15 @@
 
 Every commit is a version. A git hook writes each section from the commit message, its subject and the bullets of its body ([how](README.md#versions)), and the numbers follow [Semantic Versioning](https://semver.org/). The file keeps the newest versions that fit in 350 lines; `git log` has every one.
 
+## 0.4.11 - 2026-09-20
+
+refactor: the commands are a table, not a switch of thirty-three branches
+
+- main was the flat switch CONTRIBUTING 1.7 wrote down as an exception at cognitive complexity 33; it is now under 15 and the rule has one exception left, adapterOf at 18
+- COMMANDS maps each subcommand to a handler that returns its exit code, or undefined for "show the usage", which is what every break in the switch meant
+- commandOf reads the table with Object.hasOwn, so toString still gets the usage and not a function off the prototype
+- doctor stays outside the table because it is the one command that awaits the network; the handlers are synchronous and main awaits nothing it does not have to
+
 ## 0.4.10 - 2026-09-20
 
 refactor: the fake claude binary takes its cost, so spent.test writes no second copy

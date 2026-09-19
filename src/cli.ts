@@ -245,70 +245,85 @@ const doctor = async (): Promise<number> => {
   return count("FAIL") > 0 ? 1 : 0
 }
 
+type Outcome = number | undefined
+
+type Command = (
+  first: string | undefined,
+  second: string | undefined,
+  third: string | undefined,
+) => Outcome
+
+const printVersion: Command = (): Outcome => {
+  process.stdout.write(`${version()}\n`)
+  return 0
+}
+
+const COMMANDS: Record<string, Command> = {
+  plug: (first, second) => {
+    if (first === undefined) return undefined
+    const { root, adapter } = plug(first, second)
+    process.stdout.write(`plugged ${root} · adapter ${adapter ?? "none"}\n`)
+    return 0
+  },
+  unplug: (first) => {
+    if (first === undefined) return undefined
+    process.stdout.write(unplug(first) ? `unplugged ${first}\n` : `${first} was not plugged\n`)
+    return 0
+  },
+  list: () => {
+    const entries = readPlugged()
+    process.stdout.write(
+      entries.length === 0
+        ? "nothing is plugged in\n"
+        : entries.map(({ root, adapter }) => `${root}\t${adapter ?? ""}\n`).join(""),
+    )
+    return 0
+  },
+  worker: (first, second, third) => {
+    if (first === "claude" && second !== undefined) {
+      const pinned = setClaude(second === "auto" ? undefined : second)
+      process.stdout.write(`fallback binary: ${pinned ?? "the session's own claude"}\n`)
+      return 0
+    }
+    if (first !== "set" || second === undefined || third === undefined) return undefined
+    const advice = writeWorker(second, third)
+    process.stdout.write(`worker set to ${shown(second)} · ${third}\n`)
+    if (advice !== undefined) process.stderr.write(`warn: ${advice}\n`)
+    return 0
+  },
+  fallback: (first) => {
+    if (first !== "on" && first !== "off") return undefined
+    setFallback(first === "on")
+    process.stdout.write(`fallback ${first}\n`)
+    return 0
+  },
+  log: (first) => {
+    if (first !== "on" && first !== "off") return undefined
+    setLog(first === "on")
+    process.stdout.write(`log ${first}\n`)
+    return 0
+  },
+  key: (first) => {
+    if (first !== "set") return undefined
+    process.stderr.write("Error: run the ccsaver launcher (bin/ccsaver key set)\n")
+    return 1
+  },
+  version: printVersion,
+  "--version": printVersion,
+}
+
+const commandOf = (command: string | undefined): Command | undefined =>
+  command !== undefined && Object.hasOwn(COMMANDS, command) ? COMMANDS[command] : undefined
+
 const main = async (): Promise<number> => {
   const [command, first, second, third] = process.argv.slice(2)
   if (isMode(command)) {
     await runWorker(command, process.argv.slice(3))
     return 0
   }
-  switch (command) {
-    case "plug": {
-      if (first === undefined) break
-      const { root, adapter } = plug(first, second)
-      process.stdout.write(`plugged ${root} · adapter ${adapter ?? "none"}\n`)
-      return 0
-    }
-    case "unplug": {
-      if (first === undefined) break
-      process.stdout.write(unplug(first) ? `unplugged ${first}\n` : `${first} was not plugged\n`)
-      return 0
-    }
-    case "list": {
-      const entries = readPlugged()
-      process.stdout.write(
-        entries.length === 0
-          ? "nothing is plugged in\n"
-          : entries.map(({ root, adapter }) => `${root}\t${adapter ?? ""}\n`).join(""),
-      )
-      return 0
-    }
-    case "worker": {
-      if (first === "claude" && second !== undefined) {
-        const pinned = setClaude(second === "auto" ? undefined : second)
-        process.stdout.write(`fallback binary: ${pinned ?? "the session's own claude"}\n`)
-        return 0
-      }
-      if (first !== "set" || second === undefined || third === undefined) break
-      const advice = writeWorker(second, third)
-      process.stdout.write(`worker set to ${shown(second)} · ${third}\n`)
-      if (advice !== undefined) process.stderr.write(`warn: ${advice}\n`)
-      return 0
-    }
-    case "fallback": {
-      if (first !== "on" && first !== "off") break
-      setFallback(first === "on")
-      process.stdout.write(`fallback ${first}\n`)
-      return 0
-    }
-    case "log": {
-      if (first !== "on" && first !== "off") break
-      setLog(first === "on")
-      process.stdout.write(`log ${first}\n`)
-      return 0
-    }
-    case "key":
-      if (first !== "set") break
-      process.stderr.write("Error: run the ccsaver launcher (bin/ccsaver key set)\n")
-      return 1
-    case "doctor":
-      return doctor()
-    case "version":
-    case "--version":
-      process.stdout.write(`${version()}\n`)
-      return 0
-    default:
-      break
-  }
+  if (command === "doctor") return doctor()
+  const code = commandOf(command)?.(first, second, third)
+  if (code !== undefined) return code
   const asked = HELP.includes(command)
   const stream = asked ? process.stdout : process.stderr
   stream.write(USAGE)
