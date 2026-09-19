@@ -2,6 +2,16 @@
 
 Every commit is a version. A git hook writes each section from the commit message, its subject and the bullets of its body ([how](README.md#versions)), and the numbers follow [Semantic Versioning](https://semver.org/). The file keeps the newest versions that fit in 350 lines; `git log` has every one.
 
+## 0.3.7 - 2026-09-20
+
+fix: the secrets net catches the places and the tokens it used to miss
+
+- .git/ now counts as a secrets place on the way out: a repository cloned over https://user:token@ keeps that token in .git/config, and every file under .git went to the worker
+- .github/ and .gitignore are untouched, and .git stays in PROTECTED_PLACE as well: what may leave and what may be written are two boundaries
+- the private-key header matched only when PRIVATE KEY sat against the dashes, so -----BEGIN PGP PRIVATE KEY BLOCK----- went through
+- three more token shapes are refused: github_pat_, glpat- and npm_
+- test/boundary.test.ts covers each one, with no example token written whole
+
 ## 0.3.6 - 2026-09-20
 
 test: the two tests at their line limit split by responsibility

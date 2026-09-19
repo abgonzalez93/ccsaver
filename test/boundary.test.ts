@@ -33,11 +33,14 @@ test("lets an env template and ordinary files through", () => {
 
 test("refuses the places that hold credentials, inside the root and outside it", () => {
   const inside = ["secrets/prod.yaml", "deploy/.secrets/db.yaml", ".kube/config", ".aws/config"]
+  const cloned = [".git/config", "vendor/.git/config"]
   const outside = ["/home/me/.ssh/config", "/home/me/.gnupg/pubring.kbx", "/home/me/.kube/prod"]
-  for (const place of [...inside, ".docker/config.json", "Secret/notes.md", ...outside])
+  for (const place of [...inside, ...cloned, ".docker/config.json", "Secret/notes.md", ...outside])
     assert.match(kept(place) ?? "", /secrets file/, place)
   assert.match(kept("link.yaml", "secrets/prod.yaml") ?? "", /secrets file/)
   assert.equal(kept("src/a.ts", "src/a.ts", "/work/secrets/project"), undefined)
+  for (const kind of [".github/workflows/ci.yml", ".gitignore", "src/.gitkeep"])
+    assert.equal(kept(kind), undefined, kind)
 })
 
 test("refuses anything in the state folder before it looks at the name", () => {
@@ -53,8 +56,12 @@ test("refuses a private key, a well-known token and a binary, whatever the file 
     ["xoxb", "1234567890-abcdefghij"].join("-"),
     ["sk", "proj-0123456789abcdefghij"].join("-"),
     ["AIza", "SyA-0123456789abcdefghijklmnopqrstu"].join(""),
+    ["github", "pat", "11ABCDEFG0abcdefghijklmnopqrstuvwxyz"].join("_"),
+    ["glpat", "ABCDEFGHIJ1234567890abcd"].join("-"),
+    ["npm", "0123456789abcdefghijklmnopqrstuvwxyz"].join("_"),
   ]
-  assert.match(contentRefusal(armor) ?? "", /private key/)
+  const block = `${["-----BEGIN", "PGP", "PRIVATE KEY BLOCK-----"].join(" ")}\nabc\n`
+  for (const header of [armor, block]) assert.match(contentRefusal(header) ?? "", /private key/)
   for (const token of tokens)
     assert.match(contentRefusal(`const t = "${token}"\n`) ?? "", /access token/, token.slice(0, 6))
   assert.match(contentRefusal("x\n\0y") ?? "", /binary/)
