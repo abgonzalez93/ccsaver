@@ -1,5 +1,5 @@
 // Portions of this file are adapted from a third-party Apache-2.0 work and were modified; see NOTICE.
-import { existsSync, readFileSync } from "node:fs"
+import { closeSync, existsSync, openSync, readFileSync, readSync, statSync } from "node:fs"
 import { relative } from "node:path"
 import {
   type Adapter,
@@ -18,10 +18,11 @@ import {
 const BYTES_PER_TOKEN = 4
 const NUL = 0
 const LINE_BREAK = 10
+const HEAD_BYTES = 8192
 const IDS = ["tool_use_id", "agent_id", "agent_type", "permission_mode"]
 
 interface Measured {
-  lines: number
+  lines?: number
   bytes: number
   blind?: "binary" | "unreadable"
 }
@@ -33,7 +34,23 @@ const linesIn = (bytes: Buffer): number => {
   return lines
 }
 
-const measure = (path: string): Measured => {
+const headOf = (path: string): Buffer | undefined => {
+  const fd = attempt(() => openSync(path, "r"))
+  if (fd === undefined) return undefined
+  const head = Buffer.alloc(HEAD_BYTES)
+  const read = attempt(() => readSync(fd, head, 0, HEAD_BYTES, 0))
+  attempt(() => closeSync(fd))
+  return read === undefined ? undefined : head.subarray(0, read)
+}
+
+const measure = (path: string, maxBytes: number): Measured => {
+  const size = attempt(() => statSync(path).size)
+  if (size === undefined) return { lines: 0, bytes: 0, blind: "unreadable" }
+  if (size > maxBytes) {
+    const head = headOf(path)
+    if (head === undefined) return { lines: 0, bytes: 0, blind: "unreadable" }
+    return head.includes(NUL) ? { bytes: size, blind: "binary" } : { bytes: size }
+  }
   const bytes = attempt(() => readFileSync(path))
   if (bytes === undefined) return { lines: 0, bytes: 0, blind: "unreadable" }
   return bytes.includes(NUL)
@@ -85,15 +102,18 @@ const gate = (root: string, adapterName: string | undefined): void => {
   const adapter = adapterOrDefaults(adapterName)
   const maxLines = adapter.maxLines ?? DEFAULT_LIMITS.maxLines
   const maxTokens = adapter.maxTokens ?? DEFAULT_LIMITS.maxTokens
-  const { lines, bytes, blind } = measure(given)
+  const { lines, bytes, blind } = measure(given, maxTokens * BYTES_PER_TOKEN)
   const tokens = Math.round(bytes / BYTES_PER_TOKEN)
+  const over = lines === undefined ? false : lines > maxLines
   const reason = ranged
     ? "range"
-    : (blind ?? (lines > maxLines ? "lines" : tokens > maxTokens ? "tokens" : "under"))
+    : (blind ?? (over ? "lines" : tokens > maxTokens ? "tokens" : "under"))
   const denied = reason === "lines" || reason === "tokens"
+  const counted =
+    lines === undefined ? `${bytes} bytes, too big to count its lines` : `${lines} lines`
   if (denied)
     deny(
-      `${given} has ${lines} lines, ~${tokens} tokens at 4 bytes each, and a whole-file Read measures about twice that (limits ${maxLines} lines, ${maxTokens} tokens). Locate or count with Grep first. When the answer needs the file understood end to end, use the /ccsaver:bulk-reader skill to delegate the read. To edit, Read only the range you need with offset and limit.`,
+      `${given} has ${counted}, ~${tokens} tokens at 4 bytes each, and a whole-file Read measures about twice that (limits ${maxLines} lines, ${maxTokens} tokens). Locate or count with Grep first. When the answer needs the file understood end to end, use the /ccsaver:bulk-reader skill to delegate the read. To edit, Read only the range you need with offset and limit.`,
     )
   if (!logging) return
   const path = real(given)
@@ -101,7 +121,7 @@ const gate = (root: string, adapterName: string | undefined): void => {
     ...(isUnder(path, root) ? { inside: true, path: relative(root, path) } : { inside: false }),
     ...(typeof offset === "number" ? { offset } : {}),
     ...(typeof limit === "number" ? { limit } : {}),
-    lines,
+    lines: lines ?? null,
     bytes,
     maxLines,
     maxTokens,

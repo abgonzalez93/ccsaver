@@ -1,8 +1,8 @@
 import assert from "node:assert/strict"
-import { mkdirSync, rmSync, writeFileSync } from "node:fs"
+import { mkdirSync, rmSync, truncateSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { after, test } from "node:test"
-import { HOOK, run, tempDir, writeHome } from "./helpers.ts"
+import { HOOK, type Ran, run, tempDir, writeHome } from "./helpers.ts"
 
 const HOME = tempDir("hook-home")
 const WORK = tempDir("hook-work")
@@ -30,6 +30,9 @@ const LONG = fileOf("long.txt", 351)
 const EDGE = fileOf("edge.txt", 350)
 const HEAVY = join(WORK, "heavy.md")
 writeFileSync(HEAVY, `${"word ".repeat(8000)}\n`)
+
+const said = (input: unknown, project = PROJECT): Promise<Ran> =>
+  run("node", [HOOK], { CCSAVER_HOME: HOME, CLAUDE_PROJECT_DIR: project }, JSON.stringify(input))
 
 const denied = async (input: unknown, project = PROJECT): Promise<boolean> => {
   const out = await run(
@@ -94,6 +97,22 @@ test("keeps the default limits when the adapter is malformed", async () => {
   assert.equal(await denied({ tool_input: { file_path: LONG } }, BROKEN), true)
 })
 
+test("denies a file it cannot read whole, and never reports lines it did not count", async () => {
+  const huge = join(WORK, "huge.txt")
+  writeFileSync(huge, "x\n".repeat(4096))
+  truncateSync(huge, 2_200_000_000)
+  const out = await said({ tool_input: { file_path: huge } })
+  assert.match(out.stdout, /"permissionDecision":"deny"/)
+  assert.match(out.stdout, /2200000000 bytes, too big to count its lines/)
+  assert.equal(out.stdout.includes("has 0 lines"), false)
+})
+
+test("denies by bytes without reading a file that is past the limit", async () => {
+  const wide = join(WORK, "wide.md")
+  writeFileSync(wide, `${"word ".repeat(9000)}\n`)
+  const out = await said({ tool_input: { file_path: wide } })
+  assert.match(out.stdout, /45001 bytes, too big to count its lines, ~11250 tokens/)
+})
 test("lets a binary file through", async () => {
   const path = join(WORK, "blob.bin")
   writeFileSync(path, Buffer.concat([Buffer.from("x\n".repeat(400)), Buffer.from([0])]))
