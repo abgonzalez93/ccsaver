@@ -10,7 +10,7 @@
     "node": ">=22.18"
   },
   "scripts": {
-    "test": "node --test \"test/*.test.ts\"",
+    "test": "CCSAVER_HOME=/nonexistent/ccsaver node --test \"test/*.test.ts\"",
     "typecheck": "tsc -p tsconfig.json",
     "lint": "biome check . --error-on-warnings",
     "format": "biome check . --write",

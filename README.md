@@ -190,7 +190,9 @@ pnpm lint
 claude plugin validate .
 ```
 
-`CCSAVER_HOME` relocates the state folder; the tests use it and nothing else.
+`CCSAVER_HOME` relocates the state folder; the tests use it and nothing else, and `pnpm test` starts from one that does not exist, so a test that forgets its own cannot touch yours.
+
+The rules the code follows, each with the tool that guards it, are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Origin
 
