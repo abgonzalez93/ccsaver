@@ -2,6 +2,18 @@
 
 Every commit is a version. A git hook writes each section from the commit message, its subject and the bullets of its body ([how](README.md#versions)), and the numbers follow [Semantic Versioning](https://semver.org/). The file keeps the newest versions that fit in 350 lines; `git log` has every one.
 
+## 0.4.4 - 2026-09-20
+
+docs: CONTRIBUTING says what the code does today
+
+- 2.5 counted about 1,250 lines of src/ and there are about 1,400
+- 2.1 now names bin/ccsaver as the second writer of the log line format, so a change to LOG_VERSION touches both
+- 3.3 was missing three boundaries the code validates by hand: the plugged file in readPlugged, the month's own log lines in spent, and package.json in version
+- 3.5 quoted the EPIPE lines invokeClaude no longer has, and says nothing about the timeout or the unreadable key; 3.6 gains the adapter the hook cannot load
+- 4.2 said the two waits fit in 120 s and the guard added up two; both now name BASH_BUDGET_MS and the formatter that takes what is left
+- 1.7 records the gate at 26, where measuring the size before the read left it
+- 1.6 lists isSecretPlace, and 3.7 writes down the race between two plug commands: read, filter, write is three steps, it is typed by hand, and it stays a known hole rather than a lock
+
 ## 0.4.3 - 2026-09-20
 
 fix: the warn: tripwire sees a delete, a dynamic import and a raw socket

@@ -62,11 +62,11 @@ Module-level mutable state exists twice, `secret` in `src/state.ts` and `delegat
 **1.5 NEVER comment code.** Names carry the what, the README carries the why. The complete list of exceptions: the one-line attribution header on a file that holds adapted third-party material (Apache-2.0 asks for it; [NOTICE](NOTICE) names the files), and one line inside a `catch` that is empty on purpose, saying why (`src/state.ts` · `record`).
 Guard: `test/conventions.test.ts`.
 
-**1.6 NEVER leave dead code, PREFER the helper that exists.** `attempt` for a call whose failure is an expected answer, `parsed` for JSON text, `isRecord` to open an unknown object, `messageOf` for a caught error, `real` and `isUnder` for paths, `readKey` and `readWorker` as the only readers of their files.
+**1.6 NEVER leave dead code, PREFER the helper that exists.** `attempt` for a call whose failure is an expected answer, `parsed` for JSON text, `isRecord` to open an unknown object, `messageOf` for a caught error, `real` and `isUnder` for paths, `isSecretPlace` for a folder that holds credentials, whether a file is leaving it or a root is being plugged, `readKey` and `readWorker` as the only readers of their files.
 Guard: `noUnusedLocals`, `noUnusedParameters`, Biome `noUnusedImports`, `noUnusedVariables`; an unused export and a duplicated helper are *convention*.
 
 **1.7 PREFER a function a reader holds in their head: cognitive complexity 15 or less.**
-Guard: *convention*, measured with `pnpm exec biome lint --only=complexity/noExcessiveCognitiveComplexity src test`. Three functions are over it and are the written exception: the flat command switch `main` in `src/cli.ts` (33), the linear `gate` in `src/hook.ts` (23) and the field-by-field guard `adapterOf` in `src/state.ts` (18). A new function over 15 is split before it lands; a fourth one puts the rule in `biome.json` as an error and brings all of them under it.
+Guard: *convention*, measured with `pnpm exec biome lint --only=complexity/noExcessiveCognitiveComplexity src test`. Three functions are over it and are the written exception: the flat command switch `main` in `src/cli.ts` (33), the linear `gate` in `src/hook.ts` (26) and the field-by-field guard `adapterOf` in `src/state.ts` (18). A new function over 15 is split before it lands; a fourth one puts the rule in `biome.json` as an error and brings all of them under it.
 
 **1.8 ALWAYS keep every file readable whole under this project's own gate: 350 lines and 32 KB.** A file splits by responsibility before it gets there, the way `worker.ts` gave birth to `boundary.ts`, `answer.ts` and `transport.ts`. The one exception is `pnpm-lock.yaml`, which nobody reads whole.
 Guard: `test/conventions.test.ts`.
@@ -89,6 +89,8 @@ Guard: Biome `noImportCycles`; the import list of `src/hook.ts` by `test/convent
 
 Off the map: `scripts/version.ts`, the git hook of 5.3. It is no part of the product: nothing in `src/` imports it, and it imports `node:` built-ins and the guards of `src/state.ts`, by `test/conventions.test.ts`.
 
+Off the map too: `bin/ccsaver`, the POSIX `sh` launcher, which holds `key set` so the key never reaches a Node argument list. It appends one event of its own, the `key set` line, in shell: the line format of `src/state.ts` · `LOG_VERSION` therefore has two writers, and a change to it has to touch both or the month's file will hold two shapes.
+
 **2.2 ALWAYS import from the file that owns the symbol**, by relative path with the real extension. No barrel, no `export *`, no default export.
 Guard: Biome `useImportExtensions`, `allowImportingTsExtensions`; barrels are *convention*.
 
@@ -106,7 +108,7 @@ export const invokeExternal = async (mode: string, system: string, message: stri
 
 Guard: *convention*. Revisit when a test needs to replace something that no parameter, variable or state file reaches, or when a seam gets a second implementation.
 
-**2.5 PREFER the flat `src/`.** It holds 7 files and about 1,250 lines. Folders and layers earn their place past 15 files or 3,000 lines; until then a new concept is a new file on the map of 2.1.
+**2.5 PREFER the flat `src/`.** It holds 7 files and about 1,400 lines. Folders and layers earn their place past 15 files or 3,000 lines; until then a new concept is a new file on the map of 2.1.
 Guard: *convention*.
 
 ## 3. Robustness
@@ -134,7 +136,7 @@ if (text === undefined) continue
 
 Guard: *convention*.
 
-**3.3 ALWAYS validate at the boundary, by hand, and return a typed value built from the checked fields.** The boundaries are `worker.json` (`readWorker`), an adapter file (`adapterOf`, which also rejects unknown keys), the hook's stdin (`src/hook.ts` · `gate`), the worker's HTTP response (`src/transport.ts` · `contentOf`) and the fallback's stdout (`invokeClaude`). Every `JSON.parse` lands in a `const` typed `unknown`, or goes through `parsed`.
+**3.3 ALWAYS validate at the boundary, by hand, and return a typed value built from the checked fields.** The boundaries are `worker.json` (`readWorker`), the `plugged` file (`src/state.ts` · `readPlugged`, which drops a line that is not an absolute path), an adapter file (`adapterOf`, which also rejects unknown keys), the hook's stdin (`src/hook.ts` · `gate`), the worker's HTTP response (`src/transport.ts` · `contentOf`), the fallback's stdout (`invokeClaude`), the month's own log lines when `doctor` adds up what was spent (`src/cli.ts` · `spent`) and `package.json` when it prints the version (`src/cli.ts` · `version`). Every `JSON.parse` lands in a `const` typed `unknown`, or goes through `parsed`.
 
 ```ts
 // ❌ trusts the shape of a response from the network
@@ -149,14 +151,14 @@ Guard: `test/conventions.test.ts` for `JSON.parse`; `noPropertyAccessFromIndexSi
 **3.4 NEVER read a broken config as an absent one.** Absent means defaults; present and malformed stops the call. `readWorker` once read a stray comma as "no worker", which quietly turned the paid fallback back on.
 Guard: `test/state.test.ts`, "a worker.json that is there but wrong is an error, never the same as no worker".
 
-**3.5 NEVER let one failure hide another.** Name the cause. `fellOf` tells a timeout from a body that is not JSON from a dead host. `invokeClaude` reads an `EPIPE` for what it is, a child that stopped reading, and reports the reason the child printed, which is all a spent budget leaves behind, before its exit and stderr. A worker's answer cut at an output limit falls as `length`, never as `incomplete`. Every fall to the paid worker says why on stderr first.
+**3.5 NEVER let one failure hide another.** Name the cause. `fellOf` tells a timeout from a body that is not JSON from a dead host. `src/transport.ts` · `troubleOf` reads the `code` of a failed spawn: an `EPIPE` is a child that stopped reading and no error at all, an `ETIMEDOUT` is the 85 s running out and says so rather than showing `spawnSync claude ETIMEDOUT`. `invokeClaude` then reports the reason the child printed, which is all a spent budget leaves behind, before its exit and stderr. A key that is present but unreadable is told from a key that was never stored, in the note and in `doctor`, by `src/state.ts` · `keyIsStored`; reading the first as the second sent the call to the paid worker under a message that said the opposite. A worker's answer cut at an output limit falls as `length`, never as `incomplete`. Every fall to the paid worker says why on stderr first.
 
 ```ts
 // ❌ past 64 KB of input the real error hides behind `spawnSync … EPIPE`
 if (run.error) return fail(`fallback worker could not run: ${run.error.message}`)
 // ✅ `src/transport.ts` · `invokeClaude`
-const stoppedReading = isRecord(run.error) && run.error["code"] === "EPIPE"
-if (run.error && !stoppedReading) return fail(`fallback worker could not run: ${run.error.message}`)
+const trouble = troubleOf(run.error)
+if (trouble !== undefined) return fail(trouble)
 const raw = parsed(run.stdout)
 const reason = reasonOf(raw)
 if (reason !== undefined) return fail(`fallback worker failed: ${reason.slice(0, 400)}`)
@@ -165,10 +167,10 @@ if (run.status !== 0) return fail(`fallback worker exited ${run.status ?? run.si
 
 Guard: `test/transport.test.ts`.
 
-**3.6 ALWAYS choose, per boundary, which way it fails.** The hook fails open: a crash inside the gate lets the `Read` through and leaves a `crash` event, because ccsaver must never block a session. Egress fails closed: a refused path, a secret or a malformed config stops the call before anything is sent. The event log changes nothing: a failed append is swallowed (`src/state.ts` · `record`).
+**3.6 ALWAYS choose, per boundary, which way it fails.** The hook fails open: a crash inside the gate lets the `Read` through and leaves a `crash` event, because ccsaver must never block a session; an adapter it cannot load falls back to the default limits the same way, and `src/hook.ts` · `adapterOrDefaults` records that crash too, so the `gate` line beside it is not read as those limits being the adapter's. Egress fails closed: a refused path, a secret or a malformed config stops the call before anything is sent. The event log changes nothing: a failed append is swallowed (`src/state.ts` · `record`).
 Guard: `test/events.test.ts`, `test/egress.test.ts`, `test/boundary.test.ts`.
 
-**3.7 NEVER check and then act on a path in two steps.** Resolve each path once, so the file that is judged is the file that is read (`src/worker.ts` · `fileBlock`). Create with `flag: "wx"`, so an existing target is refused by the write itself. Replace a state file by writing a temporary name and renaming it (`src/state.ts` · `writePrivate`). Keep a log line under 4,096 bytes, so appends from two processes stay whole lines.
+**3.7 NEVER check and then act on a path in two steps.** Resolve each path once, so the file that is judged is the file that is read (`src/worker.ts` · `fileBlock`). Create with `flag: "wx"`, so an existing target is refused by the write itself. Replace a state file by writing a temporary name and renaming it (`src/state.ts` · `writePrivate`). Keep a log line under 4,096 bytes, so appends from two processes stay whole lines. The one place the rule does not reach is two `plug` commands at the same instant: `src/state.ts` · `plug` reads the `plugged` file, filters it and writes it back, and although each write is atomic the three steps are not, so the later command wins and the earlier root is lost. It is typed by hand, one at a time, so it stays a known hole and not a lock.
 Guard: `test/egress.test.ts`, `test/code-write.test.ts`, `test/log.test.ts`.
 
 ## 4. Performance and async
@@ -176,7 +178,7 @@ Guard: `test/egress.test.ts`, `test/code-write.test.ts`, `test/log.test.ts`.
 **4.1 PREFER synchronous file I/O.** One process serves one call and has nothing to interleave, so `src/` reads and writes with the `*Sync` calls and awaits only the network: two `fetch` sites, `src/cli.ts` · `probe` and `src/transport.ts` · `invokeExternal`.
 Guard: *convention*. Revisit for a long-lived process or a call that gains from reading files in parallel.
 
-**4.2 ALWAYS bound what waits or grows.** A `fetch` carries `AbortSignal.timeout` and `redirect: "error"`; a spawn carries `timeout` and `maxBuffer`; an answer takes at most 8,192 tokens; the paid fallback takes at most 400,000 characters, 85 s and 0.50 $, and its wait and the worker's add up to less than the 120 s a Bash command gets; a log line takes at most 4,000 bytes.
+**4.2 ALWAYS bound what waits or grows.** A `fetch` carries `AbortSignal.timeout` and `redirect: "error"`; a spawn carries `timeout` and `maxBuffer`; an answer takes at most 8,192 tokens; the paid fallback takes at most 400,000 characters, 85 s and 0.50 $. The worker's 30 s and the fallback's 85 s are `src/worker.ts` · `BASH_BUDGET_MS`, 115 s, and the formatter takes what is left of it rather than a fixed minute, never less than `FORMAT_FLOOR_MS`, so the worst case stays inside the 120 s a Bash command gets. A log line takes at most 4,000 bytes.
 
 ```ts
 // ❌ waits for ever, follows a redirect with the file in hand
@@ -185,7 +187,7 @@ const response = await fetch(worker.url, { method: "POST", body })
 const response = await fetch(worker.url, { method: "POST", signal: AbortSignal.timeout(EXTERNAL_TIMEOUT_MS), redirect: "error", body })
 ```
 
-Guard: `test/transport.test.ts`, which also adds up the two waits; a new wait without a bound is *convention*.
+Guard: `test/transport.test.ts`, which also adds up the three waits; a new wait without a bound is *convention*.
 
 **4.3 ALWAYS await or return every promise**, with `async`/`await` and no `.then` chains. `src/cli.ts` sets `process.exitCode` from `await main()`; the only `process.exit` lives inside `fail`.
 Guard: Biome `noFloatingPromises`, `noMisusedPromises`, `useAwaitThenable`.
