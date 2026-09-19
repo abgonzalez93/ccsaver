@@ -69,6 +69,8 @@ git -C ~/src/ccsaver pull --ff-only
 
 The next Claude Code session, or `/reload-plugins`, runs the new code: a plugin installed from a local folder loads its current files at every session start.
 
+`ccsaver version` follows the pull at once: one new commit took it from 0.2.0 to 0.2.1. `claude plugin list` keeps the number it recorded at install time until `claude plugin update ccsaver@abgonzalez93`, which changes nothing that runs: the 344 KB copy it leaves in Claude Code's plugin cache is never loaded.
+
 Installed straight from GitHub, Claude Code runs a copy and refreshes it only when asked, because a third-party marketplace has auto-update off until you turn it on under `/plugin` → Marketplaces:
 
 ```bash

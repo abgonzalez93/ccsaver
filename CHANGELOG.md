@@ -2,6 +2,12 @@
 
 Every commit is a version. A git hook writes each section from the commit message, its subject and the bullets of its body ([how](README.md#versions)), and the numbers follow [Semantic Versioning](https://semver.org/). The file keeps the newest versions that fit in 350 lines; `git log` has every one.
 
+## 0.2.2 - 2026-09-19
+
+docs: what a pull changes and what claude plugin list keeps saying
+
+- README, Update: ccsaver version follows a pull at once (0.2.0 to 0.2.1 on one commit, measured against GitHub), while claude plugin list keeps the number recorded at install time until claude plugin update, which leaves a 344 KB copy in the plugin cache that no session loads
+
 ## 0.2.1 - 2026-09-19
 
 docs: an Update section, the attribution of the usage note, and two README numbers stated as measured
