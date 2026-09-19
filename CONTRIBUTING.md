@@ -87,6 +87,8 @@ Guard: `test/conventions.test.ts`.
 
 Guard: Biome `noImportCycles`; the import list of `src/hook.ts` by `test/conventions.test.ts`, because it is the start-up cost of every `Read` (4.4).
 
+Off the map: `scripts/version.ts`, the git hook of 5.3. It is no part of the product: nothing in `src/` imports it, and it imports `node:` built-ins and the guards of `src/state.ts`, by `test/conventions.test.ts`.
+
 **2.2 ALWAYS import from the file that owns the symbol**, by relative path with the real extension. No barrel, no `export *`, no default export.
 Guard: Biome `useImportExtensions`, `allowImportingTsExtensions`; barrels are *convention*.
 
@@ -194,13 +196,15 @@ Guard: *convention*.
 ## 5. Maintainability
 
 **5.1 ALWAYS change the README in the same commit as the behaviour.** The README is the specification: when it and the code disagree, one of them is a bug. A reason written there is known, not inferred. Documents that outlive a commit cite a file and a symbol, never a line number.
-Guard: `test/skills.test.ts` ties the skills to the commands and the manifest's version to the package's; `test/conventions.test.ts` ties this file's examples to the code; the rest is *convention*.
+Guard: `test/skills.test.ts` ties the skills to the commands, and both manifests and the top of `CHANGELOG.md` to one version; `test/conventions.test.ts` ties this file's examples to the code; the rest is *convention*.
 
 **5.2 ALWAYS bring the test with the behaviour; a fix starts with the test that fails.** Tests run on `node --test` with no network: a fake server on `127.0.0.1`, a fake `claude` binary, and a throwaway `CCSAVER_HOME` per test file. A test's name is a sentence that states the behaviour. A flaky test is chased under load, three suites in parallel for six rounds, before anyone calls it fixed.
 Guard: `pnpm test` starts from a state folder that does not exist, so a test that forgets its own `CCSAVER_HOME` cannot touch a real key.
 
 **5.3 ALWAYS write the commit as `type: subject`, in English.** `feat` is behaviour a user can see, `fix` is behaviour corrected, and `docs`, `test`, `refactor`, `perf`, `build`, `ci` and `chore` change no behaviour; a breaking change adds `!`. The body, when there is one, is a bullet list of what changed and why.
-Guard: *convention*.
+
+The message is also the release note. The hook of `.githooks/` turns the type into the next version (`scripts/version.ts` · `bump`) and the subject with its bullets into the entry of `CHANGELOG.md` (`scripts/version.ts` · `sectionOf`), then amends the commit; the README's Versions section has the behaviour case by case. NEVER type a version, and NEVER edit a section of `CHANGELOG.md`: the hook rebuilds the sections from the parent commit, so a hand edit does not survive its own commit.
+Guard: `test/version.test.ts` for the hook, one throwaway repository per way of making a commit; `test/skills.test.ts` for the one version; the wording of a message is *convention*.
 
 ```
 fix: a malformed worker.json stops the call

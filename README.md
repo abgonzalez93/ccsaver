@@ -194,6 +194,22 @@ claude plugin validate .
 
 The rules the code follows, each with the tool that guards it, are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
+### Versions
+
+Every commit is a version. A git hook reads the message of the commit it has just seen, writes the next number into `package.json` and `.claude-plugin/plugin.json`, puts the subject and the bullets of the body on top of `CHANGELOG.md`, and amends that commit with the three files. Nobody types a number or edits the changelog. `feat` moves the second number and anything else the third; a breaking change (`!`, or a `BREAKING CHANGE:` footer) moves the first once it is past 0, and the second until then. Turn it on once per clone:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+- It costs 85 ms per commit (p50 of 20, against 3 ms without it). The hash `git commit` prints is the commit before the amend: the hook's own line, `version: 0.2.1, amended as 1a2b3c4`, and `git log -1` have the real one.
+- The number is computed from the parent commit, so `git commit --amend` never moves it twice, and rewording `fix` into `feat` moves it again. A version file with changes that are not part of the commit is never swept in: the hook says so and waits for the next `--amend`.
+- `git am` of patches made with the hook on lands them untouched, tree for tree; a lone patch without a version gets one.
+- Git refuses an amend in the middle of a `cherry-pick` or a `rebase`, and a `git am` of several patches would write its stale index over one, so there the hook stays out, says so and leaves the tree clean. `git rebase --exec 'node scripts/version.ts' HEAD~<commits>` versions those commits afterwards, one by one.
+- `CHANGELOG.md` stays readable whole under this project's own gate, 350 lines and 32 KB: when a new section would not fit, the oldest ones fall off the bottom. Nothing is lost, because every section is a commit message and `git log` keeps them all.
+- History stays linear. A merge commit gets no version, because both lines of work claim the same numbers, and a commit that already carries a version conflicts on the three version files when it is replayed on a base that has moved.
+- Without the hook nothing happens: not in CI, not in an installed plugin, not in a fresh clone. A contributor's commits arrive with no version and get one when the maintainer applies them.
+
 ## Origin
 
 The one-shot worker design, the two worker instructions and the shape of the hook message are adapted from Spotify's `shunt` plugin in [spotify/portal-ai-plugins](https://github.com/spotify/portal-ai-plugins) (Apache-2.0), which targets their Portal platform. ccsaver is a separate implementation with per-project plugging, a privacy boundary, adapters and a fallback worker. See [NOTICE](NOTICE).

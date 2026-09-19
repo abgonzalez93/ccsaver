@@ -34,7 +34,8 @@ const linesOf = (path: string): [string, string][] =>
     .map((line, index) => [`${named(path)}:${index + 1}`, line])
 
 const SRC = filesUnder(join(REPO, "src"))
-const CODE = [...SRC, ...filesUnder(join(REPO, "test"))]
+const SCRIPTS = filesUnder(join(REPO, "scripts"))
+const CODE = [...SRC, ...SCRIPTS, ...filesUnder(join(REPO, "test"))]
 
 const importsOf = (path: string): string[] =>
   linesOf(path).flatMap(([, line]) => /from "([^"]+)"$/.exec(line)?.[1] ?? [])
@@ -42,6 +43,8 @@ const importsOf = (path: string): string[] =>
 test("src imports node: built-ins and its own files, and the package declares no runtime dependency", () => {
   const foreign = SRC.flatMap(importsOf).filter((name) => !/^(node:|\.\/)/.test(name))
   assert.deepEqual(foreign, [])
+  const borrowed = SCRIPTS.flatMap(importsOf).filter((name) => !/^(node:|\.\.\/src\/)/.test(name))
+  assert.deepEqual(borrowed, [])
   const manifest = parsed(readFileSync(join(REPO, "package.json"), "utf8"))
   const declared = Object.keys(isRecord(manifest) ? manifest : {})
   assert.deepEqual(
@@ -91,7 +94,7 @@ test("every file is readable whole under the default gate, the lockfile excepted
 
 test("every symbol CONTRIBUTING cites lives in the file it names", () => {
   const text = readFileSync(join(REPO, "CONTRIBUTING.md"), "utf8")
-  const cited = [...text.matchAll(/`((?:src|test)\/[a-z.-]+\.ts)` · `([A-Za-z]+)`/g)]
+  const cited = [...text.matchAll(/`((?:src|test|scripts)\/[a-z.-]+\.ts)` · `([A-Za-z]+)`/g)]
   assert.ok(cited.length > 0)
   const gone = cited.flatMap(([, file = "", symbol = ""]) =>
     new RegExp(`\\b${symbol}\\b`).test(readFileSync(join(REPO, file), "utf8"))
