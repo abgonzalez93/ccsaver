@@ -95,9 +95,10 @@ export const writeHome = (
     writeFileSync(
       join(home, "plugged"),
       state.plugged.map(([root, adapter]) => `${root}\t${adapter ?? ""}\n`).join(""),
+      { mode: 0o600 },
     )
   if (state.worker !== undefined)
-    writeFileSync(join(home, "worker.json"), JSON.stringify(state.worker))
+    writeFileSync(join(home, "worker.json"), JSON.stringify(state.worker), { mode: 0o600 })
   if (state.key !== undefined)
     writeFileSync(join(home, "api-key"), `${state.key}\n`, { mode: 0o600 })
 }

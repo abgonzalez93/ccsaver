@@ -78,9 +78,9 @@ export const readKey = (): string | undefined => {
 
 export const keyIsStored = (): boolean => existsSync(keyFile())
 
-const pluggedFile = (): string => join(stateHome(), "plugged")
+export const pluggedFile = (): string => join(stateHome(), "plugged")
 
-const workerFile = (): string => join(stateHome(), "worker.json")
+export const workerFile = (): string => join(stateHome(), "worker.json")
 
 export const real = (path: string): string =>
   attempt(() => realpathSync.native(path)) ?? resolve(path)

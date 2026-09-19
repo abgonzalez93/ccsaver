@@ -16,6 +16,7 @@ import {
   messageOf,
   parsed,
   plug,
+  pluggedFile,
   Refusal,
   readKey,
   readPlugged,
@@ -27,6 +28,7 @@ import {
   stateHome,
   unplug,
   type Worker,
+  workerFile,
   writeWorker,
 } from "./state.ts"
 import { CLAUDE_ON_PATH, claudeBin, fellOf, requestOf } from "./transport.ts"
@@ -236,6 +238,8 @@ const doctor = async (): Promise<number> => {
   const plugged = projects()
   const findings = [
     permissions("state", stateHome(), 0o700),
+    permissions("plugged file", pluggedFile(), 0o600),
+    permissions("worker file", workerFile(), 0o600),
     log(),
     ...spent(),
     ...(await workers()),

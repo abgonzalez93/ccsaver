@@ -146,6 +146,21 @@ test("doctor fails on a key readable by others and on a fallback that does not r
   assert.match(broken.stdout, /^FAIL fallback: /m)
 })
 
+test("doctor checks the mode of every file it keeps, not only the key", async () => {
+  const files: [string, string][] = [
+    ["plugged file", "plugged"],
+    ["worker file", "worker.json"],
+  ]
+  for (const [label, name] of files) {
+    const fine = await ccsaver(["doctor"])
+    assert.match(fine.stdout, new RegExp(`^ok {3}${label}: .*${name} \\(600\\)$`, "m"))
+    chmodSync(join(HOME, name), 0o644)
+    const loose = await ccsaver(["doctor"])
+    chmodSync(join(HOME, name), 0o600)
+    assert.equal(loose.code, 1, label)
+    assert.match(loose.stdout, new RegExp(`^FAIL ${label}: .* is 644, expected 600$`, "m"))
+  }
+})
 test("doctor only warns about a missing fallback from a shell outside Claude Code", async () => {
   const bin = join(WORK, "bin")
   mkdirSync(bin)

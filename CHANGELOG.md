@@ -2,6 +2,15 @@
 
 Every commit is a version. A git hook writes each section from the commit message, its subject and the bullets of its body ([how](README.md#versions)), and the numbers follow [Semantic Versioning](https://semver.org/). The file keeps the newest versions that fit in 350 lines; `git log` has every one.
 
+## 0.4.1 - 2026-09-20
+
+fix: doctor checks the mode of every file in the state folder
+
+- it checked the state folder and the key, but never plugged or worker.json, which writePrivate writes 600 and which hold the roots you plugged and the host of your worker
+- two more permissions lines, labelled "plugged file" and "worker file" so they do not read like the plugged: and worker: findings beside them
+- pluggedFile and workerFile are exported from state, so the CLI names no path of its own
+- writeHome in the tests writes both files 600, the way the product does
+
 ## 0.4.0 - 2026-09-20
 
 build!: Node 24.2 is the floor, the version hook's own requirement
