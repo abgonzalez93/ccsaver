@@ -2,6 +2,15 @@
 
 Every commit is a version. A git hook writes each section from the commit message, its subject and the bullets of its body ([how](README.md#versions)), and the numbers follow [Semantic Versioning](https://semver.org/). The file keeps the newest versions that fit in 350 lines; `git log` has every one.
 
+## 0.4.5 - 2026-09-20
+
+refactor: the hook's gate reads as five named steps
+
+- gate stood at cognitive complexity 26, the highest it has been, after the size check moved in front of the read
+- reasonOf, denial, placeOf, rangeOf and limitsOf take one decision each, so gate falls under 15 and stops being a written exception; CONTRIBUTING 1.7 now lists two
+- Limits is the pair the adapter and the defaults agree on, passed once instead of two numbers threaded through
+- no behaviour change: the hot path measures 1.7 ms unplugged and 21.9 ms plugged, against 1.7-1.8 and 21.5-22.4 before (mean of 30, process spawn included)
+
 ## 0.4.4 - 2026-09-20
 
 docs: CONTRIBUTING says what the code does today

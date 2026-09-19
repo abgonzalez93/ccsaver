@@ -21,6 +21,11 @@ const LINE_BREAK = 10
 const HEAD_BYTES = 8192
 const IDS = ["tool_use_id", "agent_id", "agent_type", "permission_mode"]
 
+interface Limits {
+  maxLines: number
+  maxTokens: number
+}
+
 interface Measured {
   lines?: number
   bytes: number
@@ -82,6 +87,38 @@ const deny = (reason: string): void => {
   )
 }
 
+const tokensIn = (bytes: number): number => Math.round(bytes / BYTES_PER_TOKEN)
+
+const reasonOf = (measured: Measured, ranged: boolean, limits: Limits): string => {
+  if (ranged) return "range"
+  if (measured.blind !== undefined) return measured.blind
+  if (measured.lines !== undefined && measured.lines > limits.maxLines) return "lines"
+  return tokensIn(measured.bytes) > limits.maxTokens ? "tokens" : "under"
+}
+
+const denial = (given: string, { lines, bytes }: Measured, limits: Limits): string => {
+  const counted =
+    lines === undefined ? `${bytes} bytes, too big to count its lines` : `${lines} lines`
+  return `${given} has ${counted}, ~${tokensIn(bytes)} tokens at 4 bytes each, and a whole-file Read measures about twice that (limits ${limits.maxLines} lines, ${limits.maxTokens} tokens). Locate or count with Grep first. When the answer needs the file understood end to end, use the /ccsaver:bulk-reader skill to delegate the read. To edit, Read only the range you need with offset and limit.`
+}
+
+const placeOf = (given: string, root: string): Record<string, unknown> => {
+  const path = real(given)
+  return isUnder(path, root) ? { inside: true, path: relative(root, path) } : { inside: false }
+}
+
+const rangeOf = (offset: unknown, limit: unknown): Record<string, unknown> => ({
+  ...(typeof offset === "number" ? { offset } : {}),
+  ...(typeof limit === "number" ? { limit } : {}),
+})
+
+const limitsOf = (name: string | undefined): Limits => {
+  const adapter = adapterOrDefaults(name)
+  return {
+    maxLines: adapter.maxLines ?? DEFAULT_LIMITS.maxLines,
+    maxTokens: adapter.maxTokens ?? DEFAULT_LIMITS.maxTokens,
+  }
+}
 const gate = (root: string, adapterName: string | undefined): void => {
   const input: unknown = JSON.parse(readFileSync(0, "utf8"))
   const call = isRecord(input) ? input : {}
@@ -99,32 +136,18 @@ const gate = (root: string, adapterName: string | undefined): void => {
     seen({ decision: "allow", reason: "malformed" })
     return
   }
-  const adapter = adapterOrDefaults(adapterName)
-  const maxLines = adapter.maxLines ?? DEFAULT_LIMITS.maxLines
-  const maxTokens = adapter.maxTokens ?? DEFAULT_LIMITS.maxTokens
-  const { lines, bytes, blind } = measure(given, maxTokens * BYTES_PER_TOKEN)
-  const tokens = Math.round(bytes / BYTES_PER_TOKEN)
-  const over = lines === undefined ? false : lines > maxLines
-  const reason = ranged
-    ? "range"
-    : (blind ?? (over ? "lines" : tokens > maxTokens ? "tokens" : "under"))
+  const limits = limitsOf(adapterName)
+  const measured = measure(given, limits.maxTokens * BYTES_PER_TOKEN)
+  const reason = reasonOf(measured, ranged, limits)
   const denied = reason === "lines" || reason === "tokens"
-  const counted =
-    lines === undefined ? `${bytes} bytes, too big to count its lines` : `${lines} lines`
-  if (denied)
-    deny(
-      `${given} has ${counted}, ~${tokens} tokens at 4 bytes each, and a whole-file Read measures about twice that (limits ${maxLines} lines, ${maxTokens} tokens). Locate or count with Grep first. When the answer needs the file understood end to end, use the /ccsaver:bulk-reader skill to delegate the read. To edit, Read only the range you need with offset and limit.`,
-    )
+  if (denied) deny(denial(given, measured, limits))
   if (!logging) return
-  const path = real(given)
   seen({
-    ...(isUnder(path, root) ? { inside: true, path: relative(root, path) } : { inside: false }),
-    ...(typeof offset === "number" ? { offset } : {}),
-    ...(typeof limit === "number" ? { limit } : {}),
-    lines: lines ?? null,
-    bytes,
-    maxLines,
-    maxTokens,
+    ...placeOf(given, root),
+    ...rangeOf(offset, limit),
+    lines: measured.lines ?? null,
+    bytes: measured.bytes,
+    ...limits,
     adapter: adapterName ?? null,
     decision: denied ? "deny" : "allow",
     reason,

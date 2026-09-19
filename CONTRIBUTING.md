@@ -66,7 +66,7 @@ Guard: `test/conventions.test.ts`.
 Guard: `noUnusedLocals`, `noUnusedParameters`, Biome `noUnusedImports`, `noUnusedVariables`; an unused export and a duplicated helper are *convention*.
 
 **1.7 PREFER a function a reader holds in their head: cognitive complexity 15 or less.**
-Guard: *convention*, measured with `pnpm exec biome lint --only=complexity/noExcessiveCognitiveComplexity src test`. Three functions are over it and are the written exception: the flat command switch `main` in `src/cli.ts` (33), the linear `gate` in `src/hook.ts` (26) and the field-by-field guard `adapterOf` in `src/state.ts` (18). A new function over 15 is split before it lands; a fourth one puts the rule in `biome.json` as an error and brings all of them under it.
+Guard: *convention*, measured with `pnpm exec biome lint --only=complexity/noExcessiveCognitiveComplexity src test`. Two functions are over it and are the written exception: the flat command switch `main` in `src/cli.ts` (33) and the field-by-field guard `adapterOf` in `src/state.ts` (18). A new function over 15 is split before it lands; a fourth one puts the rule in `biome.json` as an error and brings all of them under it.
 
 **1.8 ALWAYS keep every file readable whole under this project's own gate: 350 lines and 32 KB.** A file splits by responsibility before it gets there, the way `worker.ts` gave birth to `boundary.ts`, `answer.ts` and `transport.ts`. The one exception is `pnpm-lock.yaml`, which nobody reads whole.
 Guard: `test/conventions.test.ts`.
