@@ -43,6 +43,7 @@ const instructionOf = (mode: Mode, adapter: Adapter): string =>
     : MODES[mode]
 
 interface Sent {
+  path: string
   label: string
   lines: string[]
   block: string
@@ -64,7 +65,12 @@ const fileBlock = (given: string, numbered: boolean, root: string): Sent => {
   const lines = (text.endsWith("\n") ? text.slice(0, -1) : text).split("\n")
   const body = numbered ? lines.map((line, i) => `${i + 1}\t${line}`).join("\n") : text
   const named = label.replaceAll('"', "&quot;")
-  return { label, lines, block: `<file path="${named}">\n${body}\n</file>\n\n`, inside }
+  return { path, label, lines, block: `<file path="${named}">\n${body}\n</file>\n\n`, inside }
+}
+
+const blocksOf = (files: string[], numbered: boolean, root: string): Sent[] => {
+  const sent = files.map((given) => fileBlock(given, numbered, root))
+  return sent.filter((file, at) => sent.findIndex(({ path }) => path === file.path) === at)
 }
 
 const format = (adapter: Adapter, root: string, target: string): void => {
@@ -166,7 +172,7 @@ const bulkRead = async (
   ask: Ask,
 ): Promise<void> => {
   if (!question) fail("--question is required")
-  const sent = files.map((path) => fileBlock(path, true, root))
+  const sent = blocksOf(files, true, root)
   const corpus = sent.map(({ block }) => block).join("")
   const { text, tally } = checked(await ask(`${corpus}Question: ${question}\n`, sent), sent)
   delegation["cited"] = tally
@@ -187,7 +193,7 @@ const codeWrite = async (
   if (!spec) fail("--spec is required")
   const target = wanted ? targetIn(root, wanted) : undefined
   delegation["target"] = target !== undefined
-  const sent = files.map((path) => fileBlock(path, false, root))
+  const sent = blocksOf(files, false, root)
   const corpus = sent.map(({ block }) => block).join("")
   const code = unwrapped(await ask(`${corpus}Spec: ${spec}\n`, sent))
   if (target === undefined || wanted === undefined) {

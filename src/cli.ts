@@ -88,7 +88,7 @@ const probe = async (url: string, model: string, key: string): Promise<Finding> 
       headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
       signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
       redirect: "error",
-      body: JSON.stringify({ ...requestOf(model, "ping", "ping"), max_tokens: 1 }),
+      body: JSON.stringify(requestOf(model, "ping", "ping")),
     })
     const took = `${Math.round(performance.now() - started)} ms`
     if (response.status === 200)
@@ -180,6 +180,30 @@ const log = (): Finding => {
     : { level: "FAIL", text: `log: ${logDir()} must be 700 and its files 600` }
 }
 
+const spent = (): Finding[] => {
+  const text = attempt(() => readFileSync(logFile(), "utf8"))
+  if (text === undefined) return []
+  const calls = text
+    .split("\n")
+    .map((line) => parsed(line))
+    .filter(isRecord)
+    .filter((row) => row["kind"] === "delegate")
+  const paid = calls.filter((row) => row["answered"] === "fallback")
+  const usd = paid.reduce(
+    (sum, row) => sum + (typeof row["cost"] === "number" ? row["cost"] : 0),
+    0,
+  )
+  const why = Object.entries(Object.groupBy(paid, (row) => String(row["fell"])))
+    .map(([fell, rows]) => `${rows?.length ?? 0} ${fell}`)
+    .join(", ")
+  return [
+    {
+      level: "ok",
+      text: `spent: ${paid.length} of ${calls.length} delegations this month went to paid Claude Haiku ($${usd.toFixed(4)})${paid.length > 0 ? `: ${why}` : ""}`,
+    },
+  ]
+}
+
 const workers = async (): Promise<Finding[]> => {
   try {
     const worker = readWorker()
@@ -199,6 +223,7 @@ const doctor = async (): Promise<number> => {
   const findings = [
     permissions("state", stateHome(), 0o700),
     log(),
+    ...spent(),
     ...(await workers()),
     ...(plugged.length > 0 ? plugged : [NOTHING_PLUGGED]),
   ]

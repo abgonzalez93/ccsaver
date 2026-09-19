@@ -4,11 +4,19 @@ import { tmpdir } from "node:os"
 import { isEncrypted, isRecord, parsed, readKey, record, type Worker } from "./state.ts"
 
 const FALLBACK_MODEL = "haiku"
+const FALLBACK_BUDGET_USD = "0.5"
 const NO_MCP_SERVERS = '{"mcpServers":{}}'
-const BARE_SETTINGS = '{"disableAllHooks":true,"env":{"CLAUDE_CODE_EFFORT_LEVEL":"low"}}'
-const FALLBACK_TIMEOUT_MS = 180_000
+const BARE_ENV = {
+  MAX_THINKING_TOKENS: "0",
+  CLAUDE_CODE_EFFORT_LEVEL: "low",
+  CLAUDE_CODE_DISABLE_TERMINAL_TITLE: "1",
+  CLAUDE_CODE_PROMPT_CACHE_TTL: "5m",
+} as const
+const BARE_SETTINGS = JSON.stringify({ disableAllHooks: true, env: BARE_ENV })
+const FALLBACK_TIMEOUT_MS = 85_000
 const EXTERNAL_TIMEOUT_MS = 30_000
 const FALLBACK_MAX_CHARS = 400_000
+const MAX_ANSWER_TOKENS = 8192
 const CHARS_PER_TOKEN = 4
 const TEMPERATURE = 0.2
 
@@ -33,6 +41,13 @@ export const claudeBin = (worker: Worker | undefined): string =>
   worker?.claude ?? (process.env["CLAUDE_CODE_EXECPATH"] || CLAUDE_ON_PATH)
 
 const tokensOf = (message: string): number => Math.round(message.length / CHARS_PER_TOKEN)
+
+const reasonOf = (raw: unknown): string | undefined => {
+  if (!isRecord(raw) || raw["is_error"] !== true) return undefined
+  if (typeof raw["result"] === "string") return raw["result"]
+  const first: unknown = Array.isArray(raw["errors"]) ? raw["errors"][0] : undefined
+  return typeof first === "string" ? first : String(raw["subtype"])
+}
 
 export const invokeClaude = (
   mode: string,
@@ -60,6 +75,8 @@ export const invokeClaude = (
       NO_MCP_SERVERS,
       "--disable-slash-commands",
       "--no-session-persistence",
+      "--max-budget-usd",
+      FALLBACK_BUDGET_USD,
       "--settings",
       BARE_SETTINGS,
       "--output-format",
@@ -71,20 +88,20 @@ export const invokeClaude = (
       encoding: "utf8",
       timeout: FALLBACK_TIMEOUT_MS,
       maxBuffer: 64 * 1024 * 1024,
-      env: { ...process.env, MAX_THINKING_TOKENS: "0", CLAUDE_CODE_EFFORT_LEVEL: "low" },
+      env: { ...process.env, ...BARE_ENV },
     },
   )
   delegation["fallbackMs"] = Math.round(performance.now() - started)
   const stoppedReading = isRecord(run.error) && run.error["code"] === "EPIPE"
   if (run.error && !stoppedReading)
     return fail(`fallback worker could not run: ${run.error.message}`)
+  const raw = parsed(run.stdout)
+  const reason = reasonOf(raw)
+  if (reason !== undefined) return fail(`fallback worker failed: ${reason.slice(0, 400)}`)
   if (run.status !== 0)
     return fail(`fallback worker exited ${run.status ?? run.signal}: ${run.stderr.slice(0, 400)}`)
-  const raw = parsed(run.stdout)
   if (!isRecord(raw) || typeof raw["result"] !== "string")
     return fail(`fallback worker returned no result: ${run.stdout.slice(0, 200)}`)
-  if (raw["is_error"] === true)
-    return fail(`fallback worker failed: ${raw["result"].slice(0, 400)}`)
   const cost = typeof raw["total_cost_usd"] === "number" ? raw["total_cost_usd"] : null
   Object.assign(delegation, {
     answered: "fallback",
@@ -105,6 +122,7 @@ export const requestOf = (
 ): Record<string, unknown> => ({
   model,
   temperature: TEMPERATURE,
+  max_tokens: MAX_ANSWER_TOKENS,
   messages: [
     { role: "system", content: system },
     { role: "user", content: message },
@@ -116,6 +134,12 @@ export const fellOf = (error: unknown): Fell => {
   return error instanceof SyntaxError ? "not json" : "unreachable"
 }
 
+const isCutShort = (raw: unknown): boolean =>
+  isRecord(raw) &&
+  Array.isArray(raw["choices"]) &&
+  isRecord(raw["choices"][0]) &&
+  raw["choices"][0]["finish_reason"] === "length"
+
 const contentOf = (raw: unknown): string | undefined => {
   if (!isRecord(raw) || !Array.isArray(raw["choices"])) return undefined
   const first: unknown = raw["choices"][0]
@@ -123,6 +147,16 @@ const contentOf = (raw: unknown): string | undefined => {
     return undefined
   const content = first["message"]["content"]
   return typeof content === "string" && content.length > 0 ? content : undefined
+}
+
+const gaveNothing = (model: string, response: Response, raw: unknown): void => {
+  const cut = isCutShort(raw)
+  delegation["fell"] = response.ok ? (cut ? "length" : "incomplete") : "status"
+  note(
+    cut
+      ? `${model} cut its answer short (finish_reason length), falling back`
+      : `${model} answered ${response.status} without a complete result, falling back`,
+  )
 }
 
 export const invokeExternal = async (
@@ -155,8 +189,7 @@ export const invokeExternal = async (
     const raw: unknown = response.ok ? await response.json() : undefined
     const content = contentOf(raw)
     if (content === undefined) {
-      delegation["fell"] = response.ok ? "incomplete" : "status"
-      note(`${worker.model} answered ${response.status} without a complete result, falling back`)
+      gaveNothing(worker.model, response, raw)
       return undefined
     }
     Object.assign(delegation, {

@@ -27,6 +27,13 @@ test("code-writer tells Claude what a warn: line asks for", () => {
   assert.match(text, /`warn:` line/)
 })
 
+test("code-writer always names a target, so the code never comes back to be written twice", () => {
+  const text = readFileSync(join(REPO, "skills", "code-writer", "SKILL.md"), "utf8")
+  const commands = text.split("\n").filter((line) => line.startsWith("ccsaver "))
+  assert.equal(commands.length, 1)
+  assert.match(commands[0] ?? "", / --target /)
+})
+
 for (const [skill, mode] of SKILLS)
   test(`${skill} pre-approves its own subcommand, and every command it shows starts with it`, () => {
     const text = readFileSync(join(REPO, "skills", skill, "SKILL.md"), "utf8")

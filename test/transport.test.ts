@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { mkdirSync, rmSync, writeFileSync } from "node:fs"
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { createServer } from "node:http"
 import { join } from "node:path"
 import { after, before, beforeEach, test } from "node:test"
@@ -9,6 +9,7 @@ import {
   type FakeServer,
   fakeClaude,
   type Ran,
+  REPO,
   run,
   startServer,
   tempDir,
@@ -82,9 +83,14 @@ test("falls back to the Claude worker when the external model refuses", async ()
   assert.match((await bulkRead(SOURCE)).stdout, /FROM-CLAUDE/)
 })
 
-test("falls back when the external answer was cut short", async () => {
+test("falls back when the external answer was cut short, and says that is why", async () => {
   server.reply.finish = "length"
-  assert.match((await bulkRead(SOURCE)).stdout, /FROM-CLAUDE/)
+  const out = await bulkRead(SOURCE)
+  assert.match(out.stdout, /FROM-CLAUDE/)
+  assert.match(
+    out.stderr,
+    /^\[ccsaver: cheap-1 cut its answer short \(finish_reason length\), falling back\]$/m,
+  )
 })
 
 test("uses the Claude worker when no external model is configured", async () => {
@@ -118,25 +124,55 @@ test("with the fallback off, a call the worker cannot take fails and nothing rea
   assert.equal(server.seen.length, before)
 })
 
-test("the fallback runs bare: no tools, no MCP servers, no hooks and the lowest effort", async () => {
+test("the fallback runs bare and bounded, whatever the session has configured", async () => {
   const echo = join(WORK, "echo-args")
+  const names = [
+    "MAX_THINKING_TOKENS",
+    "CLAUDE_CODE_EFFORT_LEVEL",
+    "CLAUDE_CODE_DISABLE_TERMINAL_TITLE",
+    "CLAUDE_CODE_PROMPT_CACHE_TTL",
+  ]
   writeFileSync(
     echo,
-    '#!/usr/bin/env node\nprocess.stdout.write(JSON.stringify({ result: process.argv.slice(2).join(" ") + " effort=" + process.env.CLAUDE_CODE_EFFORT_LEVEL, total_cost_usd: 0 }))\n',
+    `#!/usr/bin/env node\nconst seen = ${JSON.stringify(names)}.map((name) => name + "=" + process.env[name]).join(" ")\nprocess.stdout.write(JSON.stringify({ result: process.argv.slice(2).join(" ") + " " + seen, total_cost_usd: 0 }))\n`,
     { mode: 0o755 },
   )
-  const out = await bulkRead(SOURCE, { CCSAVER_HOME: BARE_HOME, CLAUDE_CODE_EXECPATH: echo })
+  const out = await bulkRead(SOURCE, {
+    CCSAVER_HOME: BARE_HOME,
+    CLAUDE_CODE_EXECPATH: echo,
+    MAX_THINKING_TOKENS: "31999",
+    CLAUDE_CODE_EFFORT_LEVEL: "max",
+    CLAUDE_CODE_PROMPT_CACHE_TTL: "1h",
+  })
   assert.ok(
     out.stdout.includes('--tools  --strict-mcp-config --mcp-config {"mcpServers":{}} --disable-'),
     out.stdout,
   )
+  assert.ok(out.stdout.includes("--no-session-persistence --max-budget-usd 0.5 "), out.stdout)
   assert.ok(
     out.stdout.includes(
-      '--settings {"disableAllHooks":true,"env":{"CLAUDE_CODE_EFFORT_LEVEL":"low"}} ',
+      '--settings {"disableAllHooks":true,"env":{"MAX_THINKING_TOKENS":"0","CLAUDE_CODE_EFFORT_LEVEL":"low","CLAUDE_CODE_DISABLE_TERMINAL_TITLE":"1","CLAUDE_CODE_PROMPT_CACHE_TTL":"5m"}} ',
     ),
     out.stdout,
   )
-  assert.ok(out.stdout.includes("effort=low"), out.stdout)
+  assert.ok(
+    out.stdout.includes(
+      "MAX_THINKING_TOKENS=0 CLAUDE_CODE_EFFORT_LEVEL=low CLAUDE_CODE_DISABLE_TERMINAL_TITLE=1 CLAUDE_CODE_PROMPT_CACHE_TTL=5m",
+    ),
+    out.stdout,
+  )
+})
+
+test("the two waits of a delegation fit inside the 120 s the Bash tool gives a command", () => {
+  const text = readFileSync(join(REPO, "src", "transport.ts"), "utf8")
+  const msOf = (name: string): number =>
+    Number(new RegExp(`^const ${name} = ([\\d_]+)$`, "m").exec(text)?.[1]?.replaceAll("_", ""))
+  const waits = [msOf("EXTERNAL_TIMEOUT_MS"), msOf("FALLBACK_TIMEOUT_MS")]
+  assert.ok(
+    waits.every((ms) => ms > 0),
+    String(waits),
+  )
+  assert.ok(waits.reduce((sum, ms) => sum + ms, 0) < 120_000, String(waits))
 })
 
 test("never follows a redirect with the file in hand", async () => {
@@ -150,9 +186,9 @@ test("never follows a redirect with the file in hand", async () => {
 test("fails loudly when the fallback prints an error instead of a result", async () => {
   const hidden = join(OUTSIDE, "for-the-fallback.ts")
   writeFileSync(hidden, "export const x = 1\n")
-  const scripted = (name: string, line: string): string => {
+  const scripted = (name: string, line: string, exit = 0): string => {
     const path = join(WORK, name)
-    writeFileSync(path, `#!/bin/sh\necho '${line}'\n`, { mode: 0o755 })
+    writeFileSync(path, `#!/bin/sh\necho '${line}'\nexit ${exit}\n`, { mode: 0o755 })
     return path
   }
   const failing = scripted("failing", '{"is_error":true,"result":"Credit balance is too low"}')
@@ -160,6 +196,15 @@ test("fails loudly when the fallback prints an error instead of a result", async
   assert.equal(failed.code, 1)
   assert.equal(failed.stdout, "")
   assert.match(failed.stderr, /^Error: fallback worker failed: Credit balance is too low$/m)
+  const broke = await bulkRead(hidden, {
+    CLAUDE_CODE_EXECPATH: scripted(
+      "broke",
+      '{"is_error":true,"subtype":"error_max_budget_usd","errors":["Reached maximum budget ($0.5)"]}',
+      1,
+    ),
+  })
+  assert.equal(broke.code, 1)
+  assert.match(broke.stderr, /^Error: fallback worker failed: Reached maximum budget \(\$0\.5\)$/m)
   const chatty = await bulkRead(hidden, {
     CLAUDE_CODE_EXECPATH: scripted("chatty", "not json at all"),
   })

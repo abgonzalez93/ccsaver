@@ -163,7 +163,7 @@ test("doctor fails on a rejected key, and passes once the key is rotated", async
   const accepted = await ccsaver(["doctor"])
   assert.equal(accepted.code, 0)
   assert.match(accepted.stdout, /^ok {3}probe: cheap-1 accepted the key in \d+ ms$/m)
-  assert.ok(server.seen.at(-1)?.body.includes('"max_tokens":1'))
+  assert.ok(server.seen.at(-1)?.body.includes('"temperature":0.2,"max_tokens":8192,'))
   for (const out of [rejected, accepted]) {
     assert.equal(everything(out).includes(OLD_KEY), false)
     assert.equal(everything(out).includes(NEW_KEY), false)

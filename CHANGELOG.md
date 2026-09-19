@@ -2,6 +2,18 @@
 
 Every commit is a version. A git hook writes each section from the commit message, its subject and the bullets of its body ([how](README.md#versions)), and the numbers follow [Semantic Versioning](https://semver.org/). The file keeps the newest versions that fit in 350 lines; `git log` has every one.
 
+## 0.3.1 - 2026-09-19
+
+fix: the paid fallback asks for no session title, writes a 5-minute cache and has a budget
+
+- One `BARE_ENV` feeds both `--settings` and the child's environment: `MAX_THINKING_TOKENS` lived in one of the two, and the `env` of a settings file wins over the environment (5 → 184 output tokens for a two-character answer, one run each).
+- Claude Code titled the session with a second request that carried every file again, and wrote the whole call to a 1-hour cache that a follow-up never read; with the title off and a 5-minute cache the measured 8,230-token call went from 0.0257 $ to 0.0128 $ (Claude Code 2.1.274, subscription login, one run per arm).
+- The fallback stops at 85 s, so that its wait and the worker's 30 s fit inside the 120 s a Bash command gets, and at 0.50 $ a call; a spent budget leaves its reason only in the JSON, and the error now names it.
+- Every request caps the answer at 8,192 tokens, `doctor`'s probe included, and an answer cut at an output limit falls as `length` and says so.
+- A file named twice, by its path and through a symlink, is judged under both names and sent once.
+- `doctor` counts the month's delegations that went to paid Claude Haiku, what they cost and why, while the log is on.
+- The `code-writer` skill shows one form and always names a `--target`: without one the code came back to be written out a second time.
+
 ## 0.3.0 - 2026-09-19
 
 build!: Node 24, the active LTS, is the floor and the toolchain moves with it

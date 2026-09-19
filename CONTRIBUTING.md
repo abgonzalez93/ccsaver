@@ -149,7 +149,7 @@ Guard: `test/conventions.test.ts` for `JSON.parse`; `noPropertyAccessFromIndexSi
 **3.4 NEVER read a broken config as an absent one.** Absent means defaults; present and malformed stops the call. `readWorker` once read a stray comma as "no worker", which quietly turned the paid fallback back on.
 Guard: `test/state.test.ts`, "a worker.json that is there but wrong is an error, never the same as no worker".
 
-**3.5 NEVER let one failure hide another.** Name the cause. `fellOf` tells a timeout from a body that is not JSON from a dead host. `invokeClaude` reads an `EPIPE` for what it is, a child that stopped reading, and reports the child's own exit and stderr. Every fall to the paid worker says why on stderr first.
+**3.5 NEVER let one failure hide another.** Name the cause. `fellOf` tells a timeout from a body that is not JSON from a dead host. `invokeClaude` reads an `EPIPE` for what it is, a child that stopped reading, and reports the reason the child printed, which is all a spent budget leaves behind, before its exit and stderr. A worker's answer cut at an output limit falls as `length`, never as `incomplete`. Every fall to the paid worker says why on stderr first.
 
 ```ts
 // ❌ past 64 KB of input the real error hides behind `spawnSync … EPIPE`
@@ -157,6 +157,9 @@ if (run.error) return fail(`fallback worker could not run: ${run.error.message}`
 // ✅ `src/transport.ts` · `invokeClaude`
 const stoppedReading = isRecord(run.error) && run.error["code"] === "EPIPE"
 if (run.error && !stoppedReading) return fail(`fallback worker could not run: ${run.error.message}`)
+const raw = parsed(run.stdout)
+const reason = reasonOf(raw)
+if (reason !== undefined) return fail(`fallback worker failed: ${reason.slice(0, 400)}`)
 if (run.status !== 0) return fail(`fallback worker exited ${run.status ?? run.signal}: ${run.stderr.slice(0, 400)}`)
 ```
 
@@ -173,7 +176,7 @@ Guard: `test/egress.test.ts`, `test/worker.test.ts`, `test/log.test.ts`.
 **4.1 PREFER synchronous file I/O.** One process serves one call and has nothing to interleave, so `src/` reads and writes with the `*Sync` calls and awaits only the network: two `fetch` sites, `src/cli.ts` · `probe` and `src/transport.ts` · `invokeExternal`.
 Guard: *convention*. Revisit for a long-lived process or a call that gains from reading files in parallel.
 
-**4.2 ALWAYS bound what waits or grows.** A `fetch` carries `AbortSignal.timeout` and `redirect: "error"`; a spawn carries `timeout` and `maxBuffer`; the paid fallback takes at most 400,000 characters; a log line takes at most 4,000 bytes.
+**4.2 ALWAYS bound what waits or grows.** A `fetch` carries `AbortSignal.timeout` and `redirect: "error"`; a spawn carries `timeout` and `maxBuffer`; an answer takes at most 8,192 tokens; the paid fallback takes at most 400,000 characters, 85 s and 0.50 $, and its wait and the worker's add up to less than the 120 s a Bash command gets; a log line takes at most 4,000 bytes.
 
 ```ts
 // ❌ waits for ever, follows a redirect with the file in hand
@@ -182,7 +185,7 @@ const response = await fetch(worker.url, { method: "POST", body })
 const response = await fetch(worker.url, { method: "POST", signal: AbortSignal.timeout(EXTERNAL_TIMEOUT_MS), redirect: "error", body })
 ```
 
-Guard: `test/transport.test.ts`; a new wait without a bound is *convention*.
+Guard: `test/transport.test.ts`, which also adds up the two waits; a new wait without a bound is *convention*.
 
 **4.3 ALWAYS await or return every promise**, with `async`/`await` and no `.then` chains. `src/cli.ts` sets `process.exitCode` from `await main()`; the only `process.exit` lives inside `fail`.
 Guard: Biome `noFloatingPromises`, `noMisusedPromises`, `useAwaitThenable`.
