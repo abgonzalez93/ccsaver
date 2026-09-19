@@ -59,6 +59,25 @@ A plugin installed from a local folder loads in place, so the path stays stable 
 
 Installing straight from GitHub (`claude plugin marketplace add abgonzalez93/ccsaver`) gives you the hook and both skills, which call the bare `ccsaver` that Claude Code puts on the Bash tool's `PATH`. It gives you no `ccsaver` in your terminal, which is how you plug projects in and type the key: the launcher then lives in Claude Code's plugin cache, in a folder that changes with every update.
 
+## Update
+
+From a clone, pull it:
+
+```bash
+git -C ~/src/ccsaver pull --ff-only
+```
+
+The next Claude Code session, or `/reload-plugins`, runs the new code: a plugin installed from a local folder loads its current files at every session start.
+
+Installed straight from GitHub, Claude Code runs a copy and refreshes it only when asked, because a third-party marketplace has auto-update off until you turn it on under `/plugin` → Marketplaces:
+
+```bash
+claude plugin marketplace update abgonzalez93
+claude plugin update ccsaver@abgonzalez93
+```
+
+Then open a new session or run `/reload-plugins`. Every commit on `main` carries [its own version](#versions), and that number is what `plugin update` compares: it answered "updated from 0.1.0 to 0.1.1" to one new commit, and "already at the latest version" while the number stood still. `ccsaver version` prints the one you are running, and [CHANGELOG.md](CHANGELOG.md) says what each one changed.
+
 ## Plug a project in
 
 ```bash
@@ -95,7 +114,7 @@ Any OpenAI-compatible chat completions endpoint works; the URL must be `https` (
 
 `worker.json` needs no editing by hand. If it is there but malformed (a stray comma, `"fallback": "false"` in quotes), every call stops with a one-line error and nothing is sent: a typo is never read as "no worker", because that would quietly turn `fallback off` back on. `worker set` to a different host keeps the stored key and says so: run `ccsaver key set` again unless the key belongs to the new host, or the next call sends it there.
 
-The fallback spends your Claude usage, so it is as bare as the worker: no built-in tools, no MCP servers and none of your hooks (`--tools ""`, `--strict-mcp-config`, `disableAllHooks`), whatever your Claude Code has configured. One user-level `SessionStart` hook measured 1,987 input tokens against 590 for the same one-line prompt, and its text reached the worker's context next to the instruction. `ccsaver fallback off` turns it off once a worker is set: a call the worker cannot answer then fails with a one-line error and Claude reads by ranges instead, and a call that names a file outside the plugged root sends nothing anywhere. `ccsaver fallback on` brings it back. The fallback takes at most 400,000 characters of files per call: Haiku's context window is 200,000 tokens and the chars/4 estimate has measured about half of a real count, so a bigger call fails with a one-line error before anything is spent. The external worker has no such cap; its limit is your provider's. Claude Code's documentation says `--bare` will become the default for `-p`, and bare mode does not use a subscription login: on a future version the fallback may need an `ANTHROPIC_API_KEY`.
+The fallback spends your Claude usage, so it is as bare as the worker: no built-in tools, no MCP servers and none of your hooks (`--tools ""`, `--strict-mcp-config`, `disableAllHooks`), whatever your Claude Code has configured. One user-level `SessionStart` hook measured 1,987 input tokens against 590 for the same one-line prompt (one run each), and its text reached the worker's context next to the instruction. `ccsaver fallback off` turns it off once a worker is set: a call the worker cannot answer then fails with a one-line error and Claude reads by ranges instead, and a call that names a file outside the plugged root sends nothing anywhere. `ccsaver fallback on` brings it back. The fallback takes at most 400,000 characters of files per call: Haiku's context window is 200,000 tokens and the chars/4 estimate has measured about half of a real count, so a bigger call fails with a one-line error before anything is spent. The external worker has no such cap; its limit is your provider's. Claude Code's documentation says `--bare` will become the default for `-p`, and bare mode does not use a subscription login: on a future version the fallback may need an `ANTHROPIC_API_KEY`.
 
 `doctor` stops at a `node` older than 22.18, checks the permissions of the state folder and the key, says whether the [event log](#the-event-log) is on and how many bytes this month's file holds, sends a one-token probe shaped like a real call, with the same temperature and a system message, so a provider that would refuse the real thing fails here (200 = the key works, 401/403 = rejected, and a timeout is told from a host that cannot be reached), fails on a `worker.json` it cannot trust, runs the fallback binary with `--version` (unless the fallback is off), and lists each plugged project with its adapter and limits. For each of them it then feeds the hook a throwaway file one line over the limit, and the `gate:` line fails unless that read is denied. Whether the plugin itself is enabled is Claude Code's to say: `claude plugin list`. It never prints the key or its length. From a terminal outside Claude Code with no `claude` on the `PATH`, the fallback line is a `warn`, not a failure: that shell cannot see the binary a session brings, so run `doctor` from inside one. `ccsaver version` prints the version you are running.
 
@@ -144,7 +163,7 @@ It holds metadata only, and it never leaves your machine:
 
 Never recorded: the contents of a file, the worker's answer, the text of `--question` or `--spec`, the key, request headers. A stored key that turns up inside any line, from any command, is written as `[key]`; that holds for keys of 8 characters or more, because replacing anything shorter would eat unrelated text. In an unplugged project the hook records nothing, because it exits before starting Node. A failure to write the log never changes a decision of the hook, an exit code or an output.
 
-Every line carries `v` (the format version), `ts`, `kind`, `session` (`CLAUDE_CODE_SESSION_ID`, or `null` outside Claude Code) and `pid`; a line that would pass 4,000 bytes is replaced by a stub with its size, so one runaway message cannot bloat the log and every append stays under 4,096 bytes. While the log is on, the hook also measures the file behind a ranged `Read`, which it otherwise skips. `doctor` leaves one `gate` event per plugged project, marked `"tool_use_id": "doctor"`.
+Every line carries `v` (the format version), `ts`, `kind`, `session` (`CLAUDE_CODE_SESSION_ID`, or `null` outside Claude Code) and `pid`; a line that would pass 4,000 bytes is replaced by a stub with its size, so one runaway message cannot bloat the log. Processes that write at once do not tear each other's lines: 8 of them appending together left 0 broken lines of 8,000 at 4,000 bytes a line, and 0 of 320 at 1 MB a line (Linux, ext4). While the log is on, the hook also measures the file behind a ranged `Read`, which it otherwise skips. `doctor` leaves one `gate` event per plugged project, marked `"tool_use_id": "doctor"`.
 
 ## Environment variables
 
@@ -212,7 +231,7 @@ git config core.hooksPath .githooks
 
 ## Origin
 
-The one-shot worker design, the two worker instructions and the shape of the hook message are adapted from Spotify's `shunt` plugin in [spotify/portal-ai-plugins](https://github.com/spotify/portal-ai-plugins) (Apache-2.0), which targets their Portal platform. ccsaver is a separate implementation with per-project plugging, a privacy boundary, adapters and a fallback worker. See [NOTICE](NOTICE).
+The one-shot worker design, the two worker instructions, the framing of the files in the message, the usage note on stderr and the shape of the hook message are adapted from Spotify's `shunt` plugin in [spotify/portal-ai-plugins](https://github.com/spotify/portal-ai-plugins) (Apache-2.0), which targets their Portal platform. ccsaver is a separate implementation with per-project plugging, a privacy boundary, adapters and a fallback worker. See [NOTICE](NOTICE).
 
 ## License
 

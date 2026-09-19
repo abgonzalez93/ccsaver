@@ -1,3 +1,4 @@
+// Portions of this file are adapted from a third-party Apache-2.0 work and were modified; see NOTICE.
 import { spawnSync } from "node:child_process"
 import { tmpdir } from "node:os"
 import { isEncrypted, isRecord, parsed, readKey, record, type Worker } from "./state.ts"

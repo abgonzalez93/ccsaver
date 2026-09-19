@@ -2,6 +2,16 @@
 
 Every commit is a version. A git hook writes each section from the commit message, its subject and the bullets of its body ([how](README.md#versions)), and the numbers follow [Semantic Versioning](https://semver.org/). The file keeps the newest versions that fit in 350 lines; `git log` has every one.
 
+## 0.2.1 - 2026-09-19
+
+docs: an Update section, the attribution of the usage note, and two README numbers stated as measured
+
+- README, Update: a clone pulls and the next session runs it; a copy installed from GitHub is refreshed with plugin marketplace update and plugin update, and every commit counts because every commit carries its own version
+- src/transport.ts takes the attribution header and NOTICE names it: its usage note on stderr is adapted from the bulk-read script of shunt, and it moved there when worker.ts was split
+- README, Origin: the framing of the files in the message and the usage note are named with the rest of the adapted material
+- README: the 1,987 against 590 input tokens of the fallback are one run each
+- README, event log: the 4,000-byte cap is about size; 8 processes appending at once tore 0 lines of 8,000 at 4,000 bytes and 0 of 320 at 1 MB (Linux, ext4), so the 4,096-byte reason is gone
+
 ## 0.2.0 - 2026-09-19
 
 feat: every commit is a version, written by a git hook with its changelog entry
