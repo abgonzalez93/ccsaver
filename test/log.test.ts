@@ -331,3 +331,19 @@ test("log off refuses to bury an older log.off, and says so in the log it keeps"
     ["fail", out.stderr.slice(7, -1)],
   )
 })
+
+test("a line over 4,000 bytes is replaced by a stub that keeps its size", async () => {
+  const before = events().length
+  const long = await ccsaver(["bulk-read", `--${"x".repeat(4200)}`])
+  assert.equal(long.code, 1)
+  const stub = events().slice(before)[0] ?? NONE
+  assert.deepEqual([stub["kind"], stub["text"]], ["fail", undefined])
+  assert.ok(Number(stub["dropped"]) > 4000, String(stub["dropped"]))
+  assert.equal(logged().includes("xxxx"), false)
+})
+
+test("a stored key under 8 characters is left alone, so unrelated text survives", async () => {
+  assert.equal((await ccsaver(["key", "set"], "k-1234\n")).code, 0)
+  assert.equal((await ccsaver(["worker", "set", server.url, "k-1234"])).code, 0)
+  assert.equal(events().at(-1)?.["model"], "k-1234")
+})

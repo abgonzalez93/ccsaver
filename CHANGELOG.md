@@ -2,6 +2,15 @@
 
 Every commit is a version. A git hook writes each section from the commit message, its subject and the bullets of its body ([how](README.md#versions)), and the numbers follow [Semantic Versioning](https://semver.org/). The file keeps the newest versions that fit in 350 lines; `git log` has every one.
 
+## 0.2.4 - 2026-09-19
+
+test: the log's 4,000-byte stub and the 8-character floor for scrubbing the key
+
+- A fail whose text runs to 4,200 characters is stored as a stub carrying its byte size, and none of that text reaches the file.
+- A stored key under 8 characters is left in place, so text that merely looks like the key survives untouched.
+- Each guard was removed in turn to check that its test fails without it.
+- test/log.test.ts now measures 349 lines of the 350 the project's own gate allows: the next test there forces a split.
+
 ## 0.2.3 - 2026-09-19
 
 fix: the paid fallback runs at the lowest effort level
