@@ -134,6 +134,54 @@ test("bulk-read sends numbered files and the question to the external model", as
   assert.equal(last?.body.includes(WORK), false)
 })
 
+test("bulk-read checks each cited line against the file it sent", async () => {
+  const cited = join(PROJECT, "cited.ts")
+  writeFileSync(
+    cited,
+    "export const a = 1\nexport const b = 2\nexport const twice = (n: number): number => {\n",
+  )
+  server.reply.content = [
+    "* b is two @ cited.ts:2:export const b = 2",
+    "* a is one @ cited.ts:2:export const a = 1",
+    "* c is three @ cited.ts:1:export const c = 3",
+    "* the brace was dropped @ cited.ts:3:export const twice = (n: number): number =>",
+    "* cited.ts:1: `export const a = 1`",
+    "* no citation here",
+  ].join("\n")
+  const out = await bulkRead(cited)
+  assert.equal(
+    out.stdout,
+    [
+      "* b is two @ cited.ts:2",
+      "* a is one @ cited.ts:1",
+      "* c is three @ cited.ts:1 [unverified]",
+      "* the brace was dropped @ cited.ts:3",
+      "* cited.ts:1: `export const a = 1`",
+      "* no citation here\n",
+    ].join("\n"),
+  )
+  assert.match(out.stderr, /cited lines: 3 match the files, 1 renumbered, 1 unverified\]$/m)
+  assert.ok(String(systemSeen()).endsWith("the way grep -n prints it: path:line:text."))
+})
+
+test("a question that starts with a dash goes through in the = form", async () => {
+  const args = ["bulk-read", "--project", PROJECT, "--question=- what is b?", "--paths", SOURCE]
+  assert.equal((await cli(args)).code, 0)
+  assert.ok(server.seen.at(-1)?.body.includes("Question: - what is b?"))
+})
+
+test("refuses to send the paid fallback more than its context window holds", async () => {
+  const huge = join(OUTSIDE, "huge.md")
+  writeFileSync(huge, "x".repeat(400_001))
+  const out = await bulkRead(huge)
+  assert.equal(out.code, 1)
+  assert.equal(out.stdout, "")
+  assert.match(
+    out.stderr,
+    /^Error: the files are ~\d+ tokens by chars\/4, over the 100000 the Haiku/m,
+  )
+})
+
 test("falls back to the Claude worker when the external model refuses", async () => {
   server.reply.status = 429
   assert.match((await bulkRead(SOURCE)).stdout, /FROM-CLAUDE/)

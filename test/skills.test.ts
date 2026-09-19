@@ -16,5 +16,8 @@ for (const [skill, mode] of SKILLS)
     assert.ok(prefix.endsWith(`/bin/ccsaver ${mode} `), prefix)
     const commands = text.split("\n").filter((line) => /^\S+\/bin\/ccsaver /.test(line))
     assert.ok(commands.length > 0)
-    for (const command of commands) assert.ok(command.startsWith(prefix), command)
+    for (const command of commands) {
+      assert.ok(command.startsWith(prefix), command)
+      assert.doesNotMatch(command, / --(question|spec) /)
+    }
   })

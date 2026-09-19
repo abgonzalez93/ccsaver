@@ -8,9 +8,9 @@ metadata:
 ---
 
 ```bash
-${CLAUDE_PLUGIN_ROOT}/bin/ccsaver code-write --project "${CLAUDE_PROJECT_DIR}" --spec "<what to generate>" --reference <reference-file> [<file-under-test> ...] --target <output-path>
+${CLAUDE_PLUGIN_ROOT}/bin/ccsaver code-write --project "${CLAUDE_PROJECT_DIR}" --spec="<what to generate>" --reference <reference-file> [<file-under-test> ...] --target <output-path>
 
-${CLAUDE_PLUGIN_ROOT}/bin/ccsaver code-write --project "${CLAUDE_PROJECT_DIR}" --spec "<what to generate>" --reference <reference-file>
+${CLAUDE_PLUGIN_ROOT}/bin/ccsaver code-write --project "${CLAUDE_PROJECT_DIR}" --spec="<what to generate>" --reference <reference-file>
 ```
 
 The first form writes the target, formatted when the project's adapter names a formatter; the second prints to stdout. Each call is independent. To build on what was just generated, pass that file as a `--reference` for the next call.

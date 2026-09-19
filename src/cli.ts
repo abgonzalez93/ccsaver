@@ -25,8 +25,8 @@ const USAGE = `usage: ccsaver <command>
   fallback on|off           whether a call the worker cannot take goes to paid Claude Haiku
   doctor                    check permissions, key, worker, fallback and projects
 
-  bulk-read  --question <q> --paths <file>... [--project <dir>]
-  code-write --spec <s> --reference <file>... [--target <out>] [--project <dir>]
+  bulk-read  --question=<q> --paths <file>... [--project <dir>]
+  code-write --spec=<s> --reference <file>... [--target <out>] [--project <dir>]
 `
 
 const PROBE_TIMEOUT_MS = 30_000

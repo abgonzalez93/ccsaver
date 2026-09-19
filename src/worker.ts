@@ -19,7 +19,7 @@ import {
 
 const MODES = {
   "bulk-read":
-    "You are a precise code analyst. Read the provided files and answer the question concisely. Output structured bullets only. No greetings, no prose, no preambles, no summaries. Lead every bullet with the exact name, type, or line number. Use nested bullets for details. Skip anything the caller did not ask for.",
+    'You are a precise code analyst. Read the provided files and answer the question concisely. Output structured bullets only. No greetings, no prose, no preambles, no summaries. Lead every bullet with the exact name, type, or line number. Use nested bullets for details. Skip anything the caller did not ask for. End every bullet with " @ " and the one line that proves it, copied the way grep -n prints it: path:line:text.',
   "code-write":
     "You generate code files based on a spec and reference files. Match the existing patterns, conventions, naming, and style exactly. Output only the code — no explanations, no markdown fences unless asked. If the spec is ambiguous, make reasonable choices that match the patterns in the reference code.",
 } as const
@@ -32,6 +32,7 @@ const NO_MCP_SERVERS = '{"mcpServers":{}}'
 const TIMEOUT_MS = 180_000
 const EXTERNAL_TIMEOUT_MS = 30_000
 const FORMAT_TIMEOUT_MS = 60_000
+const FALLBACK_MAX_CHARS = 400_000
 const SECRET_NAME =
   /^\.env|^\.dev\.vars$|^\.credentials\.json$|^\.claude\.json$|^settings\.local\.json$|^api-key$|^\.npmrc$|^\.netrc$|^\.pypirc$|^\.pgpass$|^\.htpasswd$|^\.git-credentials$|^kubeconfig|^credentials(\.|$)|^\.?secrets?(\.|$)|^id_(rsa|ed25519|ecdsa|dsa)|\.(key|pem|p12|pfx|jks|keystore|ppk|kdbx|tfvars|tfstate)$|\.tfstate\.backup$/i
 const PRIVATE_KEY = /-----BEGIN [A-Z ]*PRIVATE KEY-----/
@@ -62,7 +63,13 @@ const instructionOf = (mode: Mode, adapter: Adapter): string =>
     ? `${MODES[mode]}${HOUSE_RULES}${adapter.rules}`
     : MODES[mode]
 
-const fileBlock = (given: string, numbered: boolean, root: string): string => {
+interface Sent {
+  label: string
+  lines: string[]
+  block: string
+}
+
+const fileBlock = (given: string, numbered: boolean, root: string): Sent => {
   const path = real(given)
   const label = isUnder(path, root) ? relative(root, path) : given
   if ([given, path].some((name) => SECRET_NAME.test(basename(name))))
@@ -75,16 +82,51 @@ const fileBlock = (given: string, numbered: boolean, root: string): string => {
     }
   })()
   if (PRIVATE_KEY.test(text)) fail(`refusing to send a file that holds a private key: ${given}`)
-  const body = numbered
-    ? (text.endsWith("\n") ? text.slice(0, -1) : text)
-        .split("\n")
-        .map((line, i) => `${i + 1}\t${line}`)
-        .join("\n")
-    : text
-  return `<file path="${label}">\n${body}\n</file>\n\n`
+  const lines = (text.endsWith("\n") ? text.slice(0, -1) : text).split("\n")
+  const body = numbered ? lines.map((line, i) => `${i + 1}\t${line}`).join("\n") : text
+  return { label, lines, block: `<file path="${label}">\n${body}\n</file>\n\n` }
+}
+
+const same = (line: string, text: string): boolean =>
+  line.trim() === text || (text.length >= 20 && line.trim().startsWith(text))
+
+const escaped = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+
+const checked = (answer: string, sent: Sent[]): string => {
+  const labels = sent.map(({ label }) => escaped(label)).join("|")
+  const cited = new RegExp(`^(.*)(?<![\\w./-])(${labels}):(\\d+):(.*)$`)
+  const tally = { match: 0, renumbered: 0, unverified: 0 }
+  const rows = answer.split("\n").map((row) => {
+    const [, before = "", label = "", claimed = "", quoted = ""] = cited.exec(row) ?? []
+    if (label === "") return row
+    const text = quoted
+      .trim()
+      .replace(/^`(.*)`$/, "$1")
+      .trim()
+    const places = (sent.find((file) => file.label === label)?.lines ?? []).flatMap((line, i) =>
+      text !== "" && same(line, text) ? [i + 1] : [],
+    )
+    const line = places.includes(Number(claimed))
+      ? Number(claimed)
+      : places.length === 1
+        ? places[0]
+        : undefined
+    tally[line === undefined ? "unverified" : line === Number(claimed) ? "match" : "renumbered"] +=
+      1
+    const kept = before.replace(/^[\s*+-]+/, "") === "" ? `:${quoted}` : ""
+    return `${before}${label}:${line ?? claimed}${kept}${line === undefined ? " [unverified]" : ""}`
+  })
+  note(
+    `cited lines: ${tally.match} match the files, ${tally.renumbered} renumbered, ${tally.unverified} unverified`,
+  )
+  return rows.join("\n")
 }
 
 const invokeClaude = (mode: Mode, system: string, message: string): string => {
+  if (message.length > FALLBACK_MAX_CHARS)
+    return fail(
+      `the files are ~${Math.round(message.length / 4)} tokens by chars/4, over the ${FALLBACK_MAX_CHARS / 4} the Haiku fallback takes: ask about fewer files`,
+    )
   const run = spawnSync(
     claudeBin(),
     [
@@ -263,13 +305,16 @@ export const runWorker = async (mode: Mode, argv: string[]): Promise<void> => {
   }
   if (mode === "bulk-read") {
     if (!values.question) fail("--question is required")
-    const corpus = files.map((path) => fileBlock(path, true, project.root)).join("")
-    process.stdout.write(`${await invoke(`${corpus}Question: ${values.question}\n`)}\n`)
+    const sent = files.map((path) => fileBlock(path, true, project.root))
+    const corpus = sent.map(({ block }) => block).join("")
+    process.stdout.write(
+      `${checked(await invoke(`${corpus}Question: ${values.question}\n`), sent)}\n`,
+    )
     return
   }
   if (!values.spec) fail("--spec is required")
   const target = values.target ? targetIn(project.root, values.target) : undefined
-  const corpus = files.map((path) => fileBlock(path, false, project.root)).join("")
+  const corpus = files.map((path) => fileBlock(path, false, project.root).block).join("")
   const code = unwrapped(await invoke(`${corpus}Spec: ${values.spec}\n`))
   if (target === undefined) {
     process.stdout.write(code)
