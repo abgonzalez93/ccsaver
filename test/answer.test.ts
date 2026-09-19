@@ -104,6 +104,17 @@ test("peels one fence or one echoed wrapper, and nothing that belongs to the fil
   assert.equal(unwrapped(chatty), `${chatty}\n`)
 })
 
+test("names a delete, a dynamic import and a socket the fetch check never saw", () => {
+  const code = [
+    'import { rmSync } from "node:fs"',
+    'const plugin = await import("./plugin.ts")',
+    'http.request("http://example.invalid")',
+    'net.connect(25, "example.invalid")',
+    'const live = new WebSocket("wss://example.invalid")',
+    'rmSync("build", { recursive: true })',
+  ].join("\n")
+  assert.deepEqual(risky(code), ["rmSync", "import", "http.request", "net.connect", "WebSocket"])
+})
 test("names what generated code touches that a boilerplate test has no use for", () => {
   const code = [
     'import { execSync } from "node:child_process"',

@@ -2,6 +2,13 @@
 
 Every commit is a version. A git hook writes each section from the commit message, its subject and the bullets of its body ([how](README.md#versions)), and the numbers follow [Semantic Versioning](https://semver.org/). The file keeps the newest versions that fit in 350 lines; `git log` has every one.
 
+## 0.4.3 - 2026-09-20
+
+fix: the warn: tripwire sees a delete, a dynamic import and a raw socket
+
+- a generated test that called rmSync, import(), http.request, net.connect or WebSocket printed no warn: line, so the skill ran it unopened
+- five more names on the list; it stays short by design, and a false positive costs opening the file
+
 ## 0.4.2 - 2026-09-20
 
 fix: plug refuses a root that is itself a store of credentials
