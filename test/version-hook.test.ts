@@ -124,6 +124,32 @@ test("no section is ever lost: what leaves the changelog is filed under docs/cha
   assert.equal(git(repo, "status", "--porcelain"), "")
 })
 
+const tagsIn = (repo: string): string[] =>
+  git(repo, "tag", "--list")
+    .split("\n")
+    .filter((line) => line !== "")
+    .toSorted()
+
+const commitAt = (repo: string, ref: string): string => git(repo, "rev-parse", `${ref}^{commit}`)
+
+test("every commit is tagged, and an amend that moves the number leaves no orphan behind", () => {
+  const repo = fresh()
+  commit(repo, "fix: one")
+  assert.deepEqual(tagsIn(repo), ["v0.1.1"])
+  assert.equal(commitAt(repo, "v0.1.1"), commitAt(repo, "HEAD"))
+  commit(repo, "fix: two")
+  assert.deepEqual(tagsIn(repo), ["v0.1.1", "v0.1.2"])
+
+  git(repo, "commit", "-q", "--amend", "--no-edit")
+  assert.deepEqual(tagsIn(repo), ["v0.1.1", "v0.1.2"])
+  assert.equal(commitAt(repo, "v0.1.2"), commitAt(repo, "HEAD"))
+
+  git(repo, "commit", "-q", "--amend", "-m", "feat: two, reworded")
+  assert.deepEqual(tagsIn(repo), ["v0.1.1", "v0.2.0"])
+  assert.equal(commitAt(repo, "v0.2.0"), commitAt(repo, "HEAD"))
+  assert.equal(git(repo, "tag", "--no-merged", "HEAD").trim(), "")
+})
+
 test("git commit: every commit carries its version in both manifests and its entry on top", () => {
   const repo = fresh()
   assert.match(commit(repo, "fix: one"), /version: 0\.1\.1, amended/)

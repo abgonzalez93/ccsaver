@@ -4,6 +4,17 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 This file keeps the newest versions that fit in 350 lines. The older ones are not dropped: the hook files them under [docs/changelog/](docs/changelog/), oldest file first, and no version is ever in two files. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so [docs/changelog/1.md](docs/changelog/1.md) opens with the seventeen commits that make up 0.1.0.
 
+## 0.6.0 - 2026-09-20
+
+feat: the version hook tags every commit it versions
+
+- there was not one tag in 51 commits, although the hook has computed the number since 0.2.0: it now writes an annotated v<number> on the commit it has just amended
+- annotated, so git push --follow-tags carries the tags along with the commits
+- an --amend leaves no orphan: the tag is forced onto the commit that replaced the old one, and the tag the commit carried before is deleted when the number moved and nothing reachable from HEAD points at it any more
+- it stays out where it already stayed out: a merge commit, a parent with no version, and the middle of a cherry-pick or a patch series
+- test/version-hook.test.ts commits, amends with the same message and amends again with a type that moves the number, and asserts git tag --no-merged HEAD is empty at the end
+- docs/versions.md and CONTRIBUTING 5.3 say so; commits older than this one have no tag and keep their number in package.json
+
 ## 0.5.2 - 2026-09-20
 
 docs: a README someone can read in thirty seconds, and the detail in docs/

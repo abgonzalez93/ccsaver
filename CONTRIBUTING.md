@@ -213,7 +213,7 @@ Guard: `pnpm test` starts from a state folder that does not exist, so a test tha
 
 The hook needs Node.js 24.2, the floor `package.json` declares: `scripts/version.ts` runs on `import.meta.main`, which 24.0 and 24.1 leave undefined, so on those it does nothing and says nothing.
 
-The message is also the release note. The hook of `.githooks/` turns the type into the next version (`scripts/version.ts` · `bump`) and the subject with its bullets into the entry of `CHANGELOG.md` (`scripts/version.ts` · `sectionOf`), then amends the commit; `docs/versions.md` has the behaviour case by case. NEVER type a version, and NEVER edit a section of `CHANGELOG.md`: the hook rebuilds the sections from the parent commit, so a hand edit does not survive its own commit.
+The message is also the release note. The hook of `.githooks/` turns the type into the next version (`scripts/version.ts` · `bump`) and the subject with its bullets into the entry of `CHANGELOG.md` (`scripts/version.ts` · `sectionOf`), amends the commit and tags it (`scripts/version.ts` · `tagged`), which also drops the tag an `--amend` orphaned. An entry that no longer fits is filed under `docs/changelog/` (`scripts/version.ts` · `filing`), never dropped. `docs/versions.md` has the behaviour case by case. NEVER type a version, and NEVER edit a section of `CHANGELOG.md`: the hook rebuilds the sections from the parent commit, so a hand edit does not survive its own commit.
 Guard: `test/version.test.ts` for the hook, one throwaway repository per way of making a commit; `test/skills.test.ts` for the one version; the wording of a message is *convention*.
 
 ```

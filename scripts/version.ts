@@ -137,6 +137,16 @@ const amended = (edits: Edit[]): string => {
   return git("rev-parse", "--short", "HEAD").trim()
 }
 
+const unreachable = (tag: string): boolean =>
+  attempt(() => git("merge-base", "--is-ancestor", `${tag}^{commit}`, "HEAD")) === undefined
+
+const tagged = (after: string, carried: string | undefined): string => {
+  if (carried !== undefined && carried !== after && unreachable(`v${carried}`))
+    attempt(() => git("tag", "--delete", `v${carried}`))
+  git("tag", "--force", "--annotate", "--message", `ccsaver ${after}`, `v${after}`, "HEAD")
+  return `v${after}`
+}
+
 const filedNow = (index = 1): string[] => {
   const text = committed(filedAt(index))
   return text === undefined ? [] : [text, ...filedNow(index + 1)]
@@ -167,14 +177,18 @@ const versioned = (): string | undefined => {
   const before = versionOf(committed("package.json", "HEAD~1") ?? "")
   if (before === undefined) return "the parent commit carries no version, nothing to bump"
   const after = bump(before, levelOf(message))
+  const carried = versionOf(committed("package.json") ?? "")
   const stale = editsFor(after, sectionOf(after, date, message))
-  if (stale.length === 0) return undefined
   if (midway())
-    return `${after} not written in the middle of a pick or a patch series; then: ${REPAIR}`
+    return stale.length === 0
+      ? undefined
+      : `${after} not written in the middle of a pick or a patch series; then: ${REPAIR}`
+  if (stale.length === 0) return `${after} already written, ${tagged(after, carried)} moved here`
   const dirty = git("status", "--porcelain", "--", ...stale.map(({ path }) => path)).trim()
   if (dirty !== "")
     return `${after} not written, changed outside the commit: ${dirty.replaceAll("\n", ",")}`
-  return `${after}, amended as ${amended(stale)}`
+  const at = amended(stale)
+  return `${after}, amended as ${at}, tagged ${tagged(after, carried)}`
 }
 
 const outcome = (): string | undefined => {
