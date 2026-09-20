@@ -4,6 +4,16 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.6.2 - 2026-09-20
+
+ci: a v*.*.0 tag becomes a GitHub release with its changelog section
+
+- .github/workflows/release.yml: on a tag push it pulls that version's section out of CHANGELOG.md with awk and hands it to gh release create, which is preinstalled on the runner, so no new action has to be pinned
+- it fails instead of publishing an empty release when the changelog has no section for the tag
+- only minor and major tags fire it: every commit is a version, so releasing each one would leave six releases behind a six-commit push, and a patch is already in the changelog
+- it is its own file so ci.yml, the one that runs on every push and pull request, keeps permissions: contents: read; the release job alone takes contents: write
+- CONTRIBUTING 5.5 names that exception and why it is the only one; docs/versions.md says what a tag does when it reaches GitHub, and that a release changes nothing about installing the plugin
+
 ## 0.6.1 - 2026-09-20
 
 fix: one changelog file, from the newest version back to the first commit
