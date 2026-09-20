@@ -122,3 +122,15 @@ test("lets a binary file through", async () => {
 test("does nothing in a project that is not plugged in", async () => {
   assert.equal(await denied({ tool_input: { file_path: LONG } }, UNPLUGGED), false)
 })
+
+test("denies a file one byte past the byte limit, however few lines it has, and lets one at the limit through", async () => {
+  const row = `${"x".repeat(99)}\n`
+  const atLimit = join(WORK, "at-limit.txt")
+  const pastLimit = join(WORK, "past-limit.txt")
+  writeFileSync(atLimit, row.repeat(320))
+  writeFileSync(pastLimit, `${row.repeat(320)}x`)
+  assert.equal(await denied({ tool_input: { file_path: atLimit } }), false)
+  const out = await said({ tool_input: { file_path: pastLimit } })
+  assert.match(out.stdout, /"permissionDecision":"deny"/)
+  assert.match(out.stdout, /32001 bytes, too big to count its lines, ~8000 tokens/)
+})

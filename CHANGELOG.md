@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.19.16 - 2026-09-20
+
+fix: a file one byte past the byte limit is denied, however few lines it has
+
+- the hook never counts the lines of a file over maxTokens × 4 bytes, and then judged it by Math.round(bytes / 4), which reads 32,001 bytes as 8,000 tokens: exactly one size passed the gate with its lines uncounted
+- lines left uncounted now mean the file is past the byte limit, and the reason is tokens; the bytes/4 comparison this replaces could never fire on a counted file, because bytes ≤ maxTokens × 4 rounds to at most maxTokens
+- hook measured 19.47 → 19.63 ms mean and 19.37 → 19.38 ms median, 30 paired runs against the parent commit
+
 ## 0.19.15 - 2026-09-20
 
 refactor: what saved prints leaves the file that adds it up

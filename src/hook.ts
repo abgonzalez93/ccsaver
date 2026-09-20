@@ -88,8 +88,8 @@ const deny = (reason: string): void => {
 const reasonOf = (measured: Measured, ranged: boolean, limits: Limits): string => {
   if (ranged) return "range"
   if (measured.blind !== undefined) return measured.blind
-  if (measured.lines !== undefined && measured.lines > limits.maxLines) return "lines"
-  return tokensIn(measured.bytes) > limits.maxTokens ? "tokens" : "under"
+  if (measured.lines === undefined) return "tokens"
+  return measured.lines > limits.maxLines ? "lines" : "under"
 }
 
 const denial = (given: string, { lines, bytes }: Measured, limits: Limits): string => {
