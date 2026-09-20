@@ -1,6 +1,6 @@
 {
   "name": "ccsaver",
-  "version": "0.19.11",
+  "version": "0.19.12",
   "description": "Keeps whole-file reads and boilerplate writing out of the expensive model's context by delegating them to a cheap one-shot worker, only in the projects you plug in.",
   "author": {
     "name": "abgonzalez93",

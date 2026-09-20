@@ -51,24 +51,34 @@ export const record = (kind: string, fields: Record<string, unknown>, session?: 
   }
 }
 
-const rowsIn = (text: string): Rows =>
-  text.split("\n").flatMap((line) => {
-    const row = parsed(line)
-    return isRecord(row) ? [row] : []
-  })
-
-const rowsAt = (place: string): Rows => {
+const textAt = (place: string): string => {
   const text = attempt(() => readFileSync(place, "utf8"))
   if (text === undefined && existsSync(place))
     throw new Refusal(`${place} cannot be read: check its owner, its mode and its size`)
-  return rowsIn(text ?? "")
+  return text ?? ""
 }
 
-export const readEvents = (): Rows => rowsAt(logFile())
+const folded = <T>(text: string, seed: T, step: (sum: T, row: Row) => T): T => {
+  let sum = seed
+  for (let at = 0; at <= text.length; ) {
+    const end = text.indexOf("\n", at)
+    const row = parsed(text.slice(at, end === -1 ? undefined : end))
+    if (isRecord(row)) sum = step(sum, row)
+    if (end === -1) break
+    at = end + 1
+  }
+  return sum
+}
 
-export const readMonth = (month: string): Rows => {
+export const readEvents = (): Rows =>
+  folded(textAt(logFile()), [], (rows: Rows, row) => {
+    rows.push(row)
+    return rows
+  })
+
+export const foldMonth = <T>(month: string, seed: T, step: (sum: T, row: Row) => T): T => {
   if (!MONTH.test(month)) throw new Refusal(`a month is YYYY-MM, this one is not: ${month}`)
-  return rowsAt(join(logDir(), `events-${month}.jsonl`))
+  return folded(textAt(join(logDir(), `events-${month}.jsonl`)), seed, step)
 }
 
 export const crashed = (where: string, error: unknown): void => {

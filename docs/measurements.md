@@ -81,6 +81,12 @@ For the same read: 4–8 s and 0.03–0.07 $ for the one-shot worker, against 26
 
 This README with line numbers, Claude Code 2.1.274, subscription login, one run per arm: 0.0257 $ → 0.0128 $ once the fallback stopped asking for a session title, a second hidden request that carried the whole file again, and wrote a 5-minute cache instead of a 1-hour one. A follow-up question on the same file read 0 tokens from that cache either way.
 
+## Adding up a month of the log
+
+A synthetic month of 200,000 `gate` lines, 66.6 MB, added up by `ccsaver saved 2026-08`: **0.39-0.44 s and 219 MB of peak RSS**, against 0.59 s and 317 MB while the reader built an array of every row of the month first. The fold holds one row at a time, so what is left is the month's own text, read whole with `readFileSync`.
+
+Reading it as a stream instead takes the same work to 0.31 s and 80 MB, but it makes the reader asynchronous, and `src/` reads files synchronously for the reason 4.1 of [CONTRIBUTING](../CONTRIBUTING.md) gives. At the 181 denied reads a month of the worked example, 66.6 MB is about 900 years of log, so the ceiling is written down here rather than paid for.
+
 ## The citation check in bulk-read
 
 One free model, files up to 493 lines, 183 citations in 18 answers: 175 matched their line and 8 were tagged, in 3 of the answers. The 8 are the same 2 mis-copied words, and 6 citations that end in the line number again, `path:69:70`, with no text to compare (all in one answer).

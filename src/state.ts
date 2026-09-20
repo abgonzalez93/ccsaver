@@ -16,6 +16,7 @@ const LOCAL_HOSTS = ["127.0.0.1", "localhost", "[::1]"]
 const CARRIABLE = /^[\x20-\x7e]+$/
 
 let secret: string | undefined
+let looked = false
 
 export class Refusal extends Error {}
 
@@ -54,11 +55,12 @@ export const stateHome = (): string => {
 export const keyFile = (): string => join(stateHome(), "api-key")
 
 export const readKey = (): string | undefined => {
+  looked = true
   secret = attempt(() => readFileSync(keyFile(), "utf8").trim()) || undefined
   return secret
 }
 
-export const storedKey = (): string | undefined => secret ?? readKey()
+export const storedKey = (): string | undefined => (looked ? secret : readKey())
 
 export const keyIsStored = (): boolean => existsSync(keyFile())
 

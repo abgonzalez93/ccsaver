@@ -1,6 +1,6 @@
 import { existsSync, readdirSync } from "node:fs"
 import { tokensIn } from "./config.ts"
-import { logDir, MONTH, monthKey, numberAt, type Row, type Rows, readMonth } from "./log.ts"
+import { foldMonth, logDir, MONTH, monthKey, numberAt, type Row, type Rows } from "./log.ts"
 import { MODEL_NAME, type Prices, readPrices, workerNamed } from "./prices.ts"
 import { attempt, tinted } from "./state.ts"
 
@@ -141,11 +141,12 @@ const delegateInto = (sum: Spend, row: Row): Spend => {
   }
 }
 
-export const tallied = (rows: Rows, from: Spend = NOTHING_SPENT): Spend =>
-  rows.reduce((sum, row) => {
-    if (row["kind"] === "gate" && row["tool_use_id"] !== "doctor") return gateInto(sum, row)
-    return row["kind"] === "delegate" ? delegateInto(sum, row) : sum
-  }, from)
+const into = (sum: Spend, row: Row): Spend => {
+  if (row["kind"] === "gate" && row["tool_use_id"] !== "doctor") return gateInto(sum, row)
+  return row["kind"] === "delegate" ? delegateInto(sum, row) : sum
+}
+
+export const tallied = (rows: Rows, from: Spend = NOTHING_SPENT): Spend => rows.reduce(into, from)
 
 const monthsOf = (): string[] =>
   (attempt(() => readdirSync(logDir())) ?? [])
@@ -154,7 +155,7 @@ const monthsOf = (): string[] =>
     .sort()
 
 const tallyOver = (months: string[]): Spend =>
-  months.reduce((sum, month) => tallied(readMonth(month), sum), NOTHING_SPENT)
+  months.reduce((sum, month) => foldMonth(month, sum, into), NOTHING_SPENT)
 
 const pricedIn = (tally: Spend, prices: Prices): { read: Read; each: number }[] =>
   Object.entries(tally.byModel).flatMap(([model, read]) => {

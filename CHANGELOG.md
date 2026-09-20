@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.19.12 - 2026-09-20
+
+perf: a month of the log is folded row by row, not held whole
+
+- readMonth built an array of every row of a month before anything was counted: a synthetic 66.6 MB month cost 317 MB of RSS and 0.59 s
+- foldMonth hands one row at a time to the tally, which takes the same month to 219 MB and 0.39-0.44 s, with the reader still synchronous
+- storedKey stopped re-reading api-key on every event when no key is stored: the miss is remembered now, so the hook opens that file once per process instead of once per line it writes
+
 ## 0.19.11 - 2026-09-20
 
 refactor: worker.json leaves config.ts for endpoint.ts

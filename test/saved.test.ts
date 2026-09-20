@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
-import { readMonth } from "../src/log.ts"
+import { foldMonth } from "../src/log.ts"
 import type { Prices } from "../src/prices.ts"
 import { moneyOf, NOTHING_SPENT, tallied, totalled } from "../src/saved.ts"
 import { denialRow, gateRow } from "./helpers.ts"
@@ -93,5 +93,5 @@ test("each model is priced at its own rate, not at one rate for the month", () =
 
 test("a month is YYYY-MM, so no reader of the log can be steered out of its folder", () => {
   for (const wrong of ["2026-13", "../../etc/passwd", "2026-01/../../.ssh/id_rsa"])
-    assert.throws(() => readMonth(wrong), /a month is YYYY-MM, this one is not/)
+    assert.throws(() => foldMonth(wrong, 0, (sum) => sum), /a month is YYYY-MM, this one is not/)
 })
