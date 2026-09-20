@@ -11,12 +11,14 @@ import {
   linesIn,
   loadAdapter,
   pluggedRootOf,
+  tailOf,
   tokensIn,
 } from "./config.ts"
 import { crashed, logDir, record } from "./log.ts"
-import { attempt, isRecord, isUnder, real } from "./state.ts"
+import { attempt, isRecord, isUnder, parsed, real } from "./state.ts"
 
 const IDS = ["tool_use_id", "agent_id", "agent_type", "permission_mode"]
+const TRANSCRIPT_TAIL = 65_536
 
 interface Measured {
   lines?: number
@@ -47,6 +49,26 @@ const adapterOrDefaults = (name: string | undefined): Adapter => {
     crashed("hook adapter", error)
     return {}
   }
+}
+
+const spokenIn = (text: string): string | undefined => {
+  let said: string | undefined
+  for (const line of text.split("\n")) {
+    const row = parsed(line)
+    const message = isRecord(row) ? row["message"] : undefined
+    if (!isRecord(message) || message["role"] !== "assistant") continue
+    const model = message["model"]
+    if (typeof model === "string") said = model
+  }
+  return said
+}
+
+const modelOf = (transcript: unknown): string | undefined => {
+  if (typeof transcript !== "string") return undefined
+  const tail = tailOf(transcript, TRANSCRIPT_TAIL)
+  if (tail === undefined) return undefined
+  const text = tail.toString("utf8")
+  return spokenIn(text.slice(text.indexOf("\n") + 1))
 }
 
 const isPresent = (value: unknown): boolean => value !== undefined && value !== null
@@ -117,6 +139,7 @@ const gate = (root: string, adapterName: string | undefined): void => {
     bytes: measured.bytes,
     ...limits,
     adapter: adapterName ?? null,
+    model: modelOf(call["transcript_path"]) ?? null,
     decision: denied ? "deny" : "allow",
     reason,
   })

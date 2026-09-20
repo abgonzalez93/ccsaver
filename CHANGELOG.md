@@ -4,6 +4,15 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.14.0 - 2026-09-20
+
+feat: the gate records which model the session was running
+
+- a price belongs to a model, and until now nothing in the log said which one ran, so one global rate was applied to every month whatever it was spent on
+- Claude Code hands the hook a transcript_path; the hook reads the last 64 KB of that file and takes the model of the last assistant line
+- it parses whole JSON lines instead of matching text, because a model name written in the conversation would otherwise be read as the one in force, which this repository's own sessions produce
+- the lookup sits inside the branch that writes a line, so it costs nothing while the log is off: 21-23 ms before against 19-21 ms after per Read with the log off, 21-22 against 22 with it on, three rounds of 30 runs per arm
+
 ## 0.13.8 - 2026-09-20
 
 fix: under twenty, saved names the two things it counts

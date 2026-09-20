@@ -2,6 +2,7 @@ import {
   chmodSync,
   closeSync,
   existsSync,
+  fstatSync,
   mkdirSync,
   openSync,
   readFileSync,
@@ -76,6 +77,16 @@ export const headOf = (path: string): Buffer | undefined => {
   const read = attempt(() => readSync(fd, head, 0, HEAD_BYTES, 0))
   attempt(() => closeSync(fd))
   return read === undefined ? undefined : head.subarray(0, read)
+}
+
+export const tailOf = (path: string, bytes: number): Buffer | undefined => {
+  const fd = attempt(() => openSync(path, "r"))
+  if (fd === undefined) return undefined
+  const size = attempt(() => fstatSync(fd).size) ?? 0
+  const tail = Buffer.alloc(Math.min(bytes, size))
+  const read = attempt(() => readSync(fd, tail, 0, tail.length, Math.max(0, size - bytes)))
+  attempt(() => closeSync(fd))
+  return read === undefined ? undefined : tail.subarray(0, read)
 }
 
 export const linesIn = (bytes: Buffer): number => {

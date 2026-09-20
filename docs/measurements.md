@@ -59,6 +59,12 @@ Mean of 30 runs, process spawn included. 1–3 ms in an unplugged project, where
 
 That 24 ms was 22 ms while the state folder, the log and the configuration lived in one module. Splitting them into `state.ts`, `log.ts` and `config.ts` costs **1.7 ms per `Read`**, measured paired on the same machine, three rounds of 30 runs per arm: 22.4 / 22.1 / 21.9 ms before against 22.7 / 24.3 / 24.8 ms after, with every round after above every round before. The bytes are the same; the cost is two more module resolutions, about 0.85 ms each. The unplugged path does not move, because the `sh` gate never starts Node.
 
+## Reading the model out of the transcript
+
+0.156 ms, mean of 200 runs, on a 2.5 MB transcript: open, read the last 64 KB, split it and `JSON.parse` each whole line, keep the `model` of the last assistant one. A naive regex over the same slice took 0.071 ms but reads a model name written in the conversation as the one in force, which this very repository's sessions produce.
+
+Per `Read`, paired on the same machine, three rounds of 30 runs per arm: **21-23 ms before and 19-21 ms after with the log off**, where the hook never looks, and **21-22 ms before against 22 ms after with the log on**. The lookup sits inside the branch that writes the line, so the default costs nothing.
+
 ## The hook on a file past the byte limit
 
 A 300 MB text file in a plugged project, 3 runs per arm, peak resident memory from `/usr/bin/time -f %M` with the process spawn included. Reading it whole to count its lines cost 371 MB and 0.23–0.38 s; deciding from `statSync` and reading 8 KB to tell text from binary costs 73 MB and 0.04–0.05 s. The decision is the same `deny` either way.
