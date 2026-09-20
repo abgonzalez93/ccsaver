@@ -1,4 +1,4 @@
-import { execFile } from "node:child_process"
+import { execFile, spawnSync } from "node:child_process"
 import {
   chmodSync,
   existsSync,
@@ -24,6 +24,19 @@ export interface Ran {
   code: number
   stdout: string
   stderr: string
+}
+
+export const AS_ROOT = process.getuid?.() === 0
+
+export const HAS_PTY =
+  process.platform === "linux" && spawnSync("script", ["--version"]).status === 0
+
+export const everything = (out: Ran): string => `${out.stdout}${out.stderr}`
+
+export const jsonOf = (path: string): Record<PropertyKey, unknown> => {
+  const raw: unknown = JSON.parse(readFileSync(path, "utf8"))
+  if (!isRecord(raw)) throw new Error(`not a JSON object: ${path}`)
+  return raw
 }
 
 interface Seen {

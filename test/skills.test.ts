@@ -3,7 +3,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs"
 import { join } from "node:path"
 import { test } from "node:test"
 import { isRecord } from "../src/state.ts"
-import { REPO } from "./helpers.ts"
+import { jsonOf, REPO } from "./helpers.ts"
 
 const SKILLS = [
   ["bulk-reader", "bulk-read"],
@@ -25,12 +25,6 @@ test("one version: both manifests carry it and the changelog opens with it", () 
 const PLUGIN_ROOT = /^"\$\{CLAUDE_PLUGIN_ROOT\}"\/(\S+)$/
 const RUNNABLE = ["bin/ccsaver", ".githooks/post-commit", ".githooks/post-applypatch"]
 
-const jsonOf = (file: string): Record<PropertyKey, unknown> => {
-  const raw: unknown = JSON.parse(readFileSync(join(REPO, file), "utf8"))
-  assert.ok(isRecord(raw), file)
-  return raw
-}
-
 const commandsIn = (value: unknown): string[] => {
   if (Array.isArray(value)) return value.flatMap(commandsIn)
   if (!isRecord(value)) return []
@@ -40,11 +34,11 @@ const commandsIn = (value: unknown): string[] => {
 }
 
 test("the plugin's own files name each other, and what they point at can run", () => {
-  const plugin = jsonOf(join(".claude-plugin", "plugin.json"))
-  const market = jsonOf(join(".claude-plugin", "marketplace.json"))
+  const plugin = jsonOf(join(REPO, ".claude-plugin", "plugin.json"))
+  const market = jsonOf(join(REPO, ".claude-plugin", "marketplace.json"))
   const listed: unknown = Array.isArray(market["plugins"]) ? market["plugins"][0] : undefined
   assert.equal(isRecord(listed) ? listed["name"] : undefined, plugin["name"])
-  const commands = commandsIn(jsonOf(join("hooks", "hooks.json")))
+  const commands = commandsIn(jsonOf(join(REPO, "hooks", "hooks.json")))
   assert.equal(commands.length, 1)
   const hooked = commands.flatMap((command) => PLUGIN_ROOT.exec(command)?.[1] ?? [])
   assert.equal(hooked.length, commands.length)

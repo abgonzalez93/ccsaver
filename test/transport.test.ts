@@ -5,6 +5,7 @@ import { join } from "node:path"
 import { after, before, beforeEach, test } from "node:test"
 import { fellOf } from "../src/transport.ts"
 import {
+  AS_ROOT,
   CLI,
   type FakeServer,
   fakeClaude,
@@ -163,8 +164,9 @@ test("an answer that comes in text parts is read, not paid for again", async () 
   assert.equal(out.stderr.includes("falling back"), false)
 })
 
-test("a key that cannot be read is named, never taken for a key that was never stored", async () => {
-  if (process.getuid?.() === 0) return
+test("a key that cannot be read is named, never taken for a key that was never stored", {
+  skip: AS_ROOT,
+}, async () => {
   const locked = join(WORK, "home-locked")
   writeHome(locked, {
     plugged: PLUGGED,

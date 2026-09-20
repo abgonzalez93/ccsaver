@@ -11,7 +11,9 @@ import {
 import { join } from "node:path"
 import { after, before, beforeEach, test } from "node:test"
 import {
+  AS_ROOT,
   CLI,
+  everything,
   type FakeServer,
   fakeClaude,
   LAUNCHER,
@@ -35,8 +37,6 @@ let server: FakeServer
 
 const ccsaver = (args: string[], input = "", env: NodeJS.ProcessEnv = {}): Promise<Ran> =>
   run(LAUNCHER, args, { CCSAVER_HOME: HOME, CLAUDE_CODE_EXECPATH: FAKE, ...env }, input)
-
-const everything = (out: Ran): string => `${out.stdout}${out.stderr}`
 
 before(async () => {
   server = await startServer()
@@ -90,7 +90,7 @@ test("doctor fails on a worker.json it cannot trust", async () => {
 })
 
 test("a plugged list doctor cannot read is one FAIL line, never nothing plugged", {
-  skip: process.getuid?.() === 0,
+  skip: AS_ROOT,
 }, async () => {
   chmodSync(join(HOME, "plugged"), 0o000)
   const out = await ccsaver(["doctor"])
@@ -183,7 +183,7 @@ test("doctor checks the mode of every file it keeps, not only the key", async ()
   }
 })
 test("a log doctor cannot read is one FAIL line, not the end of the report", {
-  skip: process.getuid?.() === 0,
+  skip: AS_ROOT,
 }, async () => {
   assert.equal((await ccsaver(["log", "on"])).code, 0)
   const dir = join(HOME, "log")
@@ -252,8 +252,9 @@ test("doctor fails on a missing key, a worker that is down and a broken adapter"
   assert.match(down.stdout, /^FAIL probe: .* is unreachable$/m)
 })
 
-test("doctor tells a key it cannot read from a key that is not there", async () => {
-  if (process.getuid?.() === 0) return
+test("doctor tells a key it cannot read from a key that is not there", {
+  skip: AS_ROOT,
+}, async () => {
   const home = join(WORK, "locked-home")
   writeHome(home, { worker: { url: server.url, model: "cheap-1" }, key: OLD_KEY })
   chmodSync(join(home, "api-key"), 0o000)
@@ -307,7 +308,7 @@ test("doctor checks prices.json and the adapters folder once they exist, and not
   assert.equal(loose.code, 1)
   assert.match(loose.stdout, /^FAIL prices file: .* is 644, expected 600$/m)
   assert.match(loose.stdout, /^FAIL adapters: .* is 755, expected 700$/m)
-  if (process.getuid?.() !== 0) {
+  if (!AS_ROOT) {
     chmodSync(join(HOME, "prices.json"), 0o000)
     const shut = await ccsaver(["doctor"])
     assert.match(shut.stdout, /^FAIL prices file: .* is 0, expected 600$/m)

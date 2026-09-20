@@ -1,22 +1,13 @@
 import assert from "node:assert/strict"
-import { spawnSync } from "node:child_process"
 import { existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { after, test } from "node:test"
 import { DEFAULT_LIMITS } from "../src/config.ts"
-import { isRecord } from "../src/state.ts"
 import { adapterNameOf, overshoots, proposalOf, surveyFor } from "../src/survey.ts"
-import { LAUNCHER, type Ran, run, tempDir } from "./helpers.ts"
+import { HAS_PTY, jsonOf, LAUNCHER, type Ran, run, tempDir } from "./helpers.ts"
 
-const HAS_PTY = process.platform === "linux" && spawnSync("script", ["--version"]).status === 0
 const YELLOW = "\u001b[33m"
 const PLAIN = "\u001b[0m"
-
-const jsonOf = (path: string): Record<PropertyKey, unknown> => {
-  const raw: unknown = JSON.parse(readFileSync(path, "utf8"))
-  assert.ok(isRecord(raw))
-  return raw
-}
 
 const WORK = tempDir("survey-work")
 const WIDE = 40

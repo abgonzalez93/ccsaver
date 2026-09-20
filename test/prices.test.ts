@@ -2,9 +2,17 @@ import assert from "node:assert/strict"
 import { chmodSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { after, test } from "node:test"
-import { CLI, logHome, type Ran, run, tempDir, twentyDenials, writeHome } from "./helpers.ts"
+import {
+  AS_ROOT,
+  CLI,
+  logHome,
+  type Ran,
+  run,
+  tempDir,
+  twentyDenials,
+  writeHome,
+} from "./helpers.ts"
 
-const AS_ROOT = process.getuid?.() === 0
 const OPUS = "claude-opus-5"
 const WORK = tempDir("prices-work")
 

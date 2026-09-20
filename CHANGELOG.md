@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.20.13 - 2026-09-20
+
+test: the helpers that five files copied live in helpers.ts
+
+- `jsonOf` was written five times, the root check `process.getuid?.() === 0` five, `HAS_PTY` three and `everything` three, letter for letter; each now has one home in `test/helpers.ts`
+- the two tests that returned early as root now say `skip: AS_ROOT` like the others, so the runner reports them skipped rather than passed
+- no test changed what it checks: 257 before and after
+
 ## 0.20.12 - 2026-09-20
 
 refactor: one guard opens the first choice of a worker's answer, and one line prices the worker

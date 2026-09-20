@@ -1,13 +1,15 @@
 import assert from "node:assert/strict"
-import { spawn, spawnSync } from "node:child_process"
+import { spawn } from "node:child_process"
 import { existsSync, readFileSync, rmSync, statSync, symlinkSync } from "node:fs"
 import { join } from "node:path"
 import { after, before, test } from "node:test"
-import { isRecord } from "../src/state.ts"
 import {
   CLI,
+  everything,
   type FakeServer,
   fakeClaude,
+  HAS_PTY,
+  jsonOf,
   LAUNCHER,
   type Ran,
   run,
@@ -25,14 +27,6 @@ let server: FakeServer
 
 const ccsaver = (args: string[], input = ""): Promise<Ran> =>
   run(LAUNCHER, args, { CCSAVER_HOME: HOME, CLAUDE_CODE_EXECPATH: FAKE }, input)
-
-const everything = (out: Ran): string => `${out.stdout}${out.stderr}`
-
-const jsonOf = (path: string): Record<PropertyKey, unknown> => {
-  const raw: unknown = JSON.parse(readFileSync(path, "utf8"))
-  assert.ok(isRecord(raw))
-  return raw
-}
 
 before(async () => {
   server = await startServer()
@@ -57,8 +51,6 @@ test("key set stores the piped key privately and never echoes it", async () => {
   const again = await ccsaver(["key", "set"], `${OLD_KEY}\n`)
   assert.match(again.stderr, /^key replaced in \S+api-key \(600\)\n/)
 })
-
-const HAS_PTY = process.platform === "linux" && spawnSync("script", ["--version"]).status === 0
 
 test("key set on a real terminal turns the echo off before it asks", {
   skip: !HAS_PTY,

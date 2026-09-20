@@ -3,6 +3,7 @@ import { chmodSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { after, test } from "node:test"
 import {
+  AS_ROOT,
   CLI,
   denialRow,
   gateRow,
@@ -14,7 +15,6 @@ import {
   twentyDenials,
 } from "./helpers.ts"
 
-const AS_ROOT = process.getuid?.() === 0
 const WORK = tempDir("report-work")
 
 const OPUS = "claude-opus-5"

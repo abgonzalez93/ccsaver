@@ -1,11 +1,9 @@
 import assert from "node:assert/strict"
-import { spawnSync } from "node:child_process"
 import { rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { after, test } from "node:test"
-import { LAUNCHER, type Ran, run, tempDir } from "./helpers.ts"
+import { HAS_PTY, LAUNCHER, type Ran, run, tempDir } from "./helpers.ts"
 
-const HAS_PTY = process.platform === "linux" && spawnSync("script", ["--version"]).status === 0
 const HOME = tempDir("terminal-home")
 const GREEN = "\u001b[32m"
 const YELLOW = "\u001b[33m"

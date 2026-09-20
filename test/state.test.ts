@@ -23,9 +23,7 @@ import {
 } from "../src/config.ts"
 import { readWorker, setFallback, writeWorker } from "../src/endpoint.ts"
 import { isEncrypted, messageOf, Refusal, scrubbed } from "../src/state.ts"
-import { tempDir } from "./helpers.ts"
-
-const AS_ROOT = process.getuid?.() === 0
+import { AS_ROOT, tempDir } from "./helpers.ts"
 
 const WORK = tempDir("state-work")
 const HOME = join(WORK, "holds-state", "ccsaver")

@@ -10,10 +10,11 @@ import {
 } from "node:fs"
 import { join } from "node:path"
 import { after, before, beforeEach, test } from "node:test"
-import { isRecord } from "../src/state.ts"
 import {
+  everything,
   type FakeServer,
   fakeClaude,
+  jsonOf,
   LAUNCHER,
   type Ran,
   REPO,
@@ -33,14 +34,6 @@ let server: FakeServer
 
 const ccsaver = (args: string[], input = "", env: NodeJS.ProcessEnv = {}): Promise<Ran> =>
   run(LAUNCHER, args, { CCSAVER_HOME: HOME, CLAUDE_CODE_EXECPATH: FAKE, ...env }, input)
-
-const everything = (out: Ran): string => `${out.stdout}${out.stderr}`
-
-const jsonOf = (path: string): Record<PropertyKey, unknown> => {
-  const raw: unknown = JSON.parse(readFileSync(path, "utf8"))
-  assert.ok(isRecord(raw))
-  return raw
-}
 
 before(async () => {
   server = await startServer()

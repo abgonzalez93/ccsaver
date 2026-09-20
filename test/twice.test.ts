@@ -2,8 +2,7 @@ import assert from "node:assert/strict"
 import { existsSync, mkdirSync, readFileSync, rmSync, statSync } from "node:fs"
 import { join } from "node:path"
 import { after, before, test } from "node:test"
-import { isRecord } from "../src/state.ts"
-import { events, LAUNCHER, type Ran, run, tempDir } from "./helpers.ts"
+import { events, jsonOf, LAUNCHER, type Ran, run, tempDir } from "./helpers.ts"
 
 const HOME = tempDir("twice-home")
 const WORK = tempDir("twice-work")
@@ -17,12 +16,6 @@ const OWN = "the session's own claude runs the fallback"
 const ccsaver = (args: string[]): Promise<Ran> => run(LAUNCHER, args, { CCSAVER_HOME: HOME })
 
 const configs = (): number => events(HOME).filter(({ kind }) => kind === "config").length
-
-const jsonOf = (path: string): Record<PropertyKey, unknown> => {
-  const raw: unknown = JSON.parse(readFileSync(path, "utf8"))
-  assert.ok(isRecord(raw))
-  return raw
-}
 
 before(() => {
   mkdirSync(PROJECT, { recursive: true })
