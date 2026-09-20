@@ -136,7 +136,8 @@ test("setup stops on an empty answer and writes nothing", async () => {
 test("plug with no directory plugs the one the command runs in", async () => {
   const home = tempDir("cli-here")
   const out = await run(LAUNCHER, ["plug"], { CCSAVER_HOME: home }, "", PROJECT)
-  assert.deepEqual([out.code, out.stdout], [0, `plugged ${PROJECT} · adapter none\n`])
+  assert.equal(out.code, 0)
+  assert.match(out.stdout, new RegExp(`^plugged ${PROJECT} · adapter none\\nmeasured: `))
   assert.equal(readFileSync(join(home, "plugged"), "utf8"), `${PROJECT}\t\n`)
   rmSync(home, { recursive: true, force: true })
 })

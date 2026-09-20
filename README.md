@@ -19,7 +19,7 @@ Needs Claude Code, Node.js 24.2 or newer, and a POSIX `sh`. Linux and macOS only
 
 ## What it does
 
-- **Denies whole-file reads of big files.** A `PreToolUse` hook denies a `Read` of a whole file over 350 lines or 32 KB and points the model at Grep, at a ranged read, or at the `bulk-reader` skill. It asks the file system for the size first, so a huge file is never opened.
+- **Denies whole-file reads of big files.** A `PreToolUse` hook denies a `Read` of a whole file over 350 lines or 32 KB and points the model at Grep, at a ranged read, or at the `bulk-reader` skill. It asks the file system for the size first, so a huge file is never opened. Those two numbers are this repository's house style, not a measured optimum: `plug` measures your project and proposes the limit it asks for, and `doctor` says when it has drifted ([Limits](docs/configuration.md#limits)).
 - **Delegates boilerplate.** The `code-writer` skill hands tests, fixtures and stubs to the same worker and lets your project's own checks review the result.
 
 Both skills call one command, `ccsaver`, which makes **one tool-less, one-shot call** to a cheap model: an OpenAI-compatible endpoint of your choice, with Claude Haiku (through your own Claude Code) as the fallback. The expensive model sees the short answer, never the file.
@@ -35,7 +35,7 @@ Measured on one TypeScript monorepo with Claude Code 2.1, small samples of 1–4
 | What | Result |
 | --- | --- |
 | Hook, task = locate or describe something in a big file | [**−16 %** session cost](docs/measurements.md#the-hook-on-a-locate-or-describe-task) |
-| Hook, task = a judgement question about the file | [no saving, **3.6× slower**](docs/measurements.md#the-hook-on-a-judgement-question) |
+| Hook, task = a judgement question, limit set below the file | [no saving, **3.6× slower**](docs/measurements.md#the-hook-on-a-judgement-question) |
 | Delegated writing of a ~110-line test file | [**break-even**](docs/measurements.md#delegated-writing-of-a-test-file) |
 | Files where delegation starts to pay | [roughly **2,000–3,000 lines** and up](docs/measurements.md#where-delegation-starts-to-pay) |
 | Fixed cost of the two skill descriptions | [**~188 tokens per session, in every project**](docs/measurements.md#the-fixed-cost-of-the-skill-descriptions) |
@@ -44,6 +44,7 @@ Measured on one TypeScript monorepo with Claude Code 2.1, small samples of 1–4
 Where it does not help:
 
 - If most of your files are under 300 lines the hook rarely fires, and the honest expectation is a small saving.
+- **That 3.6× is a limit set too low, not a law of the approach.** Denying a file the model needs whole makes it page through ranges and delegate on top of that. The limit is the knob, and the two ways of being wrong are not symmetric: too high is inert, too low degrades. `plug` and `doctor` measure it for you — [Limits](docs/configuration.md#limits).
 - **The gate is a nudge, not a wall.** It watches the `Read` tool only, and only whole-file reads: a ranged `Read` that covers the whole file passes, and so does `cat` through Bash. The [event log](docs/events.md) counts how often that happens.
 - **Line citations are checked, claims are not.** `bulk-read` compares each cited line with the file and tags what does not match `[unverified]`. What the worker *says* about the code is still the word of a cheap model.
 - The hook's token limit is an estimate: bytes/4 measured [1.9–2.8× under](docs/measurements.md#the-hooks-token-estimate-vs-a-real-read) the real cost of a `Read`, so the 8,000-token limit lets through reads of about 16,000 real tokens.

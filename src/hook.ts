@@ -1,20 +1,21 @@
 // Portions of this file are adapted from a third-party Apache-2.0 work and were modified; see NOTICE.
 import { closeSync, existsSync, openSync, readFileSync, readSync, statSync } from "node:fs"
 import { relative } from "node:path"
-import { type Adapter, DEFAULT_LIMITS, loadAdapter, pluggedRootOf } from "./config.ts"
+import {
+  type Adapter,
+  BYTES_PER_TOKEN,
+  DEFAULT_LIMITS,
+  type Limits,
+  loadAdapter,
+  pluggedRootOf,
+} from "./config.ts"
 import { crashed, logDir, record } from "./log.ts"
 import { attempt, isRecord, isUnder, real } from "./state.ts"
 
-const BYTES_PER_TOKEN = 4
 const NUL = 0
 const LINE_BREAK = 10
 const HEAD_BYTES = 8192
 const IDS = ["tool_use_id", "agent_id", "agent_type", "permission_mode"]
-
-interface Limits {
-  maxLines: number
-  maxTokens: number
-}
 
 interface Measured {
   lines?: number

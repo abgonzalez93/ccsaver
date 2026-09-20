@@ -69,6 +69,7 @@ Claude Code's documentation says `--bare` will become the default for `-p`, and 
 - The worker, with a probe shaped like a real call: same temperature, same `max_tokens`, a system message, so a provider that would refuse the real thing fails here. 200 = the key works, 401/403 = rejected, and a timeout is told from a host that cannot be reached. A `worker.json` it cannot trust fails the line.
 - The fallback binary, with `--version`, unless the fallback is off.
 - Every plugged project, with its adapter and limits. For each one it feeds the hook a throwaway file one line over the limit, and the `gate:` line fails unless that read is denied.
+- The shape of every plugged project, measured again on each run. A `warn shape:` line appears only when the project has outgrown its limit; see [Limits](#limits).
 
 It never prints the key, its length or the query of the worker url. From a terminal outside Claude Code with no `claude` on the `PATH`, the fallback line is a `warn`, not a failure: that shell cannot see the binary a session brings, so run `doctor` from inside one.
 
@@ -88,7 +89,30 @@ An adapter is a small JSON file with what is specific to one project. ccsaver lo
 }
 ```
 
-Every field is optional. `format` runs from the project root with the written file appended, for at most 60 s and never past what is left of the 115 s the command gives itself inside the 120 s of a Bash call, so a slow worker leaves the formatter less and it always keeps at least 1 s; a failing formatter is reported, not fatal; `after` lines are printed as `next:` commands for the model to run, with `{target}` replaced by the absolute path, shell-quoted when it needs it, so do not add quotes of your own; `maxLines` and `maxTokens` move the hook's thresholds (`maxTokens` counts bytes/4). [`adapters/strict-ts.json`](../adapters/strict-ts.json) is a working example: with those rules the worker imported from the right module in 4 of 4 runs, against 0 of 4 without them.
+Every field is optional. `format` runs from the project root with the written file appended, for at most 60 s and never past what is left of the 115 s the command gives itself inside the 120 s of a Bash call, so a slow worker leaves the formatter less and it always keeps at least 1 s; a failing formatter is reported, not fatal; `after` lines are printed as `next:` commands for the model to run, with `{target}` replaced by the absolute path, shell-quoted when it needs it, so do not add quotes of your own; `maxLines` and `maxTokens` move the hook's thresholds, which [Limits](#limits) covers. [`adapters/strict-ts.json`](../adapters/strict-ts.json) is a working example: with those rules the worker imported from the right module in 4 of 4 runs, against 0 of 4 without them.
+
+## Limits
+
+Two numbers decide what the hook denies: `maxLines`, and `maxTokens`, which counts bytes/4. A whole-file `Read` past either one is denied, and a file past the byte limit is never opened to count its lines. The defaults are 350 lines and 8,000 tokens, which is this repository's own house style rather than a measured optimum.
+
+The two ways of being wrong do not cost the same. **Too high is inert**: the hook stops firing and you have what you had without the plugin. **Too low degrades the session**: the model pays for the denial, then pages through ranges it picked from Grep, and ends up reasoning over fragments. That is the [3.6× row](../README.md#honest-limits). Err high.
+
+The right number belongs to the repository, so `ccsaver plug` measures it. It walks the project, skipping `node_modules`, `.git`, `dist`, `build`, `target`, `vendor`, `.venv`, `venv`, `__pycache__`, `coverage`, `.next`, `.turbo` and `out`, never following a symlinked directory, counts the lines of every text file under the byte limit, and reports the length 19 files in 20 stay under:
+
+```
+plugged /home/you/project · adapter none
+measured: 322 of 933 files, 19 in 20 under 344 lines, which the 350-line limit already fits
+```
+
+When that length is over the limit in force, it names the `maxLines` that would clear it, rounded up to fifty. It never proposes below the default, because a repository of ten short files would otherwise argue for a limit far worse than 350. Under twenty countable files it refuses to judge at all: one file in twenty is not a number. Files past the byte limit are left out, because `maxLines` does not decide their fate — `maxTokens` already did.
+
+`doctor` measures it again on every run and adds one `warn shape:` line per project that has outgrown its limit, which is the moment the hook starts denying files the model should read whole. It is never a `FAIL`: nothing is broken, the limit is simply no longer the right one. Growth the other way needs no warning, because a limit nothing reaches is merely inert.
+
+To move it, name it in an adapter:
+
+```json
+{ "maxLines": 900 }
+```
 
 ## Environment variables
 

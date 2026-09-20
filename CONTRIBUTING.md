@@ -72,18 +72,20 @@ Guard: `test/conventions.test.ts`.
 
 ## 2. Architecture
 
-**2.1 ALWAYS respect the map.** Nine files, one reason to change each, arrows that never turn back.
+**2.1 ALWAYS respect the map.** Eleven files, one reason to change each, arrows that never turn back.
 
 | File | Owns | Imports |
 | --- | --- | --- |
 | `src/state.ts` | the state folder, the key, the guards, `Refusal` | `node:` only |
 | `src/log.ts` | the event log and its switch | `state` |
 | `src/config.ts` | what the user configured: the plugged roots, the adapters, the worker | `log`, `state` |
+| `src/survey.ts` | how long a project's files are, and what limit that asks for | `config`, `state` |
 | `src/answer.ts` | pure text work on the worker's answer | nothing |
 | `src/boundary.ts` | what may leave the machine | `state` |
 | `src/transport.ts` | the two ways out: `fetch` to the worker, spawn of the fallback | `config`, `log`, `state`, the `Tally` type of `answer` |
 | `src/worker.ts` | the `bulk-read` and `code-write` flows | `answer`, `boundary`, `config`, `log`, `state`, `transport` |
-| `src/cli.ts` | arguments, `doctor`, the exit code | `config`, `log`, `state`, `transport`, `worker` |
+| `src/doctor.ts` | every check `doctor` runs and the level each one reports | `config`, `log`, `state`, `survey`, `transport` |
+| `src/cli.ts` | arguments and the exit code | `config`, `doctor`, `log`, `state`, `survey`, `transport`, `worker` |
 | `src/hook.ts` | the `Read` gate | `config`, `log`, `state` |
 
 Guard: Biome `noImportCycles`, which is why the log cannot live in `src/state.ts`: it needs `stateHome` and the stored key, and every command that records a `config` event would then point back at it. The import list of `src/hook.ts` is pinned by `test/conventions.test.ts`, because it is the start-up cost of every `Read` (4.4).
@@ -111,7 +113,7 @@ export const invokeExternal = async (mode: string, system: string, message: stri
 
 Guard: *convention*. Revisit when a test needs to replace something that no parameter, variable or state file reaches, or when a seam gets a second implementation.
 
-**2.5 PREFER the flat `src/`.** It holds 9 files and about 1,500 lines. Folders and layers earn their place past 15 files or 3,000 lines; until then a new concept is a new file on the map of 2.1.
+**2.5 PREFER the flat `src/`.** It holds 11 files and about 1,650 lines. Folders and layers earn their place past 15 files or 3,000 lines; until then a new concept is a new file on the map of 2.1.
 Guard: *convention*.
 
 ## 3. Robustness
@@ -139,7 +141,7 @@ if (text === undefined) continue
 
 Guard: *convention*.
 
-**3.3 ALWAYS validate at the boundary, by hand, and return a typed value built from the checked fields.** The boundaries are `worker.json` (`readWorker`), the `plugged` file (`src/config.ts` · `readPlugged`, which drops a line that is not an absolute path), an adapter file (`adapterOf`, which also rejects unknown keys), the hook's stdin (`src/hook.ts` · `gate`), the worker's HTTP response (`src/transport.ts` · `contentOf`), the fallback's stdout (`invokeClaude`), the month's own log lines when `doctor` adds up what was spent (`src/cli.ts` · `spent`) and `package.json` when it prints the version (`src/cli.ts` · `version`). Every `JSON.parse` lands in a `const` typed `unknown`, or goes through `parsed`.
+**3.3 ALWAYS validate at the boundary, by hand, and return a typed value built from the checked fields.** The boundaries are `worker.json` (`readWorker`), the `plugged` file (`src/config.ts` · `readPlugged`, which drops a line that is not an absolute path), an adapter file (`adapterOf`, which also rejects unknown keys), the hook's stdin (`src/hook.ts` · `gate`), the worker's HTTP response (`src/transport.ts` · `contentOf`), the fallback's stdout (`invokeClaude`), the month's own log lines when `doctor` adds up what was spent (`src/doctor.ts` · `spent`) and `package.json` when it prints the version (`src/cli.ts` · `version`). Every `JSON.parse` lands in a `const` typed `unknown`, or goes through `parsed`.
 
 ```ts
 // ❌ trusts the shape of a response from the network
@@ -178,7 +180,7 @@ Guard: `test/egress.test.ts`, `test/code-write.test.ts`, `test/log.test.ts`.
 
 ## 4. Performance and async
 
-**4.1 PREFER synchronous file I/O.** One process serves one call and has nothing to interleave, so `src/` reads and writes with the `*Sync` calls and awaits only the network: one `fetch` site, `src/transport.ts` · `postJson`, which carries the headers, the timeout and `redirect: "error"` for both callers, `src/cli.ts` · `probe` and `invokeExternal`.
+**4.1 PREFER synchronous file I/O.** One process serves one call and has nothing to interleave, so `src/` reads and writes with the `*Sync` calls and awaits only the network: one `fetch` site, `src/transport.ts` · `postJson`, which carries the headers, the timeout and `redirect: "error"` for both callers, `src/doctor.ts` · `probe` and `invokeExternal`.
 Guard: *convention*. Revisit for a long-lived process or a call that gains from reading files in parallel.
 
 **4.2 ALWAYS bound what waits or grows.** A `fetch` carries `AbortSignal.timeout` and `redirect: "error"`; a spawn carries `timeout` and `maxBuffer`; an answer takes at most 8,192 tokens; the paid fallback takes at most 400,000 characters, 85 s and 0.50 $. The worker's 30 s and the fallback's 85 s are `src/worker.ts` · `BASH_BUDGET_MS`, 115 s, and the formatter takes what is left of it rather than a fixed minute, never less than `FORMAT_FLOOR_MS`, so the worst case stays inside the 120 s a Bash command gets. A log line takes at most 4,000 bytes.

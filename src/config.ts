@@ -38,7 +38,14 @@ export interface Adapter {
   maxTokens?: number
 }
 
+export interface Limits {
+  maxLines: number
+  maxTokens: number
+}
+
 export const DEFAULT_LIMITS = { maxLines: 350, maxTokens: 8000 } as const
+
+export const BYTES_PER_TOKEN = 4
 
 const ADAPTER_KEYS = ["rules", "format", "after", "maxLines", "maxTokens"]
 const ADAPTER_NAME = /^[a-z0-9][a-z0-9-]*$/
@@ -107,6 +114,11 @@ export const loadAdapter = (name: string): Adapter => {
   }
   throw new Refusal(`adapter ${name} not found in ${places.join(" or ")}`)
 }
+
+export const limitsFor = (adapter: string | undefined): Limits => ({
+  ...DEFAULT_LIMITS,
+  ...(adapter === undefined ? {} : loadAdapter(adapter)),
+})
 
 export const plug = (dir: string, adapter?: string): Plugged => {
   const root = attempt(() => realpathSync.native(dir))

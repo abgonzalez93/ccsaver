@@ -4,6 +4,30 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.7.0 - 2026-09-20
+
+feat: plug and doctor measure the project and propose a limit
+
+- the 350-line and 8,000-token defaults are this repository's own house
+  style, not a measured optimum, and nothing told a user the knob existed:
+  maxLines appeared twice in the docs, both times inside docs/configuration.md
+- ccsaver plug now walks the project, prunes the build folders, never follows
+  a symlinked directory, counts the lines of every text file under the byte
+  limit and reports the length 19 files in 20 stay under
+- when that length clears the limit in force it says so and proposes nothing;
+  when it does not, it names the maxLines that would fit, rounded up to fifty
+- the proposal never falls below the default, and under twenty countable
+  files it refuses to judge: one file in twenty is not a number
+- doctor measures again on each run and adds one warn shape: line per project
+  that has outgrown its limit, never a FAIL, because nothing is broken
+- files past the byte limit are left out of the count: maxLines does not
+  decide their fate, maxTokens already did
+- the walk costs 9.6-18.9 ms on a 933-file monorepo and 0.9-3.1 ms here, and
+  runs in plug and doctor only, never in the hook
+- doctor moves out of cli.ts, which had 17 lines left under the 350-line gate,
+  and survey.ts is the tenth file; shown, Limits, BYTES_PER_TOKEN and limitsFor
+  move to the file that owns them, so the hook gains no import and no start-up
+
 ## 0.6.2 - 2026-09-20
 
 ci: a v*.*.0 tag becomes a GitHub release with its changelog section

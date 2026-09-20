@@ -4,7 +4,16 @@ import { tmpdir } from "node:os"
 import type { Tally } from "./answer.ts"
 import type { Worker } from "./config.ts"
 import { record } from "./log.ts"
-import { isEncrypted, isRecord, keyFile, keyIsStored, messageOf, parsed, readKey } from "./state.ts"
+import {
+  attempt,
+  isEncrypted,
+  isRecord,
+  keyFile,
+  keyIsStored,
+  messageOf,
+  parsed,
+  readKey,
+} from "./state.ts"
 
 const FALLBACK_MODEL = "haiku"
 const FALLBACK_BUDGET_USD = "0.5"
@@ -173,6 +182,11 @@ export const postJson = (
     redirect: "error",
     body: JSON.stringify(body),
   })
+
+export const shown = (url: string): string => {
+  const parts = attempt(() => new URL(url))
+  return parts === undefined ? "(an unreadable url)" : `${parts.origin}${parts.pathname}`
+}
 
 export const fellOf = (error: unknown): Fell => {
   if (error instanceof Error && error.name === "TimeoutError") return "timeout"

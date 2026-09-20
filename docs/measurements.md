@@ -8,7 +8,17 @@ The notes behind [Honest limits](../README.md#honest-limits). Measured on one Ty
 
 ## The hook on a judgement question
 
-No saving and 3.6× slower, 230 s against 64 s. The model pages through ranges and delegates on top of that, so it pays for both.
+No saving and 3.6× slower, 230 s against 64 s. The model pages through ranges and delegates on top of that, so it pays for both. The diagnosis is the limit, not the approach: the file was under the size where delegating pays, so denying it bought nothing. [Limits](configuration.md#limits) is the knob, and `plug` now measures what it should be.
+
+## What a repository asks for
+
+Line counts of the text files under the byte limit, build folders pruned, one walk each. ccsaver: 63 countable of 64 files, 19 in 20 under 239 lines. One TypeScript application monorepo with no line rule of its own: 322 of 933, under 344. The sources of the npm packages in one `node_modules`: 557 files, under 1,476, with 19.6 % over 350 lines. Three corpora, a 4× spread, and only the third one asks for a limit above the default — which is why the number is measured per project rather than chosen once.
+
+## The cost of measuring a repository
+
+9.6–18.9 ms on the 933-file monorepo and 0.9–3.1 ms on this repository, five runs each, warm cache. It runs in `plug` and in `doctor`, never in the hook.
+
+Two things carry that cost. `readdirSync` with `recursive: true` took 1,420–1,536 ms on the same tree for 189,295 entries, because it cannot prune and it descends into symlinked directories, which in a pnpm workspace walks the linked packages again; the manual walk visits 933 files in 0.8 ms. And asking `statSync` for the size before opening anything cut 216–419 ms down to those 9.6–18.9 ms, because a file past the byte limit is denied by `maxTokens` whatever its lines are and never needs reading.
 
 ## Delegated writing of a test file
 
