@@ -35,11 +35,17 @@ export const record = (kind: string, fields: Record<string, unknown>, session?: 
   }
 }
 
-export const readEvents = (): Record<PropertyKey, unknown>[] =>
-  (attempt(() => readFileSync(logFile(), "utf8")) ?? "").split("\n").flatMap((line) => {
+const rowsIn = (text: string): Record<PropertyKey, unknown>[] =>
+  text.split("\n").flatMap((line) => {
     const row = parsed(line)
     return isRecord(row) ? [row] : []
   })
+
+export const readEvents = (): Record<PropertyKey, unknown>[] =>
+  rowsIn(attempt(() => readFileSync(logFile(), "utf8")) ?? "")
+
+export const readMonth = (month: string): Record<PropertyKey, unknown>[] =>
+  rowsIn(attempt(() => readFileSync(join(logDir(), `events-${month}.jsonl`), "utf8")) ?? "")
 
 export const crashed = (where: string, error: unknown): void => {
   record(

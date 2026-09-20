@@ -65,6 +65,11 @@ export const pluggedFile = (): string => join(stateHome(), "plugged")
 
 export const workerFile = (): string => join(stateHome(), "worker.json")
 
+export const pricesFile = (): string => join(stateHome(), "prices.json")
+
+export const inColour = (): boolean =>
+  process.stdout.isTTY === true && !process.env["NO_COLOR"] && process.env["TERM"] !== "dumb"
+
 export const real = (path: string): string =>
   attempt(() => realpathSync.native(path)) ?? resolve(path)
 

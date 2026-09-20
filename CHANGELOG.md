@@ -4,6 +4,18 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.11.0 - 2026-09-20
+
+feat: ccsaver saved says what the log cost, and what it would have cost without
+
+- the long form of doctor's one-line `spent:`, over the month in course, a month you name, or `all`, reading one month into memory at a time
+- `ccsaver price main|worker <usd>` stores dollars per million input tokens in `prices.json` (600), apart from worker.json so the file holding the fallback switch gains no surface; no price ships, because one would go stale and 4.5 forbids a number without a source, and without `price main` the report counts tokens and stops
+- the external worker's input tokens were nowhere: `contentOf` read the answer and dropped the `usage` block, so the call's own size was only ever chars/4; `inTokens` now carries what the endpoint reports, and the report counts how many calls reported none
+- every figure is a band, because a real Read measured 1.9-2.8x the bytes/4 estimate; it is the same unknown on both sides, so the arms pair low with low and the percentage barely moves while the dollars swing by half
+- `instead` sits beside `denied` on purpose: a denial is not a saving, the model reads by ranges afterwards and pays for those, and the foot says the gate watches the Read tool only, so a Grep or a cat is in neither column
+- a month whose denied reads have nothing recorded against them is named as the most flattering reading there is, under twenty events it refuses to judge, and a month that cost more than it saved prints a negative, in red, with no percentage
+- `inColour` moves to state.ts so doctor and the report decide about NO_COLOR and a dumb terminal the same way
+
 ## 0.10.10 - 2026-09-20
 
 docs: the README table is one command per row, and says what is written inside a project

@@ -131,6 +131,43 @@ On a terminal you do not have to copy it: `doctor` offers to run it, one `warn` 
 
 While the [event log](events.md) is on, `doctor` also prints a `denied:` line: how many of this month's whole-file reads the hook actually denied, and the median length of the ones it did. That is the measured answer beside the predicted one, and the two disagree in a useful way — a project can hold long files the model never reads.
 
+## saved
+
+`ccsaver saved` adds up [the event log](events.md) and says what the month cost against what it would have cost without the plugin. It is the long form of doctor's one-line `spent:`, and it reads the log only: it never calls a worker and never writes anything but the price you set.
+
+```
+ccsaver saved            # the month in course
+ccsaver saved 2026-08    # that month
+ccsaver saved all        # every month the log still holds, one in memory at a time
+```
+
+It needs two prices, in dollars per million input tokens, because ccsaver cannot see what your session pays:
+
+```bash
+ccsaver price main 3.00      # the model the session runs on
+ccsaver price worker 0.10    # the cheap worker
+```
+
+They live in `~/.config/ccsaver/prices.json` (600), apart from `worker.json` so that the file holding the `fallback` switch gains no surface. No price is shipped: one would go stale, and a number without a source is what this project refuses to print. Without `price main` the report counts tokens and stops there. A `prices.json` that is there but malformed or unreadable stops the command, the same way `worker.json` does.
+
+**The numbers are a band, never a point.** A real `Read` measured [1.9–2.8× the bytes/4 estimate](measurements.md#the-hooks-token-estimate-vs-a-real-read), so both columns carry that multiplier. It is the same unknown on both sides, so the two arms pair low with low: the dollars swing by half, and the percentage barely moves. Read the percentage.
+
+```
+ccsaver saved · 2026-09
+
+  denied     181 whole-file reads, 1.83 M tokens by bytes/4
+  instead    63 ranged reads of those files, 0.08 M tokens
+  delegated  112 calls · 98 external (1.13 M tokens) · 14 paid Haiku ($0.2019)
+
+  without    $10.45 - $15.40    ██████████████████████
+  with       $0.76 - $0.97      █·····················
+  saved      $9.69 - $14.43     93 % - 94 %
+```
+
+`instead` is the line that keeps the rest honest: a denial is not a saving, because the model then reads the file by ranges and pays for those. A month where the delegations cost more than the reads they replaced prints a negative saving, in red, with no percentage beside it.
+
+Three things it cannot see, and says so at the foot when they bite: the gate watches the `Read` tool only, so a `Grep` or a `cat` that replaced a denied read is in neither column; an endpoint that returns no `usage` block is counted at chars/4, and the report says how many calls that was; and a month whose denied reads have nothing recorded against them is named as the most flattering reading there is. Under twenty events it refuses to judge at all, the way `plug` refuses under twenty files.
+
 ## Environment variables
 
 | Variable | Read by | What for |

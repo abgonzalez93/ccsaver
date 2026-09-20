@@ -13,6 +13,7 @@ import {
 } from "./config.ts"
 import { doctor } from "./doctor.ts"
 import { crashed, record, setLog } from "./log.ts"
+import { report, writePrice } from "./roi.ts"
 import { attempt, isRecord, messageOf, parsed, Refusal, scrubbed } from "./state.ts"
 import { proposalOf, surveyFor } from "./survey.ts"
 import { shown } from "./transport.ts"
@@ -32,6 +33,8 @@ const USAGE = `${HEAD}
   key set                    store the API key, read from the terminal or from stdin
   fallback on|off            whether a call the worker cannot take goes to paid Claude Haiku
   log on|off                 record events (metadata only) in a local file; off by default
+  saved [month|all]          what the log says it cost, and what it would have cost without
+  price main|worker <usd>    dollars per million input tokens, so saved can show money
   doctor                     check permissions, key, worker, fallback and projects
   version                    print the version
 
@@ -42,6 +45,7 @@ const USAGE = `${HEAD}
 const PACKAGE = join(import.meta.dirname, "..", "package.json")
 const HELP = ["help", "--help", "-h"]
 const LIMIT_KEYS = ["maxLines", "maxTokens"] as const
+const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/
 
 const limitsGiven = (pairs: string[]): Partial<Limits> => {
   const given = pairs.map((pair) => pair.split("="))
@@ -129,6 +133,24 @@ const COMMANDS: Record<string, Command> = {
     if (first !== "on" && first !== "off") return undefined
     setLog(first === "on")
     say(`log ${first}\n`)
+    return 0
+  },
+  saved: ([first]) => {
+    if (first !== undefined && first !== "all" && !MONTH.test(first)) return undefined
+    say(report(first))
+    return 0
+  },
+  price: ([first, second]) => {
+    if ((first !== "main" && first !== "worker") || second === undefined) return undefined
+    const dollars = Number(second)
+    if (!Number.isFinite(dollars) || dollars <= 0)
+      throw new Refusal(
+        `a price is dollars per million input tokens, a positive number; not: ${second}`,
+      )
+    const after = writePrice(first, dollars)
+    say(
+      `price ${first} $${dollars}/M · main ${after.main ?? "unset"} · worker ${after.worker ?? "unset"}\n`,
+    )
     return 0
   },
   version: printVersion,

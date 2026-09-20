@@ -14,6 +14,7 @@ import {
 import { logDir, logFile, readEvents, record } from "./log.ts"
 import {
   attempt,
+  inColour,
   isEncrypted,
   keyFile,
   keyIsStored,
@@ -54,9 +55,7 @@ const ANSWER_BYTES = 64
 const ANSWER_CAP = 4096
 
 const painted = (level: Level): string =>
-  process.stdout.isTTY === true && !process.env["NO_COLOR"] && process.env["TERM"] !== "dumb"
-    ? `\u001b[${COLOUR[level]}m${level.padEnd(4)}\u001b[0m`
-    : level.padEnd(4)
+  inColour() ? `\u001b[${COLOUR[level]}m${level.padEnd(4)}\u001b[0m` : level.padEnd(4)
 
 const lineFrom = (fd: number): string | undefined => {
   const buffer = Buffer.alloc(ANSWER_BYTES)

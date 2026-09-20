@@ -279,3 +279,16 @@ test("doctor says whether the log is on, records its tally and marks its own pro
   assert.match((await ccsaver(["doctor"])).stdout, /FAIL log: /)
   chmodSync(LOG, 0o700)
 })
+
+test("the input tokens the endpoint reports are recorded, and its silence is not a zero", async () => {
+  const before = events(HOME).length
+  server.reply.inTokens = 4242
+  assert.equal((await ask(SOURCE)).code, 0)
+  server.reset()
+  assert.equal((await ask(SOURCE)).code, 0)
+  const [reported, silent] = events(HOME)
+    .slice(before)
+    .filter(({ kind }) => kind === "delegate")
+    .map(({ inTokens }) => inTokens)
+  assert.deepEqual([reported, silent], [4242, undefined])
+})

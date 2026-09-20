@@ -72,7 +72,7 @@ Guard: `test/conventions.test.ts`.
 
 ## 2. Architecture
 
-**2.1 ALWAYS respect the map.** Eleven files, one reason to change each, arrows that never turn back.
+**2.1 ALWAYS respect the map.** Twelve files, one reason to change each, arrows that never turn back.
 
 | File | Owns | Imports |
 | --- | --- | --- |
@@ -84,8 +84,9 @@ Guard: `test/conventions.test.ts`.
 | `src/boundary.ts` | what may leave the machine | `state` |
 | `src/transport.ts` | the two ways out: `fetch` to the worker, spawn of the fallback | `config`, `log`, `state`, the `Tally` type of `answer` |
 | `src/worker.ts` | the `bulk-read` and `code-write` flows | `answer`, `boundary`, `config`, `log`, `state`, `transport` |
+| `src/roi.ts` | what the log says it cost, what it would have cost, and the prices that turn tokens into money | `config`, `log`, `state` |
 | `src/doctor.ts` | every check `doctor` runs and the level each one reports | `config`, `log`, `state`, `survey`, `transport` |
-| `src/cli.ts` | arguments and the exit code | `config`, `doctor`, `log`, `state`, `survey`, `transport`, `worker` |
+| `src/cli.ts` | arguments and the exit code | `config`, `doctor`, `log`, `roi`, `state`, `survey`, `transport`, `worker` |
 | `src/hook.ts` | the `Read` gate | `config`, `log`, `state` |
 
 Guard: Biome `noImportCycles`, which is why the log cannot live in `src/state.ts`: it needs `stateHome` and the stored key, and every command that records a `config` event would then point back at it. The import list of `src/hook.ts` is pinned by `test/conventions.test.ts`, because it is the start-up cost of every `Read` (4.4).
@@ -113,7 +114,7 @@ export const invokeExternal = async (mode: string, system: string, message: stri
 
 Guard: *convention*. Revisit when a test needs to replace something that no parameter, variable or state file reaches, or when a seam gets a second implementation.
 
-**2.5 PREFER the flat `src/`.** It holds 11 files and about 1,900 lines. Folders and layers earn their place past 15 files or 3,000 lines; until then a new concept is a new file on the map of 2.1.
+**2.5 PREFER the flat `src/`.** It holds 12 files and about 2,200 lines. Folders and layers earn their place past 15 files or 3,000 lines; until then a new concept is a new file on the map of 2.1.
 Guard: *convention*.
 
 ## 3. Robustness
@@ -141,7 +142,7 @@ if (text === undefined) continue
 
 Guard: *convention*.
 
-**3.3 ALWAYS validate at the boundary, by hand, and return a typed value built from the checked fields.** The boundaries are `worker.json` (`readWorker`), the `plugged` file (`src/config.ts` · `readPlugged`, which drops a line that is not an absolute path), an adapter file (`adapterOf`, which also rejects unknown keys), the hook's stdin (`src/hook.ts` · `gate`), the worker's HTTP response (`src/transport.ts` · `contentOf`), the fallback's stdout (`invokeClaude`), the month's own log lines when `doctor` adds up what was spent (`src/doctor.ts` · `spent`) and `package.json` when it prints the version (`src/cli.ts` · `version`). Every `JSON.parse` lands in a `const` typed `unknown`, or goes through `parsed`.
+**3.3 ALWAYS validate at the boundary, by hand, and return a typed value built from the checked fields.** The boundaries are `worker.json` (`readWorker`), the `plugged` file (`src/config.ts` · `readPlugged`, which drops a line that is not an absolute path), an adapter file (`adapterOf`, which also rejects unknown keys), the hook's stdin (`src/hook.ts` · `gate`), the worker's HTTP response (`src/transport.ts` · `contentOf`), the fallback's stdout (`invokeClaude`), the month's own log lines when `doctor` adds up what was spent (`src/doctor.ts` · `spent`) and when `ccsaver saved` adds up the whole log (`src/roi.ts` · `tallied`, which reads every field through `numberAt`), `prices.json` (`src/roi.ts` · `readPrices`) and `package.json` when it prints the version (`src/cli.ts` · `version`). Every `JSON.parse` lands in a `const` typed `unknown`, or goes through `parsed`.
 
 ```ts
 // ❌ trusts the shape of a response from the network

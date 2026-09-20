@@ -48,6 +48,7 @@ export interface Delegation {
   answered?: string
   model?: string
   answerChars?: number
+  inTokens?: number
   cost?: number | null
   externalMs?: number
   fallbackMs?: number
@@ -216,6 +217,12 @@ const contentOf = (raw: unknown): string | undefined => {
   return text.length > 0 ? text : undefined
 }
 
+const inTokensOf = (raw: unknown): number | undefined => {
+  const usage = isRecord(raw) ? raw["usage"] : undefined
+  const tokens = isRecord(usage) ? usage["prompt_tokens"] : undefined
+  return typeof tokens === "number" && Number.isFinite(tokens) ? tokens : undefined
+}
+
 const gaveNothing = (model: string, response: Response, raw: unknown): void => {
   const cut = isCutShort(raw)
   delegation.fell = response.ok ? (cut ? "length" : "incomplete") : "status"
@@ -273,10 +280,12 @@ export const invokeExternal = async (
       gaveNothing(worker.model, response, raw)
       return undefined
     }
+    const inTokens = inTokensOf(raw)
     Object.assign(delegation, {
       answered: "external",
       model: worker.model,
       answerChars: content.length,
+      ...(inTokens === undefined ? {} : { inTokens }),
     } satisfies Delegation)
     note(
       `~${tokensOf(message)} input tokens by chars/4 | external | ${worker.model} | delegated to ${mode}`,

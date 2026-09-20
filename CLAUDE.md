@@ -5,7 +5,7 @@ The [README](README.md) and the pages it links under [docs/](docs/) are the spec
 | Page | What it specifies |
 | --- | --- |
 | [README.md](README.md) | what ccsaver is, the quickstart, the honest limits, what leaves your machine, the commands |
-| [docs/configuration.md](docs/configuration.md) | the worker, the key, the fallback, `doctor`, adapters, environment variables |
+| [docs/configuration.md](docs/configuration.md) | the worker, the key, the fallback, `doctor`, adapters, `saved` and its prices, environment variables |
 | [docs/events.md](docs/events.md) | the event log |
 | [docs/versions.md](docs/versions.md) | the version hook and the changelog |
 | [docs/development.md](docs/development.md) | the checks, and measuring a change |

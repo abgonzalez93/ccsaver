@@ -34,6 +34,7 @@ interface Seen {
 interface Reply {
   status: number
   content: string
+  inTokens: number | undefined
   finish: string
   accepts: string | undefined
   location: string | undefined
@@ -113,6 +114,7 @@ export const startServer = async (): Promise<FakeServer> => {
   const reply: Reply = {
     status: 200,
     content: "FROM-EXTERNAL",
+    inTokens: undefined,
     finish: "stop",
     accepts: undefined,
     location: undefined,
@@ -135,6 +137,7 @@ export const startServer = async (): Promise<FakeServer> => {
         reply.raw ??
           JSON.stringify({
             choices: [{ message: { content: reply.content }, finish_reason: reply.finish }],
+            ...(reply.inTokens === undefined ? {} : { usage: { prompt_tokens: reply.inTokens } }),
           }),
       )
     })
@@ -151,6 +154,7 @@ export const startServer = async (): Promise<FakeServer> => {
     reset: (): void => {
       reply.status = 200
       reply.content = "FROM-EXTERNAL"
+      reply.inTokens = undefined
       reply.finish = "stop"
       reply.accepts = undefined
       reply.location = undefined
