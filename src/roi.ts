@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs"
 import { tokensIn } from "./config.ts"
-import { logDir, monthKey, type Rows, readMonth, record } from "./log.ts"
+import { logDir, monthKey, numberAt, type Row, type Rows, readMonth, record } from "./log.ts"
 import { attempt, inColour, isRecord, parsed, pricesFile, Refusal, writePrivate } from "./state.ts"
 
 const REAL_LOW = 1.9
@@ -57,11 +57,6 @@ export const NOTHING: Tally = {
   estimated: 0,
 }
 
-const numberAt = (row: Record<PropertyKey, unknown>, key: string): number => {
-  const value = row[key]
-  return typeof value === "number" && Number.isFinite(value) ? value : 0
-}
-
 const partOf = (lines: number, offset: number, limit: number): number => {
   if (lines <= 0) return 1
   const from = Math.min(Math.max(offset - 1, 0), lines)
@@ -69,7 +64,7 @@ const partOf = (lines: number, offset: number, limit: number): number => {
   return Math.max(0, took) / lines
 }
 
-const gateInto = (sum: Tally, row: Record<PropertyKey, unknown>): Tally => {
+const gateInto = (sum: Tally, row: Row): Tally => {
   const tokens = tokensIn(numberAt(row, "bytes"))
   if (row["decision"] === "deny")
     return { ...sum, denied: sum.denied + 1, deniedTokens: sum.deniedTokens + tokens }
@@ -82,7 +77,7 @@ const gateInto = (sum: Tally, row: Record<PropertyKey, unknown>): Tally => {
   }
 }
 
-const delegateInto = (sum: Tally, row: Record<PropertyKey, unknown>): Tally => {
+const delegateInto = (sum: Tally, row: Row): Tally => {
   const calls = sum.calls + 1
   if (row["answered"] === "fallback")
     return { ...sum, calls, paid: sum.paid + 1, paidUsd: sum.paidUsd + numberAt(row, "cost") }

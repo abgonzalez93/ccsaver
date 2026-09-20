@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.13.5 - 2026-09-20
+
+refactor: log.ts owns how a number is read out of one of its rows
+
+- numberAt was private to roi.ts while doctor read a cost with its own inline typeof, so the module that writes the rows did not own how they are read back
+- doctor picks up the Number.isFinite guard it lacked, which is what kept a cost of Infinity in the log out of the spent line
+- Row joins Rows, so the two readers name the shape instead of spelling it
+
 ## 0.13.4 - 2026-09-20
 
 refactor: one place merges an adapter's limits with the defaults

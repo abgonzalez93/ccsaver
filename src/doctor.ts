@@ -11,7 +11,7 @@ import {
   type Worker,
   writeLimits,
 } from "./config.ts"
-import { logDir, logFile, type Rows, readEvents, record } from "./log.ts"
+import { logDir, logFile, numberAt, type Rows, readEvents, record } from "./log.ts"
 import {
   adaptersDir,
   attempt,
@@ -271,10 +271,7 @@ const spent = (rows: Rows): Finding[] => {
   if (rows.length === 0) return []
   const calls = kindOf(rows, "delegate")
   const paid = calls.filter((row) => row["answered"] === "fallback")
-  const usd = paid.reduce(
-    (sum, row) => sum + (typeof row["cost"] === "number" ? row["cost"] : 0),
-    0,
-  )
+  const usd = paid.reduce((sum, row) => sum + numberAt(row, "cost"), 0)
   const why = Object.entries(Object.groupBy(paid, (row) => String(row["fell"])))
     .map(([fell, rows]) => `${rows?.length ?? 0} ${fell}`)
     .join(", ")

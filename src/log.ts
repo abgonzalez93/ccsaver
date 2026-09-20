@@ -2,7 +2,14 @@ import { appendFileSync, chmodSync, existsSync, mkdirSync, readFileSync, renameS
 import { join } from "node:path"
 import { attempt, isRecord, parsed, Refusal, stateHome, storedKey } from "./state.ts"
 
-export type Rows = Record<PropertyKey, unknown>[]
+export type Row = Record<PropertyKey, unknown>
+
+export type Rows = Row[]
+
+export const numberAt = (row: Row, key: string): number => {
+  const value = row[key]
+  return typeof value === "number" && Number.isFinite(value) ? value : 0
+}
 
 const LOG_VERSION = 1
 const LOG_LINE_BYTES = 4000
