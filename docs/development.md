@@ -14,6 +14,8 @@ The first three run in CI; the fourth is typed by hand, because a read-only CI t
 
 `CCSAVER_HOME` relocates the state folder; the tests use it and nothing else, and `pnpm test` starts from one that does not exist, so a test that forgets its own cannot touch yours.
 
+Once the gate is green and the commit made, `pnpm release` pushes `main` with its tags and then refreshes the plugin this machine runs, `claude plugin marketplace update abgonzalez93 && claude plugin update ccsaver@abgonzalez93`: the installed copy comes from the marketplace, never from this folder, so editing here changes nothing until that runs ([Update](../README.md#update)). The push is what makes the release workflow sweep for a `v*.*.0` tag ([versions](versions.md)).
+
 
 ## Measure it yourself
 

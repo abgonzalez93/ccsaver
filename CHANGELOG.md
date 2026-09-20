@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.20.1 - 2026-09-20
+
+chore: pnpm release pushes main with its tags and refreshes the installed plugin
+
+- `pnpm release` runs `git push --follow-tags`, then `claude plugin marketplace update abgonzalez93` and `claude plugin update ccsaver@abgonzalez93`, the three steps that turn a commit here into the plugin this machine runs
+- `--follow-tags` carries the hook's tag whether or not the clone set `push.followTags`, and the push is what makes the release workflow sweep
+- docs/development.md names it after the gate
+
 ## 0.20.0 - 2026-09-20
 
 feat: a setting typed again says it already is, a mistake says what was wrong, and a terminal sees marks in colour
