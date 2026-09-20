@@ -180,7 +180,7 @@ const percentOf = (saved: number, without: number): number =>
 
 const countedIn = (tally: Tally): string[] => [
   `  ${"denied".padEnd(LABEL)}${many(tally.denied, "whole-file read")}, ${millions(tally.deniedTokens)} tokens by bytes/4`,
-  `  ${"instead".padEnd(LABEL)}${many(tally.ranged, "ranged read")} of those files, ${millions(tally.rangedTokens)} tokens`,
+  `  ${"instead".padEnd(LABEL)}${many(tally.ranged, "ranged read")} while plugged, ${millions(tally.rangedTokens)} tokens`,
   `  ${"delegated".padEnd(LABEL)}${many(tally.calls, "call")} · ${tally.external} external (${millions(tally.externalTokens)} tokens) · ${tally.paid} paid Haiku (${usd(tally.paidUsd, 4)})`,
 ]
 
@@ -188,6 +188,12 @@ const savedIn = (money: Money, places: number): string => {
   const band = `${usd(money.saved.low, places)} - ${usd(money.saved.high, places)}`
   if (money.saved.high < 0)
     return rowOf("saved", band, "the delegations cost more than the reads they replaced", RED)
+  if (money.saved.low < 0)
+    return rowOf(
+      "saved",
+      band,
+      "the band crosses zero: this month may have cost more than it saved",
+    )
   const low = percentOf(money.saved.low, money.without.low)
   const high = percentOf(money.saved.high, money.without.high)
   return rowOf("saved", band, `${low} % - ${high} %`, GREEN)
@@ -230,8 +236,9 @@ const footnotes = (tally: Tally, prices: Prices, priced: boolean): string[] => [
   ...(priced && orphaned(tally)
     ? ["  nothing here replaced those reads, so `without` is the most flattering reading there is"]
     : []),
-  "  a denial is not a saving on its own: read `instead` beside it, and the gate watches the",
-  "  Read tool only, so a Grep or a cat that replaced one is in neither column",
+  "  a denial is not a saving on its own: read `instead` beside it, which counts every ranged",
+  "  read in a plugged project and not only the ones a denial caused; the gate watches the Read",
+  "  tool only, so a Grep or a cat that replaced one is in neither column",
 ]
 
 const spanOf = (months: string[]): string => {

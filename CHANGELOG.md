@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.12.7 - 2026-09-20
+
+fix: saved never paints a band that crosses zero as a saving
+
+- the red branch asked for saved.high below zero, so a band with a loss at its low end and a saving at its high end came out green with a negative percentage beside it: measured, 15 denials of 400,000 bytes against 15 ranged reads and $1.20 of Haiku printed -$0.25 - $0.20 and -3 % - 2 %, in green
+- a band that crosses zero now says so in words and takes no colour, because neither a saving nor a loss would be true
+- the instead line said "of those files" while it counts every ranged read in a plugged project, whether or not a denial caused it; it now says "while plugged", and the foot says the same
+
 ## 0.12.6 - 2026-09-20
 
 fix: the line a stop prints reaches stderr before the process goes

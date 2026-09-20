@@ -144,6 +144,23 @@ test("a saving that is not one prints negative, with no percentage beside it", a
   assert.doesNotMatch(out.stdout, /%/)
 })
 
+test("a band that crosses zero is painted as neither a saving nor a loss", async () => {
+  const home = homeWith("crossing", [
+    [
+      ...Array.from({ length: 15 }, () => denial(400_000)),
+      ...Array.from({ length: 15 }, () =>
+        gate({ reason: "range", bytes: 355_555, lines: 9_000, offset: 1, limit: 9_000 }),
+      ),
+      ...Array.from({ length: 10 }, () => ({ kind: "delegate", answered: "fallback", cost: 0.12 })),
+    ],
+  ])
+  await priced(home, ["main", "3"])
+  const out = await saved(home)
+  const line = out.stdout.split("\n").find((row) => row.startsWith("  saved")) ?? ""
+  assert.match(line, /^ {2}saved {6}-\$0\.25 - \$0\.20 +the band crosses zero/)
+  assert.deepEqual([line.includes("%"), line.includes("\u001b")], [false, false])
+})
+
 test("reads the log cannot explain are called out instead of read as a clean win", async () => {
   const home = homeWith("orphan", [twenty()])
   await priced(home, ["main", "3"])

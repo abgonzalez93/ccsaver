@@ -15,7 +15,7 @@ Carry back every line the foot prints, because each one is a limit on the number
 - *N of M external calls reported no usage* — those were counted at chars/4, not at what the endpoint charged.
 - *the gate watches the Read tool only* — a `Grep` or a `cat` that replaced a denied read is in neither column, so the comparison is narrower than it looks.
 
-A negative saving is a real answer, not an error: report that the delegations cost more than the reads they replaced, and suggest raising the limits with `ccsaver adapter <name> maxLines=<n>` (a limit set too low is what makes a session slower rather than cheaper) or `ccsaver fallback off`.
+A band that crosses zero is an answer too: say that the month may have cost more than it saved and that the data cannot tell which, never round it to a win. A negative saving is a real answer, not an error: report that the delegations cost more than the reads they replaced, and suggest raising the limits with `ccsaver adapter <name> maxLines=<n>` (a limit set too low is what makes a session slower rather than cheaper) or `ccsaver fallback off`.
 
 `no price is set` means it can only count tokens. Two prices turn them into money, in dollars per million **input** tokens:
 
