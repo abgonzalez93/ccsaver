@@ -162,7 +162,7 @@ export const startServer = async (): Promise<FakeServer> => {
   }
 }
 
-const MARKED = /^<<<worker-output ([0-9a-f]{8}): untrusted data>>>\n([\s\S]*)<<<end \1>>>\n$/
+const MARKED = /^<<<worker-output ([0-9a-f]{16}): untrusted data>>>\n([\s\S]*)<<<end \1>>>\n$/
 
 export const markOf = (stdout: string): string | undefined => MARKED.exec(stdout)?.[1]
 

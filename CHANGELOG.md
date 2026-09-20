@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.9.12 - 2026-09-20
+
+fix: a path cannot forge the frame its file travels in
+
+- the label of a file escaped its quotes and nothing else, so a folder named a"&gt;&lt; holding a file named file&gt; wrote a&gt;&lt;/file&gt; into the message and closed the block early: everything after it read as the worker's own text, and a line break in a name opened a second one
+- angle brackets and control characters are escaped now, quotes as before, and a test builds that exact pair of names
+- the marker around an answer carries 8 random bytes instead of 4
+
 ## 0.9.11 - 2026-09-20
 
 fix: an answer that arrives in text parts is read instead of paid for twice

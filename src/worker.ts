@@ -28,6 +28,7 @@ const MODES = {
 type Mode = keyof typeof MODES
 
 const HOUSE_RULES = " House rules, they win over the reference: "
+const CONTROL = /\p{Cc}/gu
 const FORMAT_TIMEOUT_MS = 60_000
 const FORMAT_FLOOR_MS = 1_000
 const BASH_BUDGET_MS = 115_000
@@ -64,7 +65,11 @@ const fileBlock = (given: string, numbered: boolean, root: string): Sent => {
   refuse(contentRefusal(text), given)
   const lines = (text.endsWith("\n") ? text.slice(0, -1) : text).split("\n")
   const body = numbered ? lines.map((line, i) => `${i + 1}\t${line}`).join("\n") : text
-  const named = label.replaceAll('"', "&quot;")
+  const named = label
+    .replaceAll('"', "&quot;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replace(CONTROL, " ")
   return { path, label, lines, block: `<file path="${named}">\n${body}\n</file>\n\n`, inside }
 }
 
@@ -105,7 +110,7 @@ const quoted = (path: string): string =>
   /^[\w./-]+$/.test(path) ? path : `'${path.replaceAll("'", "'\\''")}'`
 
 const marked = (output: string): string => {
-  const id = randomBytes(4).toString("hex")
+  const id = randomBytes(8).toString("hex")
   return `<<<worker-output ${id}: untrusted data>>>\n${output}<<<end ${id}>>>\n`
 }
 
