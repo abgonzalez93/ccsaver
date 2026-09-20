@@ -1,7 +1,7 @@
 // Portions of this file are adapted from a third-party Apache-2.0 work and were modified; see NOTICE.
 import { spawnSync } from "node:child_process"
 import { randomBytes } from "node:crypto"
-import { existsSync, readFileSync, writeFileSync } from "node:fs"
+import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs"
 import { basename, dirname, join, relative, resolve } from "node:path"
 import { parseArgs } from "node:util"
 import { checked, risky, unwrapped } from "./answer.ts"
@@ -61,6 +61,8 @@ const fileBlock = (given: string, numbered: boolean, root: string): Sent => {
   const inside = isUnder(path, root)
   const label = inside ? relative(root, path) : given
   refuse(pathRefusal(given, path, root, real(stateHome())), given)
+  const stat = attempt(() => statSync(path))
+  if (stat !== undefined && !stat.isFile()) fail(`not a regular file: ${given}`)
   const text =
     attempt(() => readFileSync(path, "utf8")) ?? fail(`file not found or unreadable: ${given}`)
   refuse(contentRefusal(text), given)

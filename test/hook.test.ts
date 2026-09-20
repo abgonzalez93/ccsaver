@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import { spawnSync } from "node:child_process"
 import { mkdirSync, rmSync, truncateSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { after, test } from "node:test"
@@ -133,4 +134,13 @@ test("denies a file one byte past the byte limit, however few lines it has, and 
   const out = await said({ tool_input: { file_path: pastLimit } })
   assert.match(out.stdout, /"permissionDecision":"deny"/)
   assert.match(out.stdout, /32001 bytes, too big to count its lines, ~8000 tokens/)
+})
+
+test("a Read of what is no regular file is let through at once, never waited on", {
+  timeout: 15_000,
+}, async () => {
+  const pipe = join(WORK, "pipe")
+  const made = spawnSync("mkfifo", [pipe]).status === 0
+  assert.equal(await denied({ tool_input: { file_path: WORK } }), false)
+  if (made) assert.equal(await denied({ tool_input: { file_path: pipe } }), false)
 })

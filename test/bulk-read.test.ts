@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import { spawnSync } from "node:child_process"
 import { mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { after, before, beforeEach, test } from "node:test"
@@ -214,4 +215,20 @@ test("a control character in the worker's answer cannot repaint the terminal", a
   assert.equal(out.code, 0)
   assert.equal(`${out.stdout}${out.stderr}`.includes("\u001b"), false)
   assert.match(between(out.stdout), /\\x1b\[2J/)
+})
+
+test("a path that is no regular file is refused at once, and nothing leaves", {
+  timeout: 15_000,
+}, async () => {
+  const before = server.seen.length
+  const folder = await bulkRead(PROJECT)
+  assert.deepEqual([folder.code, folder.stdout], [1, ""])
+  assert.match(folder.stderr, /^Error: not a regular file: /)
+  const pipe = join(PROJECT, "pipe")
+  if (spawnSync("mkfifo", [pipe]).status === 0) {
+    const out = await bulkRead(pipe)
+    assert.deepEqual([out.code, out.stdout], [1, ""])
+    assert.match(out.stderr, /^Error: not a regular file: /)
+  }
+  assert.equal(server.seen.length, before)
 })

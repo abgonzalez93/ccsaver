@@ -27,12 +27,12 @@ interface Measured {
 }
 
 const measure = (path: string, maxBytes: number): Measured => {
-  const size = attempt(() => statSync(path).size)
-  if (size === undefined) return { lines: 0, bytes: 0, blind: "unreadable" }
-  if (size > maxBytes) {
+  const stat = attempt(() => statSync(path))
+  if (stat === undefined || !stat.isFile()) return { lines: 0, bytes: 0, blind: "unreadable" }
+  if (stat.size > maxBytes) {
     const head = headOf(path)
     if (head === undefined) return { lines: 0, bytes: 0, blind: "unreadable" }
-    return isBinary(head) ? { bytes: size, blind: "binary" } : { bytes: size }
+    return isBinary(head) ? { bytes: stat.size, blind: "binary" } : { bytes: stat.size }
   }
   const bytes = attempt(() => readFileSync(path))
   if (bytes === undefined) return { lines: 0, bytes: 0, blind: "unreadable" }

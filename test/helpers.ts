@@ -63,7 +63,7 @@ export const run = (
     const child = execFile(
       file,
       args,
-      { cwd, env: { ...process.env, CLAUDE_PROJECT_DIR: "", ...env } },
+      { cwd, env: { ...process.env, CLAUDE_PROJECT_DIR: "", ...env }, timeout: 30_000 },
       (error, stdout, stderr) =>
         done({
           code: error === null ? 0 : typeof error.code === "number" ? error.code : 1,

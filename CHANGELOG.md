@@ -4,6 +4,15 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.19.17 - 2026-09-20
+
+fix: a path that is no regular file is refused, never waited on
+
+- the hook read a pipe named as file_path with readFileSync, which blocks until a writer appears: it hung until Claude Code's 5 s hook timeout, and bulk-read on the same path hung until the 120 s of the Bash tool
+- measure asks the stat it already had whether the path is a regular file and answers unreadable for a folder, a pipe or a device without opening it; fileBlock refuses one by name before reading, so nothing leaves
+- the test helper gives every spawned command 30 s, so a child that hangs fails its test instead of holding the suite
+- hook measured 19.72 → 19.38 ms mean and 19.55 → 19.37 ms median, 30 paired runs against the parent commit
+
 ## 0.19.16 - 2026-09-20
 
 fix: a file one byte past the byte limit is denied, however few lines it has
