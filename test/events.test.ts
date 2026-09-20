@@ -26,6 +26,7 @@ const BROKEN = join(WORK, "broken")
 const LOG = join(HOME, "log")
 const SOURCE = join(PROJECT, "source.ts")
 const LONG = join(PROJECT, "deep", "long.txt")
+const LONGER = join(PROJECT, "deep", "longer.txt")
 const HEAVY = join(PROJECT, "heavy.md")
 const BLOB = join(PROJECT, "blob.bin")
 const OUTSIDE = join(WORK, "outside.txt")
@@ -60,6 +61,7 @@ before(async () => {
     mkdirSync(dir, { recursive: true })
   writeFileSync(SOURCE, "export const CONTENT_SENTINEL = 1\n")
   writeFileSync(LONG, "x\n".repeat(351))
+  writeFileSync(LONGER, "x\n".repeat(401))
   writeFileSync(HEAVY, `${"word ".repeat(8000)}\n`)
   writeFileSync(BLOB, Buffer.from([120, 10, 0]))
   writeFileSync(OUTSIDE, "x\n")
@@ -235,12 +237,14 @@ test("doctor counts the month's denied reads and leaves its own probe out of the
   const seen = (input: unknown): Promise<Ran> => run("node", [HOOK], home, JSON.stringify(input))
   await seen(WHOLE)
   await seen(WHOLE)
+  await seen({ tool_input: { file_path: LONGER } })
+  await seen({ tool_input: { file_path: LONGER } })
   await seen({ tool_input: { file_path: SOURCE } })
   await seen({ tool_input: { file_path: LONG, offset: 10 } })
   const out = await run(LAUNCHER, ["doctor"], { CCSAVER_HOME: fresh, CLAUDE_CODE_EXECPATH: FAKE })
   assert.match(
     out.stdout,
-    /^ok {3}denied: 2 of 3 whole-file reads this month \(67 %\), median 351 lines$/m,
+    /^ok {3}denied: 4 of 5 whole-file reads this month \(80 %\), median 376 lines$/m,
   )
   rmSync(fresh, { recursive: true, force: true })
 })

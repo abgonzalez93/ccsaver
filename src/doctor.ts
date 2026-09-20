@@ -236,6 +236,13 @@ const log = (): Finding => {
 
 const kindOf = (rows: Rows, kind: string): Rows => rows.filter((row) => row["kind"] === kind)
 
+const middleOf = (sorted: number[]): number | undefined => {
+  const half = sorted.length / 2
+  const above = sorted[Math.floor(half)]
+  const below = sorted[Math.ceil(half) - 1]
+  return above === undefined || below === undefined ? undefined : Math.round((below + above) / 2)
+}
+
 const denied = (rows: Rows): Finding[] => {
   const gates = kindOf(rows, "gate").filter((row) => row["tool_use_id"] !== "doctor")
   const whole = gates.filter((row) => row["reason"] !== "range")
@@ -244,7 +251,7 @@ const denied = (rows: Rows): Finding[] => {
   const counted = why
     .flatMap((row) => (typeof row["lines"] === "number" ? [row["lines"]] : []))
     .sort((first, second) => first - second)
-  const middle = counted[Math.floor(counted.length / 2)]
+  const middle = middleOf(counted)
   const median = middle === undefined ? "" : `, median ${middle} lines`
   const share = Math.round((100 * why.length) / whole.length)
   return [
