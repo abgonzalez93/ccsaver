@@ -51,8 +51,12 @@ const limitsGiven = (pairs: string[]): Partial<Limits> => {
       extra !== undefined ||
       !/^[1-9][0-9]*$/.test(value ?? ""),
   )
-  if (wrong.length > 0 || given.length === 0)
-    throw new Refusal(`usage: ccsaver adapter <name> ${LIMIT_KEYS.join("=<n> ")}=<n>`)
+  if (given.length === 0)
+    throw new Refusal(`ccsaver adapter <name> needs ${LIMIT_KEYS.join("=<n> or ")}=<n>`)
+  if (wrong.length > 0)
+    throw new Refusal(
+      `${LIMIT_KEYS.join("=<n> and ")}=<n>, n a positive integer; not: ${wrong.map((parts) => parts.join("=")).join(" ")}`,
+    )
   return Object.fromEntries(given.map(([key, value]) => [key, Number(value)]))
 }
 

@@ -4,6 +4,16 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.9.17 - 2026-09-20
+
+fix: a bad limit pair names itself instead of repeating the usage
+
+- `ccsaver adapter x maxLines=0` says `maxLines=<n> and maxTokens=<n>, n a positive integer; not: maxLines=0` instead of echoing the signature back
+- the `Error: usage:` double prefix is gone: a refusal is a refusal, not a usage line
+- no pair at all is its own message, `ccsaver adapter <name> needs maxLines=<n> or maxTokens=<n>`, so the empty case never leaves a dangling `not:`
+- the junk loop in the adapter test now reads the message, not only the exit code, and asserts the offending pair is the tail of it
+- docs/configuration.md says the command names back a pair it cannot take
+
 ## 0.9.16 - 2026-09-20
 
 fix: a wrong argument gets the usage line of its own command
