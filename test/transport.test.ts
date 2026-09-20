@@ -277,6 +277,26 @@ test("says why before it pays: a worker with no key, and an answer that is not J
   assert.match(garbled.stdout, /FROM-CLAUDE/)
 })
 
+test("an answer that comes in text parts is read, not paid for again", async () => {
+  server.reply.raw = JSON.stringify({
+    choices: [
+      {
+        message: {
+          content: [
+            { type: "text", text: "* one" },
+            { type: "text", text: " and two" },
+          ],
+        },
+        finish_reason: "stop",
+      },
+    ],
+  })
+  const out = await bulkRead(SOURCE)
+  assert.match(out.stdout, /\* one and two/)
+  assert.equal(out.stdout.includes("FROM-CLAUDE"), false)
+  assert.equal(out.stderr.includes("falling back"), false)
+})
+
 test("the fallback names the cause it used to hide behind spawnSync", () => {
   const ran = (code: string): Error =>
     Object.assign(new Error(`spawnSync claude ${code}`), { code })

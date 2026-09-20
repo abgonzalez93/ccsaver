@@ -199,13 +199,21 @@ const isCutShort = (raw: unknown): boolean =>
   isRecord(raw["choices"][0]) &&
   raw["choices"][0]["finish_reason"] === "length"
 
+const textOf = (content: unknown): string => {
+  if (typeof content === "string") return content
+  if (!Array.isArray(content)) return ""
+  return content
+    .flatMap((part) => (isRecord(part) && typeof part["text"] === "string" ? [part["text"]] : []))
+    .join("")
+}
+
 const contentOf = (raw: unknown): string | undefined => {
   if (!isRecord(raw) || !Array.isArray(raw["choices"])) return undefined
   const first: unknown = raw["choices"][0]
   if (!isRecord(first) || !isRecord(first["message"]) || first["finish_reason"] === "length")
     return undefined
-  const content = first["message"]["content"]
-  return typeof content === "string" && content.length > 0 ? content : undefined
+  const text = textOf(first["message"]["content"])
+  return text.length > 0 ? text : undefined
 }
 
 const gaveNothing = (model: string, response: Response, raw: unknown): void => {

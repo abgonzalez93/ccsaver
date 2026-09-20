@@ -21,6 +21,7 @@ Any OpenAI-compatible chat completions endpoint works.
 - A query string is kept, because some endpoints need one, and never printed: `worker set`, `doctor` and a failing probe show the origin and the path only, so a key a provider suggests passing as `?key=…` stays out of the session's context.
 - A redirect from the worker counts as a failure, never followed with your file in hand.
 - Every request caps the answer at 8,192 tokens with `max_tokens`, so a provider's own default never decides, and an answer cut at either limit says so before it falls back.
+- The answer is read whether the endpoint puts it in `choices[0].message.content` as a string or as a list of text parts, which some of them do for a model that reasons first: a shape the reader did not know used to count as no answer and spend the fallback.
 
 Without a worker, or whenever it fails, times out (30 s: the slowest real call measured took 19 s) or cuts its answer short, the call goes to Claude Haiku through your own Claude Code binary: the one the session runs on (`CLAUDE_CODE_EXECPATH`, an undocumented variable observed in Claude Code 2.1), then `claude` on your `PATH`.
 
