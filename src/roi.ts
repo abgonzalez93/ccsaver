@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs"
 import { tokensIn } from "./config.ts"
-import { logDir, readMonth, record } from "./log.ts"
+import { logDir, monthKey, type Rows, readMonth, record } from "./log.ts"
 import { attempt, inColour, isRecord, parsed, pricesFile, Refusal, writePrivate } from "./state.ts"
 
 const REAL_LOW = 1.9
@@ -14,8 +14,6 @@ const RED = 31
 const LABEL = 11
 const WIDTH = 18
 const SMALL = 1
-
-type Rows = Record<PropertyKey, unknown>[]
 
 export interface Tally {
   denied: number
@@ -243,12 +241,10 @@ const spanOf = (months: string[]): string => {
   return first === last ? first : `${first} … ${last}`
 }
 
-const thisMonth = (): string => new Date().toISOString().slice(0, 7)
-
 export const report = (given: string | undefined): string => {
   if (!existsSync(logDir()))
     return "the log is off, so there is nothing to add up: ccsaver log on\n"
-  const months = given === "all" ? monthsOf() : [given ?? thisMonth()]
+  const months = given === "all" ? monthsOf() : [given ?? monthKey()]
   const tally = tallyOver(months)
   const prices = readPrices()
   const money = seen(tally) < ENOUGH ? undefined : moneyOf(tally, prices)

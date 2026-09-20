@@ -11,7 +11,7 @@ import {
   type Worker,
   writeLimits,
 } from "./config.ts"
-import { logDir, logFile, readEvents, record } from "./log.ts"
+import { logDir, logFile, type Rows, readEvents, record } from "./log.ts"
 import {
   attempt,
   inColour,
@@ -233,8 +233,6 @@ const log = (): Finding => {
     ? { level: "ok", text: `log: on · ${logDir()} (700) · ${bytes} bytes this month` }
     : { level: "FAIL", text: `log: ${logDir()} must be 700 and its files 600` }
 }
-
-type Rows = Record<PropertyKey, unknown>[]
 
 const kindOf = (rows: Rows, kind: string): Rows => rows.filter((row) => row["kind"] === kind)
 

@@ -2,14 +2,17 @@ import { appendFileSync, chmodSync, existsSync, mkdirSync, readFileSync, renameS
 import { join } from "node:path"
 import { attempt, isRecord, parsed, Refusal, stateHome, storedKey } from "./state.ts"
 
+export type Rows = Record<PropertyKey, unknown>[]
+
 const LOG_VERSION = 1
 const LOG_LINE_BYTES = 4000
 const SCRUB_FROM = 8
 
 export const logDir = (): string => join(stateHome(), "log")
 
-export const logFile = (now = new Date()): string =>
-  join(logDir(), `events-${now.toISOString().slice(0, 7)}.jsonl`)
+export const monthKey = (now = new Date()): string => now.toISOString().slice(0, 7)
+
+export const logFile = (now = new Date()): string => join(logDir(), `events-${monthKey(now)}.jsonl`)
 
 export const record = (kind: string, fields: Record<string, unknown>, session?: unknown): void => {
   try {
@@ -35,16 +38,15 @@ export const record = (kind: string, fields: Record<string, unknown>, session?: 
   }
 }
 
-const rowsIn = (text: string): Record<PropertyKey, unknown>[] =>
+const rowsIn = (text: string): Rows =>
   text.split("\n").flatMap((line) => {
     const row = parsed(line)
     return isRecord(row) ? [row] : []
   })
 
-export const readEvents = (): Record<PropertyKey, unknown>[] =>
-  rowsIn(attempt(() => readFileSync(logFile(), "utf8")) ?? "")
+export const readEvents = (): Rows => rowsIn(attempt(() => readFileSync(logFile(), "utf8")) ?? "")
 
-export const readMonth = (month: string): Record<PropertyKey, unknown>[] =>
+export const readMonth = (month: string): Rows =>
   rowsIn(attempt(() => readFileSync(join(logDir(), `events-${month}.jsonl`), "utf8")) ?? "")
 
 export const crashed = (where: string, error: unknown): void => {

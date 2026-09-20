@@ -4,6 +4,13 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.12.1 - 2026-09-20
+
+refactor: log.ts owns the shape of a row and the key of a month
+
+- the row type was declared once in doctor.ts and again in roi.ts, and roi.ts derived the month of the log from a date of its own
+- log.ts writes the file that carries both, so it exports Rows and monthKey and the other two read them from there
+
 ## 0.12.0 - 2026-09-20
 
 feat: /ccsaver:saved reads the report back with the caveats a summary drops
