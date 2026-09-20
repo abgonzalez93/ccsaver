@@ -4,6 +4,15 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.9.14 - 2026-09-20
+
+docs: the pages say what the commands actually print, and the table names them all
+
+- the sample output of an overshooting project was the one from before the fix became a command to run: it still read "an adapter with { "maxLines": 400 } would not"
+- doctor's denied: line reports the median length of what it denied, not how long anything ran
+- the README table was missing ccsaver adapter and ccsaver worker claude, both of them in the usage the command prints
+- src is about 1,850 lines now, not 1,650
+
 ## 0.9.13 - 2026-09-20
 
 test: the denied line and the plugin's own files get the tests they never had

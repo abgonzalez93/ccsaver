@@ -66,7 +66,7 @@ Claude Code's documentation says `--bare` will become the default for `-p`, and 
 `doctor` stops at a `node` older than 24.2, and then checks, in order:
 
 - The permissions of the state folder and of every file it keeps there: the key, `plugged` and `worker.json`, all 600.
-- Whether the [event log](events.md) is on and how many bytes this month's file holds, and while it is on, how many of the month's whole-file reads the hook denied and how long they ran (`denied:`), and how many of the month's delegations went to paid Claude Haiku, what they cost and why (`spent:`).
+- Whether the [event log](events.md) is on and how many bytes this month's file holds, and while it is on, how many of the month's whole-file reads the hook denied and the median length of the ones it did (`denied:`), and how many of the month's delegations went to paid Claude Haiku, what they cost and why (`spent:`).
 - The worker, with a probe shaped like a real call: same temperature, same `max_tokens`, a system message, so a provider that would refuse the real thing fails here. 200 = the key works, 401/403 = rejected, and a timeout is told from a host that cannot be reached. A `worker.json` it cannot trust fails the line.
 - The fallback binary, with `--version`, unless the fallback is off.
 - Every plugged project, with its adapter and limits. For each one it feeds the hook a throwaway file one line over the limit, and the `gate:` line fails unless that read is denied.
@@ -108,7 +108,7 @@ measured: 67 of 67 files, 19 in 20 under 285 lines and 3237 tokens, which the 35
 When either one is over the limit in force, it names the replacement, rounded up to fifty lines or a thousand tokens, and names only the one that fell short:
 
 ```
-measured: 334 of 933 files, 19 in 20 under 396 lines and 4907 tokens: the limits in force deny normal files here, and an adapter with { "maxLines": 400 } would not
+measured: 334 of 933 files, 19 in 20 under 396 lines and 4907 tokens: the limits in force deny normal files here. To fit them, run: ccsaver adapter my-app maxLines=400 && ccsaver plug /home/you/my-app my-app
 ```
 
 Both limits are measured because both deny, and a file can need both raised: a 1,058-line test file of 41 KB is over the line limit *and* over the token limit, so moving one alone leaves it denied by the other.

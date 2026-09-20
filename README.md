@@ -83,6 +83,8 @@ Claude Code 2.1.274 applies a skill's grant when you type `/ccsaver:bulk-reader`
 | `ccsaver plug [dir] [adapter]` | turn ccsaver on for one project; no directory means this one |
 | `ccsaver unplug <dir>` · `ccsaver list` | turn it off again · show what is plugged |
 | `ccsaver worker set <url> <model>` | point at an OpenAI-compatible chat completions endpoint |
+| `ccsaver worker claude <path>\|auto` | pin the `claude` binary the fallback runs, or give it back to the session |
+| `ccsaver adapter <name> k=v ...` | set `maxLines` or `maxTokens` on an adapter, creating it if it is not there |
 | `ccsaver key set` | store the API key: typed with the echo off, or read from stdin |
 | `ccsaver fallback on\|off` | whether a call the worker cannot take goes to paid Claude Haiku |
 | `ccsaver log on\|off` | record events, metadata only, in a local file; off by default |
