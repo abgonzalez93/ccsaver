@@ -4,6 +4,23 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.9.1 - 2026-09-20
+
+docs: plug points at doctor for later, and versions.md fills the missing releases
+
+- the measurement is taken at plug and at every doctor and nowhere else,
+  because the hook answers every Read inside 24 ms and cannot walk a tree;
+  the plug prompt now says so and points at /ccsaver:doctor for when the
+  project has changed shape, which costs nothing at runtime
+- v0.1.0 through v0.6.0 are older than .github/workflows/release.yml, so
+  they never fired it and no release exists for them; nothing creates one
+  later, and the same holds for any tag whose run failed
+- versions.md carries the loop that fills every gap, skipping the tags that
+  already have a release and taking its notes from the section of
+  CHANGELOG.md the workflow itself would have used
+- a missing release costs only tidiness: the plugin installs by reading the
+  repository through the marketplace, never from a release asset
+
 ## 0.9.0 - 2026-09-20
 
 feat: doctor colours its levels and offers to run the fix it found

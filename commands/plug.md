@@ -13,4 +13,6 @@ Plugging measures the project and prints a `measured:` line: how long and how he
 - `ccsaver unplug <dir>` takes one back out.
 - `ccsaver plug` with no directory plugs the working directory.
 
+The measurement is taken once, here. Nothing re-measures on its own: the hook never walks the project, because it runs on every `Read` and has 24 ms to answer. So tell the user, in one line, that a repository's files grow and that `/ccsaver:doctor` re-measures and says when the limits no longer fit — worth running when the project has changed shape, not on a schedule.
+
 The hook and the skills apply from the next session, or after `/reload-plugins`. If `ccsaver` is not configured yet, stop and point at `/ccsaver:setup`.

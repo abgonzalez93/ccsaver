@@ -114,6 +114,8 @@ Both limits are measured because both deny, and a file can need both raised: a 1
 
 The proposal never falls below the defaults, because a repository of ten short files would otherwise argue for a limit far worse than 350. Under twenty countable files it refuses to judge at all: one file in twenty is not a number.
 
+The measurement is taken at `plug` and at every `doctor`, and nowhere else: the hook never walks the project, because it answers every `Read` inside 24 ms. So a repository that grows past its limits says nothing until someone runs `doctor` again, which is worth doing when the project has changed shape rather than on a schedule. Nothing is stored between runs, so the answer is always that day's.
+
 `doctor` measures again on every run and adds one `warn shape:` line per project that has outgrown its limits, which is the moment the hook starts denying files the model should read whole. It is never a `FAIL`: nothing is broken, the limits are simply no longer the right ones. Growth the other way needs no warning, because a limit nothing reaches is merely inert.
 
 To move them, put them in an adapter. `plug` and `doctor` end their line with the command that does it:
