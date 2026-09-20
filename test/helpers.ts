@@ -201,3 +201,39 @@ export const events = (home: string): Record<PropertyKey, unknown>[] =>
       if (!isRecord(event)) throw new Error(`not a JSON object: ${line}`)
       return event
     })
+
+export const monthBack = (back: number): string => {
+  const now = new Date()
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - back, 1))
+    .toISOString()
+    .slice(0, 7)
+}
+
+export const gateRow = (fields: Record<string, unknown>): Record<PropertyKey, unknown> => ({
+  kind: "gate",
+  decision: "allow",
+  model: "claude-opus-5",
+  ...fields,
+})
+
+export const denialRow = (bytes: number): Record<PropertyKey, unknown> =>
+  gateRow({ decision: "deny", reason: "lines", bytes, lines: Math.round(bytes / 40) })
+
+export const twentyDenials = (): Record<PropertyKey, unknown>[] =>
+  Array.from({ length: 20 }, () => denialRow(40_000))
+
+export const logHome = (
+  work: string,
+  label: string,
+  rows: Record<PropertyKey, unknown>[][],
+): string => {
+  const home = join(work, label)
+  mkdirSync(join(home, "log"), { recursive: true, mode: 0o700 })
+  for (const [at, month] of rows.entries())
+    writeFileSync(
+      join(home, "log", `events-${monthBack(at)}.jsonl`),
+      month.map((row) => `${JSON.stringify({ v: 1, ...row })}\n`).join(""),
+      { mode: 0o600 },
+    )
+  return home
+}

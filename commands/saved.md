@@ -24,7 +24,7 @@ ccsaver price claude-opus-5 5.00   # whichever model the report names
 ccsaver price worker 0.10          # the cheap worker
 ```
 
-The report names every model it saw and singles out the ones with no price, whose tokens it leaves out of the sum. Read those lines back and offer to set each one. **Ask the user for the number rather than guessing it**: a price you invent makes every figure below it fiction, and it is the one thing here that cannot be measured from the machine. Point them at Anthropic's pricing page for the session models and at their provider's for the worker.
+`ccsaver price` with nothing after it lists what is already set. The report names every model it saw and singles out the ones with no price, whose tokens it leaves out of the sum. Read those lines back and offer to set each one. **Ask the user for the number rather than guessing it**: a price you invent makes every figure below it fiction, and it is the one thing here that cannot be measured from the machine. Point them at Anthropic's pricing page for the session models and at their provider's for the worker.
 
 `the log is off` means there is nothing to add up. `ccsaver log on` starts recording, metadata only and on this machine alone ([what it holds](../docs/events.md)) — and say that it records from that moment, so there is nothing to read until the plugin has done some work.
 

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { chmodSync, mkdirSync, rmSync, statSync, writeFileSync } from "node:fs"
+import { chmodSync, mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { after, test } from "node:test"
 import { readMonth } from "../src/log.ts"
@@ -233,32 +233,6 @@ test("a gate line the hook could not name a model for is counted apart, never fo
   assert.doesNotMatch(out.stdout, /^ {2}without/m)
 })
 
-test("a worker that costs nothing is set down as free, not left looking unanswered", async () => {
-  const home = homeWith("free-worker", [
-    [...twenty(), { kind: "delegate", answered: "external", chars: 4_000_000 }],
-  ])
-  await priced(home, [OPUS, "5"])
-  const nagged = await saved(home)
-  assert.match(nagged.stdout, /the worker's own tokens are not priced yet/)
-  const set = await priced(home, ["worker", "0"])
-  assert.equal(set.stdout, `price worker $0/M · ${OPUS} $5/M · worker free\n`)
-  const out = await saved(home)
-  assert.match(out.stdout, /at \$5\/M for claude-opus-5, and the worker is free/)
-  assert.doesNotMatch(out.stdout, /not priced yet/)
-  const wrong = await priced(home, [OPUS, "0"])
-  assert.equal(wrong.code, 1)
-  assert.match(wrong.stderr, /0 only for a worker that is free/)
-})
-
-test("the old single main price is refused, never read as the rate for every model", async () => {
-  const home = homeWith("legacy", [twenty()])
-  writeFileSync(join(home, "prices.json"), '{"main": 3}')
-  const out = await saved(home)
-  assert.equal(out.code, 1)
-  assert.match(out.stderr, /carries one main price for every model/)
-  assert.match(out.stderr, /ccsaver price <model> <usd>/)
-})
-
 test("all sums every month in the log, and a month names only that one", async () => {
   const home = homeWith("months", [twenty(), twenty()])
   const [both, one, missing] = await Promise.all([
@@ -289,37 +263,6 @@ test("the log being off is not a failure", async () => {
   )
 })
 
-test("a price is a positive number, stored privately, and shown back with both sides", async () => {
-  const home = homeWith("prices", [twenty()])
-  const ok = await priced(home, [OPUS, "3"])
-  assert.deepEqual([ok.code, ok.stdout], [0, `price ${OPUS} $3/M · ${OPUS} $3/M · worker unset\n`])
-  const both = await priced(home, ["worker", "0.1"])
-  assert.equal(both.stdout, `price worker $0.1/M · ${OPUS} $3/M · worker $0.1/M\n`)
-  for (const wrong of [
-    [OPUS, "-3"],
-    [OPUS, "0"],
-    ["worker", "abc"],
-  ]) {
-    const out = await priced(home, wrong)
-    assert.equal(out.code, 1)
-    assert.match(out.stderr, /a price is dollars per million input tokens, a positive number/)
-  }
-  assert.equal(statSync(join(home, "prices.json")).mode & 0o777, 0o600)
-})
-
-test("a prices.json that cannot be read stops the command, never reads as no price", {
-  skip: AS_ROOT,
-}, async () => {
-  const home = homeWith("unreadable", [twenty()])
-  await priced(home, [OPUS, "3"])
-  const file = join(home, "prices.json")
-  chmodSync(file, 0o000)
-  const out = await saved(home)
-  chmodSync(file, 0o600)
-  assert.equal(out.code, 1)
-  assert.match(out.stderr, /prices\.json cannot be read: check its owner and its mode/)
-})
-
 test("a month that cannot be read stops the report, never counts as no events", {
   skip: AS_ROOT,
 }, async () => {
@@ -336,12 +279,4 @@ test("a month that cannot be read stops the report, never counts as no events", 
 test("a month is YYYY-MM, so no reader of the log can be steered out of its folder", () => {
   for (const wrong of ["2026-13", "../../etc/passwd", "2026-01/../../.ssh/id_rsa"])
     assert.throws(() => readMonth(wrong), /a month is YYYY-MM, this one is not/)
-})
-
-test("a malformed prices.json stops the command instead of being ignored", async () => {
-  const home = homeWith("malformed", [twenty()])
-  writeFileSync(join(home, "prices.json"), '{"models": {"claude-opus-5": "3"}}')
-  const out = await saved(home)
-  assert.equal(out.code, 1)
-  assert.match(out.stderr, /prices\.json is malformed: every model needs a name and a price/)
 })

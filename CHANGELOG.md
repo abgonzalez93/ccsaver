@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.17.0 - 2026-09-20
+
+feat: ccsaver price with nothing after it lists what is set
+
+- there was no way to read the prices back: price alone answered with its own usage line
+- it now prints one model to a line with its rate, and names the command to set the first one when none is stored
+- the price tests moved to test/prices.test.ts, because adding this one took test/saved.test.ts to 364 lines, past this project's own 350; the log fixtures they shared are in test/helpers.ts
+
 ## 0.16.0 - 2026-09-20
 
 feat: a worker that costs nothing is set down as free

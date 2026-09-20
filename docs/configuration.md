@@ -147,6 +147,7 @@ It needs prices, in dollars per million input tokens, because ccsaver cannot see
 ccsaver price claude-opus-5 5.00      # what your session model charges
 ccsaver price claude-fable-5-1 10.00  # and any other you work on
 ccsaver price worker 0.10             # the cheap worker, or 0 when its tier is free
+ccsaver price                         # what is set, one to a line
 ```
 
 The hook records which model was running for every read it sees ([the event log](events.md)), so the report prices each model's reads at that model's own rate and never spreads one number over a month that changed model. A model that turns up in the log with no price of its own is **named, with the command that gives it one, and its tokens are left out of the sum** — a rate borrowed from another model would be a number without a source. Reads the hook could not name a model for are counted apart in the same way.

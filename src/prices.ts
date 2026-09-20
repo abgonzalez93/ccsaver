@@ -57,6 +57,22 @@ export const writePrice = (which: string, usd: number): Prices => {
   return after
 }
 
+const RATE = 28
+
+export const listedPrices = ({ models, worker }: Prices): string => {
+  const free = worker === undefined ? "unset" : worker === 0 ? "free" : `$${worker}/M`
+  const rows: [string, string][] = Object.entries(models).map(([model, each]) => [
+    model,
+    `$${each}/M`,
+  ])
+  const lines = [...rows, [WORKER, free]]
+    .map(([name = "", rate = ""]) => `  ${name.padEnd(RATE)}${rate}`)
+    .join("\n")
+  return rows.length === 0
+    ? `no model has a price yet: ccsaver price <model> <usd per million>\n${lines}\n`
+    : `${lines}\n`
+}
+
 export const shownPrices = ({ models, worker }: Prices): string =>
   [
     ...Object.entries(models).map(([model, each]) => `${model} $${each}/M`),
