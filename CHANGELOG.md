@@ -4,6 +4,12 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.13.7 - 2026-09-20
+
+refactor: said is transport's own, not an export nobody imports
+
+- the synchronous stderr write of 0.12.6 was exported by reflex; CONTRIBUTING cites it by name, and test/conventions.test.ts checks the symbol is there, not that it leaves the file
+
 ## 0.13.6 - 2026-09-20
 
 refactor: saved.ts replaces roi.ts, and a Spend is not a Tally

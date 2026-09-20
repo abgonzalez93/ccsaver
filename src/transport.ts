@@ -62,7 +62,7 @@ export interface Delegation {
 
 export const delegation: Delegation = {}
 
-export const said = (text: string): void => {
+const said = (text: string): void => {
   if (attempt(() => writeSync(2, text)) === undefined) process.stderr.write(text)
 }
 
