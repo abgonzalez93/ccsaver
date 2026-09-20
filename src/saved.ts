@@ -18,6 +18,7 @@ export interface Read {
 export interface Spend {
   denied: number
   ranged: number
+  uncounted: number
   byModel: Record<string, Read>
   calls: number
   paid: number
@@ -44,6 +45,7 @@ const NO_READ: Read = { deniedTokens: 0, rangedTokens: 0 }
 export const NOTHING_SPENT: Spend = {
   denied: 0,
   ranged: 0,
+  uncounted: 0,
   byModel: {},
   calls: 0,
   paid: 0,
@@ -55,7 +57,6 @@ export const NOTHING_SPENT: Spend = {
 }
 
 const partOf = (lines: number, offset: number, limit: number): number => {
-  if (lines <= 0) return 1
   const from = Math.min(Math.max(offset - 1, 0), lines)
   const took = limit > 0 ? Math.min(limit, lines - from) : lines - from
   return Math.max(0, took) / lines
@@ -100,7 +101,9 @@ const gateInto = (sum: Spend, row: Row): Spend => {
       byModel: withRead(sum.byModel, model, { deniedTokens: tokens, rangedTokens: 0 }),
     }
   if (row["reason"] !== "range") return sum
-  const part = partOf(numberAt(row, "lines"), numberAt(row, "offset"), numberAt(row, "limit"))
+  const lines = numberAt(row, "lines")
+  if (lines <= 0) return { ...sum, ranged: sum.ranged + 1, uncounted: sum.uncounted + 1 }
+  const part = partOf(lines, numberAt(row, "offset"), numberAt(row, "limit"))
   return {
     ...sum,
     ranged: sum.ranged + 1,

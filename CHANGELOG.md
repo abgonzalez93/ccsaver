@@ -4,6 +4,15 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.20.2 - 2026-09-20
+
+fix: saved no longer counts a ranged read of a file past the byte limit as the whole file
+
+- the hook never counts the lines of a file over maxTokens·4 (32 KB) and writes `lines: null`; `partOf` read that as "no lines" and returned 1, so every ranged Read of such a file entered `instead` with the tokens of the whole file, and one denial plus five pages of a hundred lines printed a loss in red
+- those reads now count in the `instead` line and carry no tokens: `Spend.uncounted` holds how many, and the foot says so, which is the fifth caveat that leans towards flattering ccsaver rather than the other way
+- `test/saved.test.ts` pins two such rows beside a counted one, and `test/events.test.ts` feeds `saved` a row the real hook wrote for a ranged read of a 40 KB file, so the shape the writer produces is the shape the reader is tested against
+- docs/configuration.md and commands/saved.md name the exception
+
 ## 0.20.1 - 2026-09-20
 
 chore: pnpm release pushes main with its tags and refreshes the installed plugin

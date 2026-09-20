@@ -313,6 +313,16 @@ test("doctor says whether the log is on, records its tally and marks its own pro
   chmodSync(LOG, 0o700)
 })
 
+test("a ranged read the hook could not count lines for is left out of instead, and the foot says so", async () => {
+  const before = events(HOME).length
+  await hook({ tool_input: { file_path: HEAVY, offset: 1, limit: 100 } })
+  const [row] = events(HOME).slice(before)
+  assert.deepEqual([row?.["reason"], row?.["lines"]], ["range", null])
+  const out = await ccsaver(["saved"])
+  assert.equal(out.code, 0)
+  assert.match(out.stdout, /^ {2}1 of \d+ ranged reads were on files past the byte limit/m)
+})
+
 test("the input tokens the endpoint reports are recorded, and its silence is not a zero", async () => {
   const before = events(HOME).length
   server.reply.inTokens = 4242

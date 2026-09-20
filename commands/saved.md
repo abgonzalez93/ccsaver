@@ -14,6 +14,7 @@ Carry back every line the foot prints, because each one is a limit on the number
 - *nothing here replaced those reads* — the log has denials with nothing recorded against them, so `without` is the most flattering reading there is. Say so plainly.
 - *N of M external calls reported no usage* — those were counted at chars/4, not at what the endpoint charged.
 - *the gate watches the Read tool only* — a `Grep` or a `cat` that replaced a denied read is in neither column, so the comparison is narrower than it looks.
+- *N of M ranged reads were on files past the byte limit* — the hook never counted their lines, so the log cannot say what share of the file each range covered; their tokens are left out of `instead`, and the true `with` side is higher than the bar shows.
 - *neither column holds what the session read back* — the denial messages and the worker answers the session itself paid to read are counted there and left out of both columns, so the true `with` side is higher than the bar shows.
 
 A band that crosses zero is an answer too: say that the month may have cost more than it saved and that the data cannot tell which, never round it to a win. A negative saving is a real answer, not an error: report that the delegations cost more than the reads they replaced, and suggest raising the limits with `ccsaver adapter <name> maxLines=<n>` (a limit set too low is what makes a session slower rather than cheaper) or `ccsaver fallback off`.
