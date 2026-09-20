@@ -78,7 +78,7 @@ Whether the plugin itself is enabled is Claude Code's to say: `claude plugin lis
 
 ## Adapters
 
-An adapter is a small JSON file with what is specific to one project. ccsaver looks for `<name>.json` in `~/.config/ccsaver/adapters/` first and in this repository's `adapters/` second, so your project's adapter can stay private.
+An adapter is a small JSON file with what is specific to one project. ccsaver looks for `<name>.json` in `~/.config/ccsaver/adapters/` first and in this repository's `adapters/` second, so your project's adapter can stay private. A name takes lowercase letters, digits and dashes, starting with a letter or a digit; anything else is refused with the name it read back.
 
 ```json
 {

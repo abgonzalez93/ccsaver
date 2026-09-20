@@ -95,7 +95,10 @@ test("plug refuses what is not a folder and a path that would break the state fi
 
 test("plug refuses an adapter that does not exist or whose name walks the tree", () => {
   assert.throws(() => plug(PROJECT, "no-such-adapter"), /not found/)
-  assert.throws(() => plug(PROJECT, "../../etc/passwd"), /invalid adapter name/)
+  assert.throws(
+    () => plug(PROJECT, "../../etc/passwd"),
+    /lowercase letters, digits and dashes; not: \.\.\/\.\.\/etc\/passwd$/,
+  )
 })
 
 test("a private adapter shadows the bundled one, and a malformed one is rejected", () => {

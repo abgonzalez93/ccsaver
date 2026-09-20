@@ -136,7 +136,8 @@ const adapterOf = (raw: unknown): Adapter | undefined => {
 const adapterPlace = (name: string): string => join(stateHome(), "adapters", `${name}.json`)
 
 const adapterPlaces = (name: string): string[] => {
-  if (!ADAPTER_NAME.test(name)) throw new Refusal(`invalid adapter name: ${name}`)
+  if (!ADAPTER_NAME.test(name))
+    throw new Refusal(`an adapter name takes lowercase letters, digits and dashes; not: ${name}`)
   return [adapterPlace(name), join(import.meta.dirname, "..", "adapters", `${name}.json`)]
 }
 
@@ -155,7 +156,9 @@ export const loadAdapter = (name: string): Adapter => {
   const places = adapterPlaces(name)
   const adapter = findAdapter(name, places)
   if (adapter === undefined)
-    throw new Refusal(`adapter ${name} not found in ${places.join(" or ")}`)
+    throw new Refusal(
+      `adapter ${name} not found in ${places.join(" or ")}, create it with: ccsaver adapter ${name} maxLines=<n>`,
+    )
   return adapter
 }
 
@@ -180,7 +183,7 @@ export const plug = (dir: string, adapter?: string): Plugged => {
   if (root === undefined || attempt(() => statSync(root).isDirectory()) !== true)
     throw new Refusal(`not a directory: ${dir}`)
   if (LINE_BREAKERS.test(root))
-    throw new Refusal("a root with a tab or a line break cannot be stored")
+    throw new Refusal(`a root with a tab or a line break cannot be stored: ${JSON.stringify(root)}`)
   if (root === "/" || isUnder(real(homedir()), root) || isUnder(real(stateHome()), root))
     throw new Refusal(`refusing to plug ${root}: it would expose far more than one project`)
   if (isSecretPlace(basename(root)))
@@ -227,7 +230,10 @@ const storeWorker = (worker: Worker): void => {
 }
 
 export const writeWorker = (url: string, model: string): string | undefined => {
-  if (!isEncrypted(url)) throw new Refusal("the worker url must be https (localhost excepted)")
+  if (!isEncrypted(url))
+    throw new Refusal(
+      `the worker url must be https (localhost excepted), this one is ${attempt(() => new URL(url).protocol) ?? "not a url"}`,
+    )
   if (model.length === 0) throw new Refusal("the worker model is required")
   const parts = new URL(url)
   if (parts.username !== "" || parts.password !== "")

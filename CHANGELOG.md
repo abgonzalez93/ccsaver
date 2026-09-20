@@ -4,6 +4,16 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.9.20 - 2026-09-20
+
+fix: the refusals that hid the value they rejected now print it
+
+- `invalid adapter name: Bad Name` never said what a valid one is: `an adapter name takes lowercase letters, digits and dashes; not: Bad Name`, the shape C2 gave the limit pairs
+- `adapter <n> not found` now names the command that creates it, which is one `k=v` away
+- the tab-or-line-break refusal was the only one of plug's four that did not name its root; it does, through JSON.stringify, because tab and newline are exactly what it is complaining about and they pass the scrub
+- `the worker url must be https` names the protocol it read, `http:` or `not a url`, and deliberately not the url: a rejected one can carry a key in its query, and a test pins that the query never reaches the terminal
+- docs/configuration.md publishes the adapter name rule, which lived only in a regex
+
 ## 0.9.19 - 2026-09-20
 
 fix: nothing ccsaver echoes can repaint the terminal it prints in

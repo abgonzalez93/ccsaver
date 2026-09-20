@@ -203,7 +203,9 @@ test("adapter writes the limits, merges into an existing adapter and refuses jun
     nothing.stderr,
     "Error: ccsaver adapter <name> needs maxLines=<n> or maxTokens=<n>\n",
   )
-  assert.equal((await ccs(["adapter", "Bad Name", "maxLines=400"])).code, 1)
+  const badName = await ccs(["adapter", "Bad Name", "maxLines=400"])
+  assert.equal(badName.code, 1)
+  assert.match(badName.stderr, /lowercase letters, digits and dashes; not: Bad Name\n$/)
   const broken = join(home, "adapters", "broken.json")
   writeFileSync(broken, '{"rules": "mine",}')
   const kept = await ccs(["adapter", "broken", "maxLines=400"])
@@ -220,7 +222,10 @@ test("a control character in an argument is escaped before it reaches the termin
   const gone = await bare(["unplug", `missing${wipe}`])
   assert.deepEqual([gone.code, gone.stdout], [0, "missing\\x1b[2J was not plugged\n"])
   const named = await bare(["adapter", `bad${wipe}`, "maxLines=400"])
-  assert.deepEqual([named.code, named.stderr], [1, "Error: invalid adapter name: bad\\x1b[2J\n"])
+  assert.deepEqual(
+    [named.code, named.stderr],
+    [1, "Error: an adapter name takes lowercase letters, digits and dashes; not: bad\\x1b[2J\n"],
+  )
   const unknown = await bare([`nope${wipe}`])
   assert.match(unknown.stderr, /^unknown command: nope\\x1b\[2J\n/)
   const home_ = await run(LAUNCHER, ["list"], { CCSAVER_HOME: `relative${wipe}` }, "", WORK)
@@ -289,6 +294,12 @@ test("a key in the worker url never reaches the terminal, and one in userinfo is
   const inside = await ccsaver(["worker", "set", "https://me:token@example.invalid/v1", "cheap-1"])
   assert.deepEqual([inside.code, inside.stdout], [1, ""])
   assert.match(inside.stderr, /^Error: the worker url must carry no user name or password/)
+  const plain = await ccsaver(["worker", "set", "http://plain.invalid/v1?key=QUERY_SENTINEL", "m"])
+  assert.deepEqual([plain.code, plain.stdout], [1, ""])
+  assert.match(plain.stderr, /must be https \(localhost excepted\), this one is http:\n$/)
+  assert.equal(everything(plain).includes("QUERY_SENTINEL"), false)
+  const junk = await ccsaver(["worker", "set", "not-a-url", "m"])
+  assert.match(junk.stderr, /this one is not a url\n$/)
   await ccsaver(["worker", "set", server.url, "cheap-1"])
 })
 test("the settings that live in worker.json all name the command that creates it", async () => {
