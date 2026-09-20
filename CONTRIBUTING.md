@@ -78,7 +78,7 @@ Guard: `test/conventions.test.ts`.
 | --- | --- | --- |
 | `src/state.ts` | the state folder, the key, the guards, `Refusal` | `node:` only |
 | `src/log.ts` | the event log, its switch and its reader | `state` |
-| `src/config.ts` | what the user configured: the plugged roots, the adapters, the worker, and the units a limit counts in | `log`, `state` |
+| `src/config.ts` | what the user configured: the plugged roots, the adapters, the worker, and how a file is weighed against a limit | `log`, `state` |
 | `src/survey.ts` | how long a project's files are, and what limit that asks for | `config`, `state` |
 | `src/answer.ts` | pure text work on the worker's answer | nothing |
 | `src/boundary.ts` | what may leave the machine | `state` |

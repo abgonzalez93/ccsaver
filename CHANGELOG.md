@@ -4,6 +4,16 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.9.8 - 2026-09-20
+
+perf: the survey counts a small file from the 8 KB it already read
+
+- measure opened every file for the 8 KB that tells a binary one from a text one, then read the whole file again; a file that ends inside those 8 KB, which most source files do, was read twice
+- /usr/include, 2,385 files: 42.9-46.5 ms against 51.6-56.9 ms, three rounds of seven runs per arm, same lengths reported
+- dropping the probe instead of reusing it is the trap the numbers catch: 200 binaries of 900 KB beside 200 text files cost 28.4 ms that way against 12.1, because 180 MB the probe leaves unread get read whole
+- headOf and the binary test move to src/config.ts, where the hook already reaches for them: the same eight lines lived in both files
+- .cache, .gradle and Pods join the pruned folders: none of them holds a line of yours, and a proposal measured over them is measured over someone else's bytes
+
 ## 0.9.7 - 2026-09-20
 
 refactor: one line counter for the hook and the survey, not one each

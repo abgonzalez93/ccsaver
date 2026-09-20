@@ -1,4 +1,13 @@
-import { chmodSync, mkdirSync, readFileSync, realpathSync, statSync } from "node:fs"
+import {
+  chmodSync,
+  closeSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  readSync,
+  realpathSync,
+  statSync,
+} from "node:fs"
 import { homedir } from "node:os"
 import { basename, dirname, join, resolve } from "node:path"
 import { record } from "./log.ts"
@@ -48,8 +57,22 @@ export const DEFAULT_LIMITS = { maxLines: 350, maxTokens: 8000 } as const
 export const BYTES_PER_TOKEN = 4
 
 const LINE_BREAK = 10
+const NUL = 0
+
+export const HEAD_BYTES = 8192
 
 export const tokensIn = (bytes: number): number => Math.round(bytes / BYTES_PER_TOKEN)
+
+export const isBinary = (bytes: Buffer): boolean => bytes.includes(NUL)
+
+export const headOf = (path: string): Buffer | undefined => {
+  const fd = attempt(() => openSync(path, "r"))
+  if (fd === undefined) return undefined
+  const head = Buffer.alloc(HEAD_BYTES)
+  const read = attempt(() => readSync(fd, head, 0, HEAD_BYTES, 0))
+  attempt(() => closeSync(fd))
+  return read === undefined ? undefined : head.subarray(0, read)
+}
 
 export const linesIn = (bytes: Buffer): number => {
   let lines = bytes.length > 0 && bytes.at(-1) !== LINE_BREAK ? 1 : 0

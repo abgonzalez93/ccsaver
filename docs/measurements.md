@@ -20,7 +20,9 @@ Three corpora, a 10× spread in what they ask for, and the defaults are right fo
 
 10.9–24.8 ms on the 933-file monorepo and 1.1–1.6 ms on this repository, five runs each, warm cache. It runs in `plug` and in `doctor`, never in the hook.
 
-Two things keep it there. `readdirSync` with `recursive: true` took 1,480 ms on the same tree for 189,295 entries, because it cannot prune and it descends into symlinked directories, which in a pnpm workspace walks the linked packages again; the manual walk reaches the same 933 files in 0.8 ms. And reading only the first 8 KB to tell a binary file from a text one, before reading the whole of it, held the monorepo at 9–10 ms where reading every file whole ran 13–46 ms and swung with the cache.
+Three things keep it there. `readdirSync` with `recursive: true` took 1,480 ms on the same tree for 189,295 entries, because it cannot prune and it descends into symlinked directories, which in a pnpm workspace walks the linked packages again; the manual walk reaches the same 933 files in 0.8 ms. And reading only the first 8 KB to tell a binary file from a text one, before reading the whole of it, held the monorepo at 9–10 ms where reading every file whole ran 13–46 ms and swung with the cache.
+
+The third is that those 8 KB are now what a file that ends inside them is counted from, instead of being read and then read again: `/usr/include`, 2,385 files, 42.9–46.5 ms against 51.6–56.9 ms, three rounds of seven runs per arm, with the same lengths reported. Dropping the probe instead of reusing it is the trap: on 200 binaries of 900 KB beside 200 text files it costs 28.4 ms against 12.1, because 180 MB that the probe leaves unread get read whole. Reusing it does not move that tree, 12.7 and 15.8 ms against 12.4 and 15.0.
 
 ## The fixed cost of the skill descriptions
 

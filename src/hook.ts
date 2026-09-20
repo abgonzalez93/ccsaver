@@ -1,10 +1,12 @@
 // Portions of this file are adapted from a third-party Apache-2.0 work and were modified; see NOTICE.
-import { closeSync, existsSync, openSync, readFileSync, readSync, statSync } from "node:fs"
+import { existsSync, readFileSync, statSync } from "node:fs"
 import { relative } from "node:path"
 import {
   type Adapter,
   BYTES_PER_TOKEN,
   DEFAULT_LIMITS,
+  headOf,
+  isBinary,
   type Limits,
   linesIn,
   loadAdapter,
@@ -14,8 +16,6 @@ import {
 import { crashed, logDir, record } from "./log.ts"
 import { attempt, isRecord, isUnder, real } from "./state.ts"
 
-const NUL = 0
-const HEAD_BYTES = 8192
 const IDS = ["tool_use_id", "agent_id", "agent_type", "permission_mode"]
 
 interface Measured {
@@ -24,26 +24,17 @@ interface Measured {
   blind?: "binary" | "unreadable"
 }
 
-const headOf = (path: string): Buffer | undefined => {
-  const fd = attempt(() => openSync(path, "r"))
-  if (fd === undefined) return undefined
-  const head = Buffer.alloc(HEAD_BYTES)
-  const read = attempt(() => readSync(fd, head, 0, HEAD_BYTES, 0))
-  attempt(() => closeSync(fd))
-  return read === undefined ? undefined : head.subarray(0, read)
-}
-
 const measure = (path: string, maxBytes: number): Measured => {
   const size = attempt(() => statSync(path).size)
   if (size === undefined) return { lines: 0, bytes: 0, blind: "unreadable" }
   if (size > maxBytes) {
     const head = headOf(path)
     if (head === undefined) return { lines: 0, bytes: 0, blind: "unreadable" }
-    return head.includes(NUL) ? { bytes: size, blind: "binary" } : { bytes: size }
+    return isBinary(head) ? { bytes: size, blind: "binary" } : { bytes: size }
   }
   const bytes = attempt(() => readFileSync(path))
   if (bytes === undefined) return { lines: 0, bytes: 0, blind: "unreadable" }
-  return bytes.includes(NUL)
+  return isBinary(bytes)
     ? { lines: 0, bytes: bytes.length, blind: "binary" }
     : { lines: linesIn(bytes), bytes: bytes.length }
 }

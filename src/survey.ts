@@ -1,6 +1,14 @@
-import { closeSync, openSync, readdirSync, readFileSync, readSync, statSync } from "node:fs"
+import { readdirSync, readFileSync, statSync } from "node:fs"
 import { basename, join } from "node:path"
-import { DEFAULT_LIMITS, type Limits, linesIn, tokensIn } from "./config.ts"
+import {
+  DEFAULT_LIMITS,
+  HEAD_BYTES,
+  headOf,
+  isBinary,
+  type Limits,
+  linesIn,
+  tokensIn,
+} from "./config.ts"
 import { attempt } from "./state.ts"
 
 const PRUNED = [
@@ -17,11 +25,12 @@ const PRUNED = [
   ".next",
   ".turbo",
   "out",
+  ".cache",
+  ".gradle",
+  "Pods",
 ]
 const READ_CAP = 4000
 const CEILING_BYTES = 1_000_000
-const HEAD_BYTES = 8192
-const NUL = 0
 const SHARE = 0.95
 const IN_TWENTY = 20
 const LINE_STEP = 50
@@ -44,19 +53,12 @@ const filesUnder = (dir: string, found: string[]): string[] => {
   return found
 }
 
-const isText = (path: string): boolean => {
-  const fd = attempt(() => openSync(path, "r"))
-  if (fd === undefined) return false
-  const head = Buffer.alloc(HEAD_BYTES)
-  const read = attempt(() => readSync(fd, head, 0, HEAD_BYTES, 0))
-  attempt(() => closeSync(fd))
-  return read !== undefined && !head.subarray(0, read).includes(NUL)
-}
-
 const measure = (path: string): Limits | undefined => {
   const size = attempt(() => statSync(path).size)
-  if (size === undefined || size > CEILING_BYTES || !isText(path)) return undefined
-  const bytes = attempt(() => readFileSync(path))
+  if (size === undefined || size > CEILING_BYTES) return undefined
+  const head = headOf(path)
+  if (head === undefined || isBinary(head)) return undefined
+  const bytes = size <= HEAD_BYTES ? head : attempt(() => readFileSync(path))
   return bytes === undefined
     ? undefined
     : { maxLines: linesIn(bytes), maxTokens: tokensIn(bytes.length) }
