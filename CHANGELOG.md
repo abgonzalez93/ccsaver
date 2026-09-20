@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.10.7 - 2026-09-20
+
+fix: limitsFor returns the two numbers its type promises and nothing else
+
+- it spread the whole adapter over the defaults, so an object typed `Limits` carried the `rules`, the `format` and the `after` of the project as well; TypeScript allows it because a spread gets no excess property check
+- no caller reads them today, but the day one of them reaches a log line the adapter's rules land in a file docs/events.md promises holds metadata only
+- it now names the two fields, the way `src/hook.ts` · `limitsOf` already did; the two stay apart because they differ in how they fail, `limitsFor` by Refusal and the hook by falling open (3.6)
+
 ## 0.10.6 - 2026-09-20
 
 refactor: the adapter guard splits rejecting from building, and nothing is over 15 now

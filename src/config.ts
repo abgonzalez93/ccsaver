@@ -181,10 +181,13 @@ export const writeLimits = (name: string, limits: Partial<Limits>): string => {
   return place
 }
 
-export const limitsFor = (adapter: string | undefined): Limits => ({
-  ...DEFAULT_LIMITS,
-  ...(adapter === undefined ? {} : loadAdapter(adapter)),
-})
+export const limitsFor = (adapter: string | undefined): Limits => {
+  const { maxLines, maxTokens }: Adapter = adapter === undefined ? {} : loadAdapter(adapter)
+  return {
+    maxLines: maxLines ?? DEFAULT_LIMITS.maxLines,
+    maxTokens: maxTokens ?? DEFAULT_LIMITS.maxTokens,
+  }
+}
 
 export const plug = (dir: string, adapter?: string): Plugged => {
   const root = attempt(() => realpathSync.native(dir))
