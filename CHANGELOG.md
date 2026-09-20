@@ -4,6 +4,15 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.9.5 - 2026-09-20
+
+refactor: doctor reads the month's log once, through the file that owns it
+
+- the three readers of events-YYYY-MM.jsonl became one, readEvents in src/log.ts, which is the file the map gives the event log
+- doctor used to read that file three times and parse it twice: once to see whether it existed and once per kind of row
+- on a 40,000-line month, 9.1 MB, that is 105 ms against 47 ms, median of five rounds; on an ordinary month it is a millisecond either way
+- the median of the denied lines was held in a const called longest
+
 ## 0.9.4 - 2026-09-20
 
 fix: fallback on without a worker says so instead of confirming nothing

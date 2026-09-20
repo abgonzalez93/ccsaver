@@ -1,13 +1,5 @@
 import { spawnSync } from "node:child_process"
-import {
-  existsSync,
-  mkdtempSync,
-  readFileSync,
-  readSync,
-  rmSync,
-  statSync,
-  writeFileSync,
-} from "node:fs"
+import { existsSync, mkdtempSync, readSync, rmSync, statSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import {
@@ -19,15 +11,13 @@ import {
   type Worker,
   writeLimits,
 } from "./config.ts"
-import { logDir, logFile, record } from "./log.ts"
+import { logDir, logFile, readEvents, record } from "./log.ts"
 import {
   attempt,
   isEncrypted,
-  isRecord,
   keyFile,
   keyIsStored,
   messageOf,
-  parsed,
   pluggedFile,
   readKey,
   stateHome,
@@ -233,15 +223,12 @@ const log = (): Finding => {
     : { level: "FAIL", text: `log: ${logDir()} must be 700 and its files 600` }
 }
 
-const rowsOf = (kind: string): Record<PropertyKey, unknown>[] =>
-  (attempt(() => readFileSync(logFile(), "utf8")) ?? "")
-    .split("\n")
-    .map((line) => parsed(line))
-    .filter(isRecord)
-    .filter((row) => row["kind"] === kind)
+type Rows = Record<PropertyKey, unknown>[]
 
-const denied = (): Finding[] => {
-  const gates = rowsOf("gate").filter((row) => row["tool_use_id"] !== "doctor")
+const kindOf = (rows: Rows, kind: string): Rows => rows.filter((row) => row["kind"] === kind)
+
+const denied = (rows: Rows): Finding[] => {
+  const gates = kindOf(rows, "gate").filter((row) => row["tool_use_id"] !== "doctor")
   const whole = gates.filter((row) => row["reason"] !== "range")
   if (whole.length === 0) return []
   const why = whole.filter((row) => row["decision"] === "deny")
@@ -249,20 +236,19 @@ const denied = (): Finding[] => {
     .flatMap((row) => (typeof row["lines"] === "number" ? [row["lines"]] : []))
     .sort((first, second) => first - second)
   const middle = counted[Math.floor(counted.length / 2)]
-  const longest = middle === undefined ? "" : `, median ${middle} lines`
+  const median = middle === undefined ? "" : `, median ${middle} lines`
   const share = Math.round((100 * why.length) / whole.length)
   return [
     {
       level: "ok",
-      text: `denied: ${why.length} of ${whole.length} whole-file reads this month (${share} %)${longest}`,
+      text: `denied: ${why.length} of ${whole.length} whole-file reads this month (${share} %)${median}`,
     },
   ]
 }
 
-const spent = (): Finding[] => {
-  const text = attempt(() => readFileSync(logFile(), "utf8"))
-  if (text === undefined) return []
-  const calls = rowsOf("delegate")
+const spent = (rows: Rows): Finding[] => {
+  if (rows.length === 0) return []
+  const calls = kindOf(rows, "delegate")
   const paid = calls.filter((row) => row["answered"] === "fallback")
   const usd = paid.reduce(
     (sum, row) => sum + (typeof row["cost"] === "number" ? row["cost"] : 0),
@@ -290,13 +276,14 @@ const workers = async (): Promise<Finding[]> => {
 
 export const doctor = async (): Promise<number> => {
   const plugged = projects()
+  const rows = readEvents()
   const findings = [
     permissions("state", stateHome(), 0o700),
     permissions("plugged file", pluggedFile(), 0o600),
     permissions("worker file", workerFile(), 0o600),
     log(),
-    ...denied(),
-    ...spent(),
+    ...denied(rows),
+    ...spent(rows),
     ...(await workers()),
     ...(plugged.length > 0 ? plugged : [NOTHING_PLUGGED]),
   ]

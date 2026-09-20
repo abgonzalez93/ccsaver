@@ -1,6 +1,6 @@
-import { appendFileSync, chmodSync, existsSync, mkdirSync, renameSync } from "node:fs"
+import { appendFileSync, chmodSync, existsSync, mkdirSync, readFileSync, renameSync } from "node:fs"
 import { join } from "node:path"
-import { Refusal, stateHome, storedKey } from "./state.ts"
+import { attempt, isRecord, parsed, Refusal, stateHome, storedKey } from "./state.ts"
 
 const LOG_VERSION = 1
 const LOG_LINE_BYTES = 4000
@@ -34,6 +34,12 @@ export const record = (kind: string, fields: Record<string, unknown>, session?: 
     // the folder is the switch: without it the append fails and nothing else changes
   }
 }
+
+export const readEvents = (): Record<PropertyKey, unknown>[] =>
+  (attempt(() => readFileSync(logFile(), "utf8")) ?? "").split("\n").flatMap((line) => {
+    const row = parsed(line)
+    return isRecord(row) ? [row] : []
+  })
 
 export const crashed = (where: string, error: unknown): void => {
   record(
