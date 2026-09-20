@@ -1,4 +1,4 @@
-export interface Cited {
+interface Cited {
   label: string
   lines: string[]
 }

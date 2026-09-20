@@ -4,6 +4,17 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.9.7 - 2026-09-20
+
+refactor: one line counter for the hook and the survey, not one each
+
+- linesIn was the same six lines in src/hook.ts and src/survey.ts, byte for byte, with LINE_BREAK beside it twice
+- it lives in src/config.ts now, next to BYTES_PER_TOKEN and the limits it serves, which both files already import: no fourth module on the path of every Read, whose import list test/conventions.test.ts pins
+- tokensIn joins it, so the bytes/4 estimate is written once instead of in the hook and inline in the survey
+- the hook is unmoved: 52-53 ms against 52-55 ms, three rounds of 30 runs per arm, process spawn included
+- the chars/4 of src/transport.ts stays where it is: it weighs a message, not a file, and docs/configuration.md tells the two apart on purpose
+- Cited and Survey stop being exported: no file outside their own imports either
+
 ## 0.9.6 - 2026-09-20
 
 fix: ccsaver adapter refuses a pair it would otherwise cut in half

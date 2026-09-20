@@ -6,14 +6,15 @@ import {
   BYTES_PER_TOKEN,
   DEFAULT_LIMITS,
   type Limits,
+  linesIn,
   loadAdapter,
   pluggedRootOf,
+  tokensIn,
 } from "./config.ts"
 import { crashed, logDir, record } from "./log.ts"
 import { attempt, isRecord, isUnder, real } from "./state.ts"
 
 const NUL = 0
-const LINE_BREAK = 10
 const HEAD_BYTES = 8192
 const IDS = ["tool_use_id", "agent_id", "agent_type", "permission_mode"]
 
@@ -21,13 +22,6 @@ interface Measured {
   lines?: number
   bytes: number
   blind?: "binary" | "unreadable"
-}
-
-const linesIn = (bytes: Buffer): number => {
-  let lines = bytes.length > 0 && bytes.at(-1) !== LINE_BREAK ? 1 : 0
-  for (let at = bytes.indexOf(LINE_BREAK); at !== -1; at = bytes.indexOf(LINE_BREAK, at + 1))
-    lines += 1
-  return lines
 }
 
 const headOf = (path: string): Buffer | undefined => {
@@ -77,8 +71,6 @@ const deny = (reason: string): void => {
     }),
   )
 }
-
-const tokensIn = (bytes: number): number => Math.round(bytes / BYTES_PER_TOKEN)
 
 const reasonOf = (measured: Measured, ranged: boolean, limits: Limits): string => {
   if (ranged) return "range"

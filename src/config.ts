@@ -47,6 +47,17 @@ export const DEFAULT_LIMITS = { maxLines: 350, maxTokens: 8000 } as const
 
 export const BYTES_PER_TOKEN = 4
 
+const LINE_BREAK = 10
+
+export const tokensIn = (bytes: number): number => Math.round(bytes / BYTES_PER_TOKEN)
+
+export const linesIn = (bytes: Buffer): number => {
+  let lines = bytes.length > 0 && bytes.at(-1) !== LINE_BREAK ? 1 : 0
+  for (let at = bytes.indexOf(LINE_BREAK); at !== -1; at = bytes.indexOf(LINE_BREAK, at + 1))
+    lines += 1
+  return lines
+}
+
 const ADAPTER_KEYS = ["rules", "format", "after", "maxLines", "maxTokens"]
 const ADAPTER_NAME = /^[a-z0-9][a-z0-9-]*$/
 const LINE_BREAKERS = /[\t\n\r]/

@@ -1,6 +1,6 @@
 import { closeSync, openSync, readdirSync, readFileSync, readSync, statSync } from "node:fs"
 import { basename, join } from "node:path"
-import { BYTES_PER_TOKEN, DEFAULT_LIMITS, type Limits } from "./config.ts"
+import { DEFAULT_LIMITS, type Limits, linesIn, tokensIn } from "./config.ts"
 import { attempt } from "./state.ts"
 
 const PRUNED = [
@@ -22,13 +22,12 @@ const READ_CAP = 4000
 const CEILING_BYTES = 1_000_000
 const HEAD_BYTES = 8192
 const NUL = 0
-const LINE_BREAK = 10
 const SHARE = 0.95
 const IN_TWENTY = 20
 const LINE_STEP = 50
 const TOKEN_STEP = 1000
 
-export interface Survey {
+interface Survey {
   walked: number
   counted: number
   typical: Limits
@@ -43,13 +42,6 @@ const filesUnder = (dir: string, found: string[]): string[] => {
     } else if (entry.isFile()) found.push(path)
   }
   return found
-}
-
-const linesIn = (bytes: Buffer): number => {
-  let lines = bytes.length > 0 && bytes.at(-1) !== LINE_BREAK ? 1 : 0
-  for (let at = bytes.indexOf(LINE_BREAK); at !== -1; at = bytes.indexOf(LINE_BREAK, at + 1))
-    lines += 1
-  return lines
 }
 
 const isText = (path: string): boolean => {
@@ -67,7 +59,7 @@ const measure = (path: string): Limits | undefined => {
   const bytes = attempt(() => readFileSync(path))
   return bytes === undefined
     ? undefined
-    : { maxLines: linesIn(bytes), maxTokens: Math.round(bytes.length / BYTES_PER_TOKEN) }
+    : { maxLines: linesIn(bytes), maxTokens: tokensIn(bytes.length) }
 }
 
 const strided = (files: string[]): string[] => {
