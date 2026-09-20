@@ -4,6 +4,15 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.20.9 - 2026-09-20
+
+fix: doctor passes a state file stricter than 600 and a folder stricter than 700
+
+- `permissions` asked for the exact mode, so a key set to 400, which every writer of the state folder works with because each one writes a `.new` and renames it, was a `FAIL` that told the user to loosen it
+- the check now asks what matters: no bit for group or others, and the owner keeps the read bit, or read and search for a folder; a file at 000 still fails, because its owner cannot read it either, and the `ok` line shows the mode it found
+- the log keeps its exact check, because the hook appends to its files and 400 would lose events in silence
+- docs/configuration.md says so under doctor
+
 ## 0.20.8 - 2026-09-20
 
 fix: a file too big to read in one call is named as that before it is opened, not as missing

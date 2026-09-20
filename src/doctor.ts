@@ -89,13 +89,20 @@ const offer = (fixes: Fix[]): void => {
 
 const NOTHING_PLUGGED: Finding = { level: "warn", text: "plugged: nothing" }
 
+const OTHERS = 0o077
+
 const modeOf = (path: string): number | undefined => attempt(() => statSync(path).mode & 0o777)
+
+const isPrivate = (mode: number, expected: number): boolean => {
+  const owner = expected & 0o500
+  return (mode & OTHERS) === 0 && (mode & owner) === owner
+}
 
 const permissions = (label: string, path: string, expected: number): Finding => {
   const mode = modeOf(path)
   if (mode === undefined) return { level: "warn", text: `${label}: ${path} does not exist yet` }
-  return mode === expected
-    ? { level: "ok", text: `${label}: ${path} (${expected.toString(8)})` }
+  return isPrivate(mode, expected)
+    ? { level: "ok", text: `${label}: ${path} (${mode.toString(8)})` }
     : {
         level: "FAIL",
         text: `${label}: ${path} is ${mode.toString(8)}, expected ${expected.toString(8)}`,
