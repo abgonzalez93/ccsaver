@@ -42,6 +42,8 @@ const HOUSE_RULES = " House rules, they win over the reference: "
 const CONTROL = /\p{Cc}/gu
 const FORMAT_TIMEOUT_MS = 60_000
 const FORMAT_FLOOR_MS = 1_000
+const FORMAT_MAX_BYTES = 1024 * 1024
+const FORMAT_SAID_CHARS = 400
 const BASH_BUDGET_MS = 115_000
 
 export const isMode = (value: string | undefined): value is Mode =>
@@ -91,11 +93,16 @@ const blocksOf = (files: string[], numbered: boolean, root: string): Sent[] => {
   return sent.filter((file, at) => sent.findIndex(({ path }) => path === file.path) === at)
 }
 
+const saidOn = (stderr: string): string => {
+  const said = stderr.trim().slice(0, FORMAT_SAID_CHARS)
+  return said === "" ? "" : `: ${said}`
+}
+
 const format = (adapter: Adapter, root: string, target: string): void => {
   const [command, ...args] = adapter.format ?? []
   if (command === undefined) return
   const bin = command.includes("/") ? resolve(root, command) : command
-  if (bin !== command && !isUnder(bin, root)) {
+  if (command.includes("/") && !isUnder(bin, root)) {
     delegation.format = "outside"
     note(`the formatter ${command} is outside ${root}, ${target} is unformatted`)
     return
@@ -103,6 +110,8 @@ const format = (adapter: Adapter, root: string, target: string): void => {
   const left = BASH_BUDGET_MS - Math.round(performance.now())
   const run = spawnSync(bin, [...args, target], {
     cwd: root,
+    encoding: "utf8",
+    maxBuffer: FORMAT_MAX_BYTES,
     timeout: Math.max(FORMAT_FLOOR_MS, Math.min(FORMAT_TIMEOUT_MS, left)),
   })
   delegation.format = run.error
@@ -113,7 +122,7 @@ const format = (adapter: Adapter, root: string, target: string): void => {
   if (run.error)
     note(`the formatter could not run (${run.error.message}), ${target} is unformatted`)
   else if (run.status !== 0)
-    note(`the formatter exited ${run.status ?? run.signal}, check ${target}`)
+    note(`the formatter exited ${run.status ?? run.signal}${saidOn(run.stderr)}, check ${target}`)
 }
 
 const targetIn = (root: string, given: string): string => {

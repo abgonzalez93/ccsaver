@@ -4,6 +4,15 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.20.6 - 2026-09-20
+
+fix: a formatter named by an absolute path outside the project is not run, and one that fails says what it printed
+
+- `bin !== command && !isUnder(bin, root)` only refused a relative path that climbed out with `..`: for an absolute one `resolve(root, abs)` is `abs`, the first term was false and the formatter ran wherever it pointed (reproduced, it wrote outside the project); now any command with a `/` in it runs only from inside the plugged root, and a bare name is looked up on the PATH as before
+- the formatter's stderr was thrown away and the line said `exited 2, check <target>` with no reason; it now carries the first 400 characters of what the formatter wrote, the way `invokeClaude` already names the fallback's
+- the spawn carries an explicit `maxBuffer` of 1 MB, as 4.2 asks of every spawn
+- docs/configuration.md states the three rules for `format`
+
 ## 0.20.5 - 2026-09-20
 
 fix: scrubbed escapes the invisible characters that reorder or hide text, not only the control ones

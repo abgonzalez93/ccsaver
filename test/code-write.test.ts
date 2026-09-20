@@ -65,7 +65,7 @@ before(async () => {
     writeFileSync(join(dir, "source.ts"), "export const a = 1\nexport const b = 2\n")
   writeFileSync(
     join(tools, "fmt.sh"),
-    '#!/bin/sh\n[ -z "$FMT_RM" ] || exec rm "$1"\nprintf "export const formatted = 1\\n" >> "$1"\nexit $FMT_EXIT\n',
+    '#!/bin/sh\n[ -z "$FMT_RM" ] || exec rm "$1"\n[ -z "$FMT_SAY" ] || echo "$FMT_SAY" >&2\nprintf "export const formatted = 1\\n" >> "$1"\nexit $FMT_EXIT\n',
   )
   chmodSync(join(tools, "fmt.sh"), 0o755)
   writeFileSync(
@@ -135,12 +135,17 @@ test("says so when the formatter of the adapter cannot run", async () => {
   assert.equal(readFileSync(target, "utf8"), "export const f = 6\n")
 })
 
-test("says so when the formatter exits with an error, and quotes a target that needs it", async () => {
+test("says so when the formatter exits with an error, with what it printed, and quotes a target that needs it", async () => {
   server.reply.content = "export const g = 7\n"
   const target = join(FORMATTED, "with space.ts")
-  const out = await codeWrite(FORMATTED, target, { FMT_EXIT: "3" })
+  const out = await codeWrite(FORMATTED, target, {
+    FMT_EXIT: "3",
+    FMT_SAY: "line 1: not formatted",
+  })
   assert.equal(out.code, 0)
-  assert.match(out.stderr, /the formatter exited 3/)
+  assert.match(out.stderr, /the formatter exited 3: line 1: not formatted, check .*with space\.ts/)
+  const quiet = await codeWrite(FORMATTED, join(FORMATTED, "quiet.ts"), { FMT_EXIT: "3" })
+  assert.match(quiet.stderr, /the formatter exited 3, check /)
   assert.ok(out.stdout.includes(`next: check '${target}'\n`), out.stdout)
 })
 
@@ -161,6 +166,22 @@ test("a formatter that climbs out of the project is not run", async () => {
     /the formatter \.\.\/outside-fmt\.sh is outside .*escapes, .*made\.ts is unformatted/,
   )
   assert.equal(readFileSync(target, "utf8"), "export const i = 9\n")
+  assert.equal(existsSync(ran), false)
+  const absolute = join(WORK, "absolute")
+  mkdirSync(absolute, { recursive: true })
+  writeFileSync(join(absolute, "source.ts"), "export const a = 1\n")
+  writeFileSync(
+    join(HOME, "adapters", "absolute.json"),
+    JSON.stringify({ format: [join(WORK, "outside-fmt.sh")] }),
+  )
+  await cli(["plug", absolute, "absolute"])
+  server.reply.content = "export const j = 10\n"
+  const far = await codeWrite(absolute, join(absolute, "made.ts"))
+  assert.equal(far.code, 0)
+  assert.match(
+    far.stderr,
+    /the formatter \/\S+outside-fmt\.sh is outside .*absolute, .*made\.ts is unformatted/,
+  )
   assert.equal(existsSync(ran), false)
 })
 
