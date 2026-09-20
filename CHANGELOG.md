@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.19.4 - 2026-09-20
+
+fix: a prices.json that is not an object stops the command
+
+- an array, a number, a string, a null or a truncated file read as "no price at all", and ccsaver price then wrote a fresh file over whatever the broken one held
+- it is rule 3.4 of CONTRIBUTING, the one writeLimits and readWorker already keep: absent means defaults, present and malformed stops the call
+- docs/configuration.md already promised this; the code is what was wrong
+
 ## 0.19.3 - 2026-09-20
 
 test: three test files split by responsibility before they hit the gate

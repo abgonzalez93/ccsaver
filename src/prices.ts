@@ -45,7 +45,11 @@ export const readPrices = (): Prices => {
     throw new Refusal(`${pricesFile()} cannot be read: check its owner and its mode`)
   }
   const raw = parsed(text)
-  const { models, worker, main } = isRecord(raw) ? raw : {}
+  if (!isRecord(raw) || Array.isArray(raw))
+    throw new Refusal(
+      `${pricesFile()} is malformed: it holds one object, with models and worker inside it`,
+    )
+  const { models, worker, main } = raw
   if (main !== undefined)
     throw new Refusal(
       `${pricesFile()} carries one main price for every model, which a month that changed model reads wrong: delete it and set one price per model, ccsaver price <model> <usd>`,

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { chmodSync, rmSync, statSync, writeFileSync } from "node:fs"
+import { chmodSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { after, test } from "node:test"
 import { CLI, logHome, type Ran, run, tempDir, twentyDenials, writeHome } from "./helpers.ts"
@@ -106,4 +106,22 @@ test("the old single main price is refused, never read as the rate for every mod
   assert.equal(out.code, 1)
   assert.match(out.stderr, /carries one main price for every model/)
   assert.match(out.stderr, /ccsaver price <model> <usd>/)
+})
+
+test("a prices.json that is not an object stops the command, never reads as no price", async () => {
+  const home = homeWith("shapeless", [twentyDenials()])
+  await priced(home, [OPUS, "3"])
+  const file = join(home, "prices.json")
+  const kept = readFileSync(file, "utf8")
+  for (const broken of ["[]", "5", '"hi"', "null", '{"models": {"claude-opus-5": 3}']) {
+    writeFileSync(file, broken)
+    const out = await saved(home)
+    assert.deepEqual([out.code, out.stdout], [1, ""], broken)
+    assert.match(out.stderr, /prices\.json is malformed/, broken)
+    const price = await priced(home, [OPUS, "4"])
+    assert.equal(price.code, 1, broken)
+    assert.equal(readFileSync(file, "utf8"), broken, broken)
+  }
+  writeFileSync(file, kept)
+  assert.equal((await saved(home)).code, 0)
 })
