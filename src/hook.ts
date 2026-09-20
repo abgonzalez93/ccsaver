@@ -4,10 +4,10 @@ import { relative } from "node:path"
 import {
   type Adapter,
   BYTES_PER_TOKEN,
-  DEFAULT_LIMITS,
   headOf,
   isBinary,
   type Limits,
+  limitsFrom,
   linesIn,
   loadAdapter,
   pluggedRootOf,
@@ -86,13 +86,7 @@ const rangeOf = (offset: unknown, limit: unknown): Record<string, unknown> => ({
   ...(typeof limit === "number" ? { limit } : {}),
 })
 
-const limitsOf = (name: string | undefined): Limits => {
-  const adapter = adapterOrDefaults(name)
-  return {
-    maxLines: adapter.maxLines ?? DEFAULT_LIMITS.maxLines,
-    maxTokens: adapter.maxTokens ?? DEFAULT_LIMITS.maxTokens,
-  }
-}
+const limitsOf = (name: string | undefined): Limits => limitsFrom(adapterOrDefaults(name))
 const gate = (root: string, adapterName: string | undefined): void => {
   const input: unknown = JSON.parse(readFileSync(0, "utf8"))
   const call = isRecord(input) ? input : {}
