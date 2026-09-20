@@ -4,6 +4,13 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.19.2 - 2026-09-20
+
+fix: the saved report reaches the terminal painted, and never draws half a comparison
+
+- say() scrubbed the whole line before writing it, so the colour the band paints itself with arrived as the six characters \x1b[31m: the report is now written the way doctor writes its findings, scrubbed at its one untrusted source and painted outside the scrub. Measured through a pty: ^[[32m now against \x1b[32m before, and a control character in worker.json's model still comes out as \x1b
+- a month whose every denial sits under a model with no price drew without at $0.00 against a with that had one, which reads as a loss and is only a missing rate: it now says there is no without side to draw, and names the tokens it left out
+
 ## 0.19.1 - 2026-09-20
 
 fix: a losing band reads low to high, not backwards

@@ -140,7 +140,7 @@ const COMMANDS: Record<string, Command> = {
   },
   saved: ([first]) => {
     if (first !== undefined && first !== "all" && !MONTH.test(first)) return undefined
-    say(report(first))
+    process.stdout.write(report(first))
     return 0
   },
   price: ([first, second]) => {

@@ -176,6 +176,40 @@ test("a saving that is not one prints negative, with no percentage beside it", a
   assert.doesNotMatch(out.stdout, /%/)
 })
 
+test("a month whose denials carry no price draws no bars, and says which side is missing", async () => {
+  const home = homeWith("no-without", [
+    [
+      { ...denial(40_000), model: "" },
+      ...Array.from({ length: 5 }, () =>
+        gate({ reason: "range", bytes: 40_000, lines: 1_000, offset: 1, limit: 1_000 }),
+      ),
+    ],
+  ])
+  await priced(home, [OPUS, "3"])
+  const out = await saved(home)
+  assert.equal(out.code, 0)
+  assert.match(
+    out.stdout,
+    /no denied read here carries a price, so there is no without side to draw/,
+  )
+  assert.match(out.stdout, /denied tokens are under no model the log names/)
+  assert.doesNotMatch(out.stdout, /^ {2}without {4}\$/m)
+})
+
+test("the report paints itself, so a worker model is escaped before it is painted", async () => {
+  const home = homeWith("painted", [[denial(40_000)]])
+  await priced(home, [OPUS, "3"])
+  writeFileSync(
+    join(home, "worker.json"),
+    JSON.stringify({ url: "https://h/v1/chat/completions", model: "gemma\u001b[2J" }),
+    { mode: 0o600 },
+  )
+  await priced(home, ["worker", "0"])
+  const out = await saved(home)
+  assert.match(out.stdout, /the worker \(gemma\\x1b\[2J\) is free/)
+  assert.equal(out.stdout.includes("\u001b"), false)
+})
+
 test("a band reads low to high even when both of its arms are a loss", async () => {
   const home = homeWith("backwards", [
     [

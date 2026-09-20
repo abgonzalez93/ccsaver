@@ -242,10 +242,16 @@ const unpricedIn = (tally: Spend, prices: Prices): string[] =>
 
 const bodyOf = (tally: Spend, prices: Prices, money: Money | undefined): string[] => {
   const unpriced = unpricedIn(tally, prices)
-  if (money !== undefined) return [...moneyIn(money), ...unpriced]
-  return unpriced.length === 0
-    ? ["  nothing was denied and nothing was read by ranges here, so there is nothing to compare"]
-    : ["  no model here has a price, so this is tokens only:", ...unpriced]
+  if (money === undefined)
+    return unpriced.length === 0
+      ? ["  nothing was denied and nothing was read by ranges here, so there is nothing to compare"]
+      : ["  no model here has a price, so this is tokens only:", ...unpriced]
+  if (money.without.high === 0)
+    return [
+      "  no denied read here carries a price, so there is no without side to draw",
+      ...unpriced,
+    ]
+  return [...moneyIn(money), ...unpriced]
 }
 
 const rateIn = (tally: Spend, prices: Prices): string => {

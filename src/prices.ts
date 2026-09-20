@@ -6,6 +6,7 @@ import {
   parsed,
   pricesFile,
   Refusal,
+  scrubbed,
   workerFile,
   writePrivate,
 } from "./state.ts"
@@ -68,7 +69,7 @@ export const writePrice = (which: string, usd: number): Prices => {
 export const workerNamed = (): string => {
   const raw = parsed(attempt(() => readFileSync(workerFile(), "utf8")) ?? "")
   const model = isRecord(raw) ? raw["model"] : undefined
-  return typeof model === "string" && model !== "" ? `${WORKER} (${model})` : WORKER
+  return typeof model === "string" && model !== "" ? `${WORKER} (${scrubbed(model)})` : WORKER
 }
 
 const GAP = 3
