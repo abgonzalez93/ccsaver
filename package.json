@@ -1,6 +1,6 @@
 {
   "name": "ccsaver",
-  "version": "0.9.17",
+  "version": "0.9.18",
   "private": true,
   "description": "Claude Code plugin that keeps whole-file reads and boilerplate writing out of the expensive model's context by delegating them to a cheap one-shot worker, only in the projects you plug in.",
   "license": "Apache-2.0",

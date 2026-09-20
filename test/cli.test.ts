@@ -275,6 +275,22 @@ test("a key in the worker url never reaches the terminal, and one in userinfo is
   assert.match(inside.stderr, /^Error: the worker url must carry no user name or password/)
   await ccsaver(["worker", "set", server.url, "cheap-1"])
 })
+test("the settings that live in worker.json all name the command that creates it", async () => {
+  const home = tempDir("cli-no-worker")
+  for (const args of [
+    ["fallback", "on"],
+    ["fallback", "off"],
+    ["worker", "claude", "auto"],
+  ]) {
+    const out = await run(LAUNCHER, args, { CCSAVER_HOME: home })
+    const where = args.join(" ")
+    assert.deepEqual([out.code, out.stdout], [1, ""], where)
+    assert.match(out.stderr, /, run: ccsaver worker set <url> <model>\n$/, where)
+  }
+  assert.equal(existsSync(join(home, "worker.json")), false)
+  rmSync(home, { recursive: true, force: true })
+})
+
 test("worker claude pins the fallback binary, and auto gives it back to the session", async () => {
   const file = join(HOME, "worker.json")
   assert.equal((await ccsaver(["worker", "claude", FAKE])).stdout, `fallback binary: ${FAKE}\n`)

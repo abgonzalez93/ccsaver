@@ -4,6 +4,17 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.9.18 - 2026-09-20
+
+fix: both settings that live in worker.json name the command that creates it
+
+- `ccsaver fallback on|off` without a worker said only why it refused; it now ends in `run: ccsaver worker set <url> <model>`, which its sibling already did
+- `ccsaver worker claude` keeps its own cause, `worker.json is not there yet`, so the two are parallel without pretending to share a reason they do not
+- both adopt the `, run: <command>` tail doctor already uses for `key: missing, run: ccsaver key set`
+- a new test walks the three ways in and fails if either sibling drops the command
+- test/state.test.ts matched the old wording and now matches the command, which is the part worth pinning
+- docs/configuration.md says all three name it
+
 ## 0.9.17 - 2026-09-20
 
 fix: a bad limit pair names itself instead of repeating the usage

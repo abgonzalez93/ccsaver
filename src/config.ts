@@ -248,7 +248,9 @@ export const writeWorker = (url: string, model: string): string | undefined => {
 export const setFallback = (on: boolean): void => {
   const worker = readWorker()
   if (worker === undefined)
-    throw new Refusal("set a worker first: without one the fallback is the only worker")
+    throw new Refusal(
+      "the fallback is the only worker until you set one, run: ccsaver worker set <url> <model>",
+    )
   storeWorker({ ...worker, fallback: on })
   record("config", { action: "fallback", on })
 }
@@ -256,7 +258,7 @@ export const setFallback = (on: boolean): void => {
 export const setClaude = (path: string | undefined): string | undefined => {
   const worker = readWorker()
   if (worker === undefined)
-    throw new Refusal("set a worker first: ccsaver worker set <url> <model>")
+    throw new Refusal("worker.json is not there yet, run: ccsaver worker set <url> <model>")
   const claude = path === undefined ? undefined : resolve(path)
   if (claude !== undefined && attempt(() => statSync(claude).isFile()) !== true)
     throw new Refusal(`not a file: ${path}`)

@@ -171,8 +171,8 @@ test("the fallback switch is stored, survives a new worker and needs a worker ei
   setFallback(true)
   assert.equal(readWorker()?.fallback, true)
   rmSync(join(HOME, "worker.json"))
-  assert.throws(() => setFallback(true), /set a worker first/)
-  assert.throws(() => setFallback(false), /set a worker first/)
+  assert.throws(() => setFallback(true), /run: ccsaver worker set <url> <model>$/)
+  assert.throws(() => setFallback(false), /run: ccsaver worker set <url> <model>$/)
   assert.equal(readWorker(), undefined)
 })
 
