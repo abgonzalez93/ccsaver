@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { readFileSync } from "node:fs"
+import { existsSync, readFileSync, statSync } from "node:fs"
 import { join } from "node:path"
 import { test } from "node:test"
 import { isRecord } from "../src/state.ts"
@@ -20,6 +20,39 @@ test("one version: both manifests carry it and the changelog opens with it", () 
   assert.equal(plugin, mine)
   const [, first] = /^## (\S+)/m.exec(readFileSync(join(REPO, "CHANGELOG.md"), "utf8")) ?? []
   assert.equal(first, mine)
+})
+
+const PLUGIN_ROOT = /^"\$\{CLAUDE_PLUGIN_ROOT\}"\/(\S+)$/
+const RUNNABLE = ["bin/ccsaver", ".githooks/post-commit", ".githooks/post-applypatch"]
+
+const jsonOf = (file: string): Record<PropertyKey, unknown> => {
+  const raw: unknown = JSON.parse(readFileSync(join(REPO, file), "utf8"))
+  assert.ok(isRecord(raw), file)
+  return raw
+}
+
+const commandsIn = (value: unknown): string[] => {
+  if (Array.isArray(value)) return value.flatMap(commandsIn)
+  if (!isRecord(value)) return []
+  return Object.entries(value).flatMap(([key, held]) =>
+    key === "command" && typeof held === "string" ? [held] : commandsIn(held),
+  )
+}
+
+test("the plugin's own files name each other, and what they point at can run", () => {
+  const plugin = jsonOf(join(".claude-plugin", "plugin.json"))
+  const market = jsonOf(join(".claude-plugin", "marketplace.json"))
+  const listed: unknown = Array.isArray(market["plugins"]) ? market["plugins"][0] : undefined
+  assert.equal(isRecord(listed) ? listed["name"] : undefined, plugin["name"])
+  const commands = commandsIn(jsonOf(join("hooks", "hooks.json")))
+  assert.equal(commands.length, 1)
+  const hooked = commands.flatMap((command) => PLUGIN_ROOT.exec(command)?.[1] ?? [])
+  assert.equal(hooked.length, commands.length)
+  for (const file of [...RUNNABLE, ...hooked]) {
+    const path = join(REPO, file)
+    assert.ok(existsSync(path), path)
+    assert.ok((statSync(path).mode & 0o100) !== 0, `${file} is not executable`)
+  }
 })
 
 test("code-writer tells Claude what a warn: line asks for", () => {

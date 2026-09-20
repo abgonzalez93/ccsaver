@@ -226,6 +226,33 @@ test("a delegation leaves metadata: no key, no question, no file content, no ans
   assert.match(text, /\| external \| \[key\] \|/)
 })
 
+test("doctor counts the month's denied reads and leaves its own probe out of them", async () => {
+  const fresh = tempDir("events-denied")
+  mkdirSync(join(fresh, "log"), { recursive: true, mode: 0o700 })
+  chmodSync(join(fresh, "log"), 0o700)
+  writeHome(fresh, { plugged: [[PROJECT]] })
+  const home = { CCSAVER_HOME: fresh, CLAUDE_PROJECT_DIR: PROJECT, CLAUDE_CODE_SESSION_ID: "" }
+  const seen = (input: unknown): Promise<Ran> => run("node", [HOOK], home, JSON.stringify(input))
+  await seen(WHOLE)
+  await seen(WHOLE)
+  await seen({ tool_input: { file_path: SOURCE } })
+  await seen({ tool_input: { file_path: LONG, offset: 10 } })
+  const out = await run(LAUNCHER, ["doctor"], { CCSAVER_HOME: fresh, CLAUDE_CODE_EXECPATH: FAKE })
+  assert.match(
+    out.stdout,
+    /^ok {3}denied: 2 of 3 whole-file reads this month \(67 %\), median 351 lines$/m,
+  )
+  rmSync(fresh, { recursive: true, force: true })
+})
+
+test("doctor says nothing about denied reads while the log is off", async () => {
+  const quiet = tempDir("events-quiet")
+  writeHome(quiet, { plugged: [[PROJECT]] })
+  const out = await run(LAUNCHER, ["doctor"], { CCSAVER_HOME: quiet, CLAUDE_CODE_EXECPATH: FAKE })
+  assert.doesNotMatch(out.stdout, /denied:/)
+  rmSync(quiet, { recursive: true, force: true })
+})
+
 test("doctor says whether the log is on, records its tally and marks its own probe", async () => {
   const out = await ccsaver(["doctor"])
   assert.match(out.stdout, /ok {3}log: on · \S+log \(700\) · \d+ bytes this month/)
