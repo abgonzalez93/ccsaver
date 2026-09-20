@@ -1,5 +1,6 @@
 import assert from "node:assert/strict"
 import {
+  chmodSync,
   mkdirSync,
   readdirSync,
   readFileSync,
@@ -22,6 +23,8 @@ import {
 } from "../src/config.ts"
 import { isEncrypted } from "../src/state.ts"
 import { tempDir } from "./helpers.ts"
+
+const AS_ROOT = process.getuid?.() === 0
 
 const WORK = tempDir("state-work")
 const HOME = join(WORK, "holds-state", "ccsaver")
@@ -195,5 +198,19 @@ test("a worker.json that is there but wrong is an error, never the same as no wo
   }
   writeFileSync(file, JSON.stringify({ url: "https://a.invalid", model: "a", claude: "" }))
   assert.deepEqual(readWorker(), { url: "https://a.invalid", model: "a" })
+  rmSync(file)
+})
+
+test("a worker.json that cannot be read stops the call, never reads as no worker", {
+  skip: AS_ROOT,
+}, () => {
+  const file = join(HOME, "worker.json")
+  const stored = { url: "https://a.invalid", model: "a", fallback: false }
+  writeFileSync(file, JSON.stringify(stored))
+  chmodSync(file, 0o000)
+  assert.throws(readWorker, /worker\.json cannot be read: check its owner and its mode/)
+  assert.throws(() => setFallback(true), /cannot be read/)
+  chmodSync(file, 0o600)
+  assert.deepEqual(readWorker(), stored)
   rmSync(file)
 })

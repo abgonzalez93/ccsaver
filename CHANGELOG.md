@@ -4,6 +4,17 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.10.4 - 2026-09-20
+
+fix: a worker.json that cannot be read stops the call instead of paying
+
+- 3.4 fixed the malformed case and left the unreadable one: `attempt` returns undefined for ENOENT and for EACCES alike, so a worker.json with the wrong owner or the wrong mode read as "no worker"
+- which turned `fallback off` back on without a word, the exact failure SECURITY.md lists under What counts, and made `ccsaver worker claude` answer "worker.json is not there yet" about a file that is there
+- `readWorker` now asks `existsSync` before it reports no worker, and otherwise refuses by name; doctor already routes that Refusal into a FAIL line
+- the key has told these two apart since `keyIsStored`; worker.json now does the same
+- readPlugged keeps conflating them on purpose: there the same hole fails closed, which is the direction 3.6 asks for
+- the test skips under root, where chmod 000 does not deny a read
+
 ## 0.10.3 - 2026-09-20
 
 fix: what the worker answers cannot repaint the terminal either

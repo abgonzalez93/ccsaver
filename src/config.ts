@@ -1,6 +1,7 @@
 import {
   chmodSync,
   closeSync,
+  existsSync,
   mkdirSync,
   openSync,
   readFileSync,
@@ -207,7 +208,12 @@ export const unplug = (dir: string): boolean => {
 
 export const readWorker = (): Worker | undefined => {
   const text = attempt(() => readFileSync(workerFile(), "utf8"))
-  if (text === undefined) return undefined
+  if (text === undefined) {
+    if (!existsSync(workerFile())) return undefined
+    throw new Refusal(
+      `${workerFile()} cannot be read: check its owner and its mode, nothing was sent`,
+    )
+  }
   const raw = parsed(text)
   const { url, model, claude, fallback } = isRecord(raw) ? raw : {}
   if (

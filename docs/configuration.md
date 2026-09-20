@@ -29,7 +29,7 @@ Without a worker, or whenever it fails, times out (30 s: the slowest real call m
 
 Every fall to the paid worker says why on stderr first, a worker that has no key stored included. A key that is there but cannot be read (wrong owner, wrong mode) is named as that, never reported as no key at all. A fallback that runs out of its 85 s says so instead of printing `spawnSync claude ETIMEDOUT`. When the fallback itself reports an error, the command fails with that error instead of handing it over as an answer.
 
-`worker.json` needs no editing by hand. If it is there but malformed (a stray comma, `"fallback": "false"` in quotes), every call stops with a one-line error and nothing is sent: a typo is never read as "no worker", because that would quietly turn `fallback off` back on. `worker set` to a different host keeps the stored key and says so: run `ccsaver key set` again unless the key belongs to the new host, or the next call sends it there.
+`worker.json` needs no editing by hand. If it is there but malformed (a stray comma, `"fallback": "false"` in quotes), every call stops with a one-line error and nothing is sent: a typo is never read as "no worker", because that would quietly turn `fallback off` back on. One that is there but cannot be read (wrong owner, wrong mode) stops the call the same way and says so, for the same reason: reading it as no worker would turn `fallback off` back on just as quietly, and `doctor` would report a worker you had configured as one you never had. `worker set` to a different host keeps the stored key and says so: run `ccsaver key set` again unless the key belongs to the new host, or the next call sends it there.
 
 ## The key
 
