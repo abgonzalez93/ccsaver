@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, realpathSync, statSync } from "node:fs"
+import { chmodSync, mkdirSync, readFileSync, realpathSync, statSync } from "node:fs"
 import { homedir } from "node:os"
 import { basename, dirname, join, resolve } from "node:path"
 import { record } from "./log.ts"
@@ -120,6 +120,7 @@ export const writeLimits = (name: string, limits: Partial<Limits>): string => {
   const after: Adapter = { ...before, ...limits }
   const place = adapterPlace(name)
   mkdirSync(dirname(place), { recursive: true, mode: 0o700 })
+  chmodSync(dirname(place), 0o700)
   writePrivate(place, `${JSON.stringify(after, null, 2)}\n`)
   record("config", { action: "adapter limits", adapter: name, ...limits })
   return place

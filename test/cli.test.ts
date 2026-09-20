@@ -1,6 +1,14 @@
 import assert from "node:assert/strict"
 import { spawn, spawnSync } from "node:child_process"
-import { existsSync, mkdirSync, readFileSync, rmSync, statSync, symlinkSync } from "node:fs"
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+} from "node:fs"
 import { join } from "node:path"
 import { after, before, beforeEach, test } from "node:test"
 import { isRecord } from "../src/state.ts"
@@ -160,7 +168,11 @@ test("plug, list and unplug from the command line", async () => {
 test("adapter writes the limits, merges into an existing adapter and refuses junk", async () => {
   const home = tempDir("cli-adapter")
   const ccs = (args: string[]): Promise<Ran> => run(LAUNCHER, args, { CCSAVER_HOME: home })
+  const adapters = join(home, "adapters")
+  mkdirSync(adapters, { recursive: true, mode: 0o755 })
+  chmodSync(adapters, 0o755)
   assert.equal((await ccs(["adapter", "fresh", "maxLines=400"])).code, 0)
+  assert.equal(statSync(adapters).mode & 0o777, 0o700)
   assert.deepEqual(jsonOf(join(home, "adapters", "fresh.json")), { maxLines: 400 })
   assert.equal((await ccs(["adapter", "fresh", "maxTokens=12000"])).code, 0)
   assert.deepEqual(jsonOf(join(home, "adapters", "fresh.json")), {

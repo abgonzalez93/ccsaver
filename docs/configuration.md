@@ -124,7 +124,7 @@ To move them, put them in an adapter. `plug` and `doctor` end their line with th
 ccsaver adapter vellum maxLines=400 maxTokens=8000
 ```
 
-It writes `~/.config/ccsaver/adapters/<name>.json` at 600, creating the file or merging into what is already there, so an adapter that carries `rules` and `format` keeps them. It takes `maxLines` and `maxTokens` only, both positive integers; every other field is edited by hand. A project with no adapter gets a second command beside the first, `ccsaver plug <root> <name>`, because an adapter nothing points at changes nothing; the name is made from the folder, lowercased with everything an adapter name cannot hold turned into `-`, so `~/code/My_App` proposes `my-app`.
+It writes `~/.config/ccsaver/adapters/<name>.json` at 600, in a folder it puts back to 700 on every write because a hand that made it first leaves it readable by everyone, creating the file or merging into what is already there, so an adapter that carries `rules` and `format` keeps them. It takes `maxLines` and `maxTokens` only, both positive integers; every other field is edited by hand. A project with no adapter gets a second command beside the first, `ccsaver plug <root> <name>`, because an adapter nothing points at changes nothing; the name is made from the folder, lowercased with everything an adapter name cannot hold turned into `-`, so `~/code/My_App` proposes `my-app`.
 
 On a terminal you do not have to copy it: `doctor` offers to run it, one `warn` at a time.
 
