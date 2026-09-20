@@ -13,6 +13,7 @@ import {
 } from "./config.ts"
 import { logDir, logFile, type Rows, readEvents, record } from "./log.ts"
 import {
+  adaptersDir,
   attempt,
   inColour,
   isEncrypted,
@@ -20,6 +21,7 @@ import {
   keyIsStored,
   messageOf,
   pluggedFile,
+  pricesFile,
   readKey,
   scrubbed,
   stateHome,
@@ -106,6 +108,9 @@ const permissions = (label: string, path: string, expected: number): Finding => 
         text: `${label}: ${path} is ${mode.toString(8)}, expected ${expected.toString(8)}`,
       }
 }
+
+const optional = (label: string, path: string, expected: number): Finding[] =>
+  existsSync(path) ? [permissions(label, path, expected)] : []
 
 const probe = async (url: string, model: string, key: string): Promise<Finding> => {
   const started = performance.now()
@@ -305,6 +310,8 @@ export const doctor = async (): Promise<number> => {
     permissions("state", stateHome(), 0o700),
     permissions("plugged file", pluggedFile(), 0o600),
     permissions("worker file", workerFile(), 0o600),
+    ...optional("prices file", pricesFile(), 0o600),
+    ...optional("adapters", adaptersDir(), 0o700),
     log(),
     ...unread,
     ...denied(rows),

@@ -57,8 +57,9 @@ const ask = (...paths: string[]): Promise<Ran> =>
 
 before(async () => {
   server = await startServer()
-  for (const dir of [join(PROJECT, "deep"), UNPLUGGED, BROKEN, join(HOME, "adapters")])
-    mkdirSync(dir, { recursive: true })
+  for (const dir of [join(PROJECT, "deep"), UNPLUGGED, BROKEN]) mkdirSync(dir, { recursive: true })
+  mkdirSync(join(HOME, "adapters"), { recursive: true, mode: 0o700 })
+  chmodSync(join(HOME, "adapters"), 0o700)
   writeFileSync(SOURCE, "export const CONTENT_SENTINEL = 1\n")
   writeFileSync(LONG, "x\n".repeat(351))
   writeFileSync(LONGER, "x\n".repeat(401))

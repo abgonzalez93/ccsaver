@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.13.0 - 2026-09-20
+
+feat: doctor checks prices.json and the adapters folder
+
+- the permission sweep covered the state folder, the key, plugged and worker.json, and stopped there, while the README lists prices.json and your own adapters/ as part of the same folder
+- both are optional, so they are checked once they exist and say nothing before: a warn on a file most people never create is noise
+- adapters is the one that matters, because a folder made by hand comes out world-readable and the adapters in it carry a project's house style; the events fixture was making one at 755, which is what caught it
+
 ## 0.12.8 - 2026-09-20
 
 fix: the denied line of doctor reports the middle of the whole sample

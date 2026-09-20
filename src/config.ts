@@ -10,9 +10,10 @@ import {
   statSync,
 } from "node:fs"
 import { homedir } from "node:os"
-import { basename, dirname, join, resolve } from "node:path"
+import { basename, join, resolve } from "node:path"
 import { record } from "./log.ts"
 import {
+  adaptersDir,
   attempt,
   isEncrypted,
   isRecord,
@@ -141,7 +142,7 @@ const adapterOf = (raw: unknown): Adapter | undefined => {
   }
 }
 
-const adapterPlace = (name: string): string => join(stateHome(), "adapters", `${name}.json`)
+const adapterPlace = (name: string): string => join(adaptersDir(), `${name}.json`)
 
 const adapterPlaces = (name: string): string[] => {
   if (!ADAPTER_NAME.test(name))
@@ -174,8 +175,8 @@ export const writeLimits = (name: string, limits: Partial<Limits>): string => {
   const before = findAdapter(name, adapterPlaces(name)) ?? {}
   const after: Adapter = { ...before, ...limits }
   const place = adapterPlace(name)
-  mkdirSync(dirname(place), { recursive: true, mode: 0o700 })
-  chmodSync(dirname(place), 0o700)
+  mkdirSync(adaptersDir(), { recursive: true, mode: 0o700 })
+  chmodSync(adaptersDir(), 0o700)
   writePrivate(place, `${JSON.stringify(after, null, 2)}\n`)
   record("config", { action: "adapter limits", adapter: name, ...limits })
   return place

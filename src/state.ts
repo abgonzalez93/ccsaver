@@ -67,6 +67,8 @@ export const workerFile = (): string => join(stateHome(), "worker.json")
 
 export const pricesFile = (): string => join(stateHome(), "prices.json")
 
+export const adaptersDir = (): string => join(stateHome(), "adapters")
+
 export const inColour = (): boolean =>
   process.stdout.isTTY === true && !process.env["NO_COLOR"] && process.env["TERM"] !== "dumb"
 
