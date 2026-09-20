@@ -4,6 +4,12 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.20.14 - 2026-09-20
+
+test: the too-big read is proved by its message, not by a clock
+
+- the test asserted that the call took under two seconds to show the file was never read; the `Error:` line already proves it, because the read branch says `file not found or unreadable` and the stat branch says `too big to read in one call`, and a clock on a loaded CI runner is the one thing 5.2 does not allow in a test
+
 ## 0.20.13 - 2026-09-20
 
 test: the helpers that five files copied live in helpers.ts
