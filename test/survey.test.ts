@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { mkdirSync, rmSync, writeFileSync } from "node:fs"
+import { mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { after, test } from "node:test"
 import { DEFAULT_LIMITS } from "../src/config.ts"
@@ -95,6 +95,16 @@ test("pruned folders and binary files are left out of the count", () => {
   const survey = surveyFor(root)
   assert.equal(survey.counted, 20)
   assert.ok(survey.walked > survey.counted)
+  assert.equal(overshoots(survey, DEFAULT_LIMITS), false)
+})
+
+test("a symlinked directory is never walked, so a loop cannot hang the measurement", () => {
+  const root = projectOf("linked", spread(20, () => 10))
+  const elsewhere = projectOf("linked-target", spread(30, () => 4000))
+  symlinkSync(elsewhere, join(root, "src", "vendored"))
+  symlinkSync(root, join(root, "src", "loop"))
+  const survey = surveyFor(root)
+  assert.equal(survey.counted, 20)
   assert.equal(overshoots(survey, DEFAULT_LIMITS), false)
 })
 
