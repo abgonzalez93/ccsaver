@@ -289,6 +289,8 @@ test("lines are counted the way Read numbers them, and bytes/4 rounds half up", 
   )
 })
 
-test("scrubbed escapes every control character but the line break and the tab", () => {
+test("scrubbed escapes every control character but the line break and the tab, and the invisible ones that reorder or hide text", () => {
   assert.equal(scrubbed("a\rb\u009bc\u0000d\ne\tf"), "a\\x0db\\x9bc\\x00d\ne\tf")
+  assert.equal(scrubbed("a‮b​c⁦d﻿e‍f"), "a\\u202eb\\u200bc\\u2066d\\ufeffe\\u200df")
+  assert.equal(scrubbed("café · naïve — ok"), "café · naïve — ok")
 })

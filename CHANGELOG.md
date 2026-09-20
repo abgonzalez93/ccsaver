@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.20.5 - 2026-09-20
+
+fix: scrubbed escapes the invisible characters that reorder or hide text, not only the control ones
+
+- `\p{Cc}` let a bidi override (U+202E) or a zero-width space (U+200B) through untouched: neither repaints a terminal, but either makes a worker answer, a path or a `next:` line read differently from what it holds, and the worker controls that text
+- the bidi controls, the zero-width characters, the word joiner and the byte-order mark are now written as `\u202E`, the way a control character is written as `\x1b`; an accent, an em dash or an emoji are left alone, which is why the set is named rather than the whole `\p{Cf}`
+- `state.ts` is on the hook's import list and gains no module
+
 ## 0.20.4 - 2026-09-20
 
 fix: the plug command that plug and doctor propose quotes a root with a space in it

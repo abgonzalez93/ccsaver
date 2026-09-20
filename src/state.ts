@@ -14,6 +14,7 @@ const SECRET_PLACE =
   /(^|\/)(\.?secrets?|\.ssh|\.aws|\.gnupg|\.kube|\.git)(\/|$)|(^|\/)\.docker\/config\.json$/i
 const LOCAL_HOSTS = ["127.0.0.1", "localhost", "[::1]"]
 const CARRIABLE = /^[\x20-\x7e]+$/
+const UNSEEN = /[\p{Cc}​-‏‪-‮⁠-⁤⁦-⁩﻿]/gu
 
 let secret: string | undefined
 let looked = false
@@ -29,12 +30,15 @@ export const attempt = <T>(run: () => T): T | undefined => {
   }
 }
 
+const escapedChar = (char: string): string => {
+  const code = char.charCodeAt(0)
+  return code < 0x100
+    ? `\\x${code.toString(16).padStart(2, "0")}`
+    : `\\u${code.toString(16).padStart(4, "0")}`
+}
+
 export const scrubbed = (text: string): string =>
-  text.replace(/\p{Cc}/gu, (char) =>
-    char === "\n" || char === "\t"
-      ? char
-      : `\\x${char.charCodeAt(0).toString(16).padStart(2, "0")}`,
-  )
+  text.replace(UNSEEN, (char) => (char === "\n" || char === "\t" ? char : escapedChar(char)))
 
 export const messageOf = (error: unknown): string =>
   error instanceof Error ? error.message : String(error)
