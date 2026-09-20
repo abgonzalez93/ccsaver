@@ -65,7 +65,7 @@ Guard: `test/conventions.test.ts`.
 Guard: `noUnusedLocals`, `noUnusedParameters`, Biome `noUnusedImports`, `noUnusedVariables`; an unused export and a duplicated helper are *convention*.
 
 **1.7 PREFER a function a reader holds in their head: cognitive complexity 15 or less.**
-Guard: *convention*, measured with `pnpm exec biome lint --only=complexity/noExcessiveCognitiveComplexity src test`. One function is over it and is the written exception: the field-by-field guard `adapterOf` in `src/config.ts` (18). A new function over 15 is split before it lands; a fourth one puts the rule in `biome.json` as an error and brings all of them under it.
+Guard: *convention*, measured with `pnpm exec biome lint --only=complexity/noExcessiveCognitiveComplexity src test`. Nothing in `src` or `test` is over it. The last one that was, the field-by-field guard `adapterOf` in `src/config.ts` (18), came under by splitting the rejecting from the building: `fieldsHold` says whether the fields hold, `adapterOf` builds from them. A new function over 15 is split before it lands; three that resist put the rule in `biome.json` as an error.
 
 **1.8 ALWAYS keep every file readable whole under this project's own gate: 350 lines and 32 KB.** A file splits by responsibility before it gets there, the way `worker.ts` gave birth to `boundary.ts`, `answer.ts` and `transport.ts`. Two files are excused, in `UNREAD_WHOLE`: `pnpm-lock.yaml`, and `CHANGELOG.md`, which grows by one section per commit and is read from the top. Splitting either one buys nothing, because neither holds a responsibility that could move; ccsaver's own hook answers a whole-file `Read` of them with Grep or a range, which is how they are read anyway.
 Guard: `test/conventions.test.ts`.

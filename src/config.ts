@@ -116,15 +116,22 @@ export const pluggedRootOf = (path: string): Plugged | undefined => {
     .sort((a, b) => b.root.length - a.root.length)[0]
 }
 
+const fieldsHold = (raw: Record<PropertyKey, unknown>): boolean => {
+  const { rules, format, after, maxLines, maxTokens } = raw
+  return (
+    (rules === undefined || typeof rules === "string") &&
+    (format === undefined || (isStrings(format) && format.length > 0)) &&
+    (after === undefined || isStrings(after)) &&
+    (maxLines === undefined || isCount(maxLines)) &&
+    (maxTokens === undefined || isCount(maxTokens))
+  )
+}
+
 const adapterOf = (raw: unknown): Adapter | undefined => {
   if (!isRecord(raw) || !Object.keys(raw).every((key) => ADAPTER_KEYS.includes(key)))
     return undefined
+  if (!fieldsHold(raw)) return undefined
   const { rules, format, after, maxLines, maxTokens } = raw
-  if (rules !== undefined && typeof rules !== "string") return undefined
-  if (format !== undefined && !(isStrings(format) && format.length > 0)) return undefined
-  if (after !== undefined && !isStrings(after)) return undefined
-  if (maxLines !== undefined && !isCount(maxLines)) return undefined
-  if (maxTokens !== undefined && !isCount(maxTokens)) return undefined
   return {
     ...(typeof rules === "string" ? { rules } : {}),
     ...(isStrings(format) ? { format } : {}),

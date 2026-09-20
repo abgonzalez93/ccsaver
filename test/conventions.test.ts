@@ -108,19 +108,28 @@ const slugOf = (heading: string): string =>
 const anchorsOf = (path: string): Set<string> =>
   new Set((readFileSync(path, "utf8").match(HEADING) ?? []).map(slugOf))
 
+const brokenLink = (
+  page: string,
+  anchors: Map<string, Set<string>>,
+  label: string,
+  target: string,
+): string[] => {
+  if (ELSEWHERE.test(target)) return []
+  const [path = "", anchor] = target.split("#")
+  const full = path === "" ? page : join(dirname(page), path)
+  const where = `${named(page)}: [${label}](${target})`
+  if (!existsSync(full)) return [`${where} names no file`]
+  if (anchor === undefined || !full.endsWith(".md")) return []
+  return anchors.get(full)?.has(anchor) === true ? [] : [`${where} names no heading`]
+}
+
 test("every link between the documents resolves, the file and the heading", () => {
   const pages = filesUnder(REPO).filter((path) => path.endsWith(".md"))
   const anchors = new Map(pages.map((page) => [page, anchorsOf(page)]))
   const broken = pages.flatMap((page) =>
-    [...readFileSync(page, "utf8").matchAll(LINK)].flatMap(([, label = "", target = ""]) => {
-      if (ELSEWHERE.test(target)) return []
-      const [path = "", anchor] = target.split("#")
-      const full = path === "" ? page : join(dirname(page), path)
-      const where = `${named(page)}: [${label}](${target})`
-      if (!existsSync(full)) return [`${where} names no file`]
-      if (anchor === undefined || !full.endsWith(".md")) return []
-      return anchors.get(full)?.has(anchor) === true ? [] : [`${where} names no heading`]
-    }),
+    [...readFileSync(page, "utf8").matchAll(LINK)].flatMap(([, label = "", target = ""]) =>
+      brokenLink(page, anchors, label, target),
+    ),
   )
   assert.deepEqual(broken, [])
 })

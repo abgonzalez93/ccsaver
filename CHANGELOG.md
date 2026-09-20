@@ -4,6 +4,15 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.10.6 - 2026-09-20
+
+refactor: the adapter guard splits rejecting from building, and nothing is over 15 now
+
+- `adapterOf` checked every field twice, once to reject and once to build, which is what put it at cognitive complexity 18 and made it 1.7's one written exception
+- `fieldsHold` now says whether the fields hold and `adapterOf` builds from them, with the same verdict on all thirteen shapes the guard is asked about
+- the link checker of `test/conventions.test.ts` was at 16 and unlisted, so 1.7's count was wrong twice over; its body moves to `brokenLink`
+- `biome lint --only=complexity/noExcessiveCognitiveComplexity src test scripts` is now silent, and 1.7 says so instead of naming an exception
+
 ## 0.10.5 - 2026-09-20
 
 fix: the secrets net catches a Stripe key, not only an OpenAI one
