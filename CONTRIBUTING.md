@@ -1,6 +1,6 @@
 # Contributing to ccsaver
 
-The rules of this repository, for a person or a model. The [README](README.md) says what ccsaver does; this file says how its code is written.
+The rules of this repository, for a person or a model. The [README](README.md) and the pages it links under [docs/](docs/) say what ccsaver does; this file says how its code is written.
 
 Each rule names its **guard**: the compiler switch (`tsconfig.json`), the Biome rule (`biome.json`) or the test that goes red when the rule is broken. A rule that no tool checks says *convention*: the reviewer is the guard. Examples cite a file and a symbol, like `src/config.ts` · `readWorker`, and `test/conventions.test.ts` fails when that symbol is gone.
 
@@ -58,7 +58,7 @@ verdict === undefined ? tally : { ...tally, [verdict]: tally[verdict] + 1 }
 
 Module-level mutable state exists twice, `secret` in `src/state.ts`, read through `storedKey`, and `delegation` in `src/transport.ts`, because one process serves one call. Both become parameters the day a process serves two.
 
-**1.5 NEVER comment code.** Names carry the what, the README carries the why. The complete list of exceptions: the one-line attribution header on a file that holds adapted third-party material (Apache-2.0 asks for it; [NOTICE](NOTICE) names the files), and one line inside a `catch` that is empty on purpose, saying why (`src/log.ts` · `record`).
+**1.5 NEVER comment code.** Names carry the what, the README and the pages under `docs/` carry the why. The complete list of exceptions: the one-line attribution header on a file that holds adapted third-party material (Apache-2.0 asks for it; [NOTICE](NOTICE) names the files), and one line inside a `catch` that is empty on purpose, saying why (`src/log.ts` · `record`).
 Guard: `test/conventions.test.ts`.
 
 **1.6 NEVER leave dead code, PREFER the helper that exists.** `attempt` for a call whose failure is an expected answer, `parsed` for JSON text, `isRecord` to open an unknown object, `messageOf` for a caught error, `real` and `isUnder` for paths, `isSecretPlace` for a folder that holds credentials, whether a file is leaving it or a root is being plugged, `readKey` and `readWorker` as the only readers of their files.
@@ -195,15 +195,15 @@ Guard: `test/transport.test.ts`, which also adds up the three waits; a new wait 
 **4.3 ALWAYS await or return every promise**, with `async`/`await` and no `.then` chains. `src/cli.ts` sets `process.exitCode` from `await main()`; the only `process.exit` lives inside `fail`.
 Guard: Biome `noFloatingPromises`, `noMisusedPromises`, `useAwaitThenable`.
 
-**4.4 ALWAYS treat the hook as the hot path: it runs on every `Read`.** The `sh` gate leaves an unplugged project before Node starts. In a plugged one the cost is Node's start-up, so `src/hook.ts` imports `src/state.ts`, `src/log.ts`, `src/config.ts` and `node:` built-ins, nothing else; it counts lines on the bytes and skips measuring a ranged read while the log is off. Touching the hook means measuring it before and after, the README's way: mean of 30 runs, process spawn included. Each module the hook imports costs about 0.85 ms of that, measured when `state.ts` became three files, so a fourth import is paid on every `Read` and needs the same measurement.
+**4.4 ALWAYS treat the hook as the hot path: it runs on every `Read`.** The `sh` gate leaves an unplugged project before Node starts. In a plugged one the cost is Node's start-up, so `src/hook.ts` imports `src/state.ts`, `src/log.ts`, `src/config.ts` and `node:` built-ins, nothing else; it counts lines on the bytes and skips measuring a ranged read while the log is off. Touching the hook means measuring it before and after, the way `docs/measurements.md` does it: mean of 30 runs, process spawn included. Each module the hook imports costs about 0.85 ms of that, measured when `state.ts` became three files, so a fourth import is paid on every `Read` and needs the same measurement.
 Guard: the import list by `test/conventions.test.ts`; the measurement is *convention*.
 
-**4.5 NEVER optimise, or claim a saving, without a number.** A number in the README carries its sample size.
+**4.5 NEVER optimise, or claim a saving, without a number.** A number in the README or under `docs/` carries its sample size, and `docs/measurements.md` carries the note behind it.
 Guard: *convention*.
 
 ## 5. Maintainability
 
-**5.1 ALWAYS change the README in the same commit as the behaviour.** The README is the specification: when it and the code disagree, one of them is a bug. A reason written there is known, not inferred. Documents that outlive a commit cite a file and a symbol, never a line number.
+**5.1 ALWAYS change the specification in the same commit as the behaviour.** The README and the pages it links under `docs/` are the specification, one page per subject, and `CLAUDE.md` has the map: when the specification and the code disagree, one of them is a bug. A reason written there is known, not inferred. Documents that outlive a commit cite a file and a symbol, never a line number.
 Guard: `test/skills.test.ts` ties the skills to the commands, and both manifests and the top of `CHANGELOG.md` to one version; `test/conventions.test.ts` ties this file's examples to the code; the rest is *convention*.
 
 **5.2 ALWAYS bring the test with the behaviour; a fix starts with the test that fails.** Tests run on `node --test` with no network: a fake server on `127.0.0.1`, a fake `claude` binary, and a throwaway `CCSAVER_HOME` per test file. A test's name is a sentence that states the behaviour. A flaky test is chased under load, three suites in parallel for six rounds, before anyone calls it fixed.
@@ -213,7 +213,7 @@ Guard: `pnpm test` starts from a state folder that does not exist, so a test tha
 
 The hook needs Node.js 24.2, the floor `package.json` declares: `scripts/version.ts` runs on `import.meta.main`, which 24.0 and 24.1 leave undefined, so on those it does nothing and says nothing.
 
-The message is also the release note. The hook of `.githooks/` turns the type into the next version (`scripts/version.ts` · `bump`) and the subject with its bullets into the entry of `CHANGELOG.md` (`scripts/version.ts` · `sectionOf`), then amends the commit; the README's Versions section has the behaviour case by case. NEVER type a version, and NEVER edit a section of `CHANGELOG.md`: the hook rebuilds the sections from the parent commit, so a hand edit does not survive its own commit.
+The message is also the release note. The hook of `.githooks/` turns the type into the next version (`scripts/version.ts` · `bump`) and the subject with its bullets into the entry of `CHANGELOG.md` (`scripts/version.ts` · `sectionOf`), then amends the commit; `docs/versions.md` has the behaviour case by case. NEVER type a version, and NEVER edit a section of `CHANGELOG.md`: the hook rebuilds the sections from the parent commit, so a hand edit does not survive its own commit.
 Guard: `test/version.test.ts` for the hook, one throwaway repository per way of making a commit; `test/skills.test.ts` for the one version; the wording of a message is *convention*.
 
 ```

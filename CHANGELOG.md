@@ -4,6 +4,19 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 This file keeps the newest versions that fit in 350 lines. The older ones are not dropped: the hook files them under [docs/changelog/](docs/changelog/), oldest file first, and no version is ever in two files. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so [docs/changelog/1.md](docs/changelog/1.md) opens with the seventeen commits that make up 0.1.0.
 
+## 0.5.2 - 2026-09-20
+
+docs: a README someone can read in thirty seconds, and the detail in docs/
+
+- 246 lines and 31,598 bytes became 131 lines and 12,359: the gate stops at 32,000, so the README had 402 bytes of room left and now has 19,641
+- the first 18 lines are what it does in two sentences, the third-party warning, and the quickstart: two commands to install, /ccsaver:setup, /ccsaver:plug
+- Install spent more words justifying a hard install than installing; that argument went with the clone two commits ago, and the section is now a code block and one sentence
+- the detail moved next to docs/measurements.md: docs/configuration.md (the worker, the key, the fallback, doctor, adapters, environment variables), docs/events.md, docs/versions.md, docs/development.md
+- nothing was simplified outwards: the warning that plugging in sends whole files to a third party is above the fold, "what leaves your machine" and "what the two permission rules grant" stay whole, the limits table keeps its worst rows and links every number to its note, LICENSE and NOTICE stay
+- the walls of text are broken up: four paragraphs of over 900 characters became bullets, and no line in the README passes 500
+- CLAUDE.md carries the map of which page specifies what, because the specification is no longer one file; CONTRIBUTING 1.5, 4.4, 4.5, 5.1 and 5.3 point at the page that now holds each subject
+- every internal link and anchor in the README, CLAUDE.md, CONTRIBUTING, SECURITY and docs/ was checked to resolve
+
 ## 0.5.1 - 2026-09-20
 
 fix: the version hook files the sections that no longer fit, instead of dropping them

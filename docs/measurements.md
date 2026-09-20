@@ -1,6 +1,6 @@
 # Measurements
 
-The notes behind [Honest limits, with numbers](../README.md#honest-limits-with-numbers). Measured on one TypeScript monorepo with Claude Code 2.1, small samples (1–4 sessions per cell). Every number carries its sample size; treat them as a starting point and [measure your own](../README.md#measure-it-yourself).
+The notes behind [Honest limits](../README.md#honest-limits). Measured on one TypeScript monorepo with Claude Code 2.1, small samples (1–4 sessions per cell). Every number carries its sample size; treat them as a starting point and [measure your own](development.md#measure-it-yourself).
 
 ## The hook on a locate-or-describe task
 

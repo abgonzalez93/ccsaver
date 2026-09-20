@@ -1,6 +1,15 @@
 # ccsaver
 
-The [README](README.md) is the specification: a behaviour change edits it in the same commit.
+The [README](README.md) and the pages it links under [docs/](docs/) are the specification: a behaviour change edits the page that covers it, in the same commit.
+
+| Page | What it specifies |
+| --- | --- |
+| [README.md](README.md) | what ccsaver is, the quickstart, the honest limits, what leaves your machine, the commands |
+| [docs/configuration.md](docs/configuration.md) | the worker, the key, the fallback, `doctor`, adapters, environment variables |
+| [docs/events.md](docs/events.md) | the event log |
+| [docs/versions.md](docs/versions.md) | the version hook and the changelog |
+| [docs/development.md](docs/development.md) | the checks, and measuring a change |
+| [docs/measurements.md](docs/measurements.md) | the notes behind every number |
 
 Before writing or reviewing code, read [CONTRIBUTING.md](CONTRIBUTING.md): every rule, with its guard and an example from this code.
 
