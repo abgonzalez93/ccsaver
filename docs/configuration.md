@@ -65,7 +65,7 @@ Claude Code's documentation says `--bare` will become the default for `-p`, and 
 `doctor` stops at a `node` older than 24.2, and then checks, in order:
 
 - The permissions of the state folder and of every file it keeps there: the key, `plugged` and `worker.json`, all 600.
-- Whether the [event log](events.md) is on and how many bytes this month's file holds, and while it is on, how many of the month's delegations went to paid Claude Haiku, what they cost and why (`spent:`).
+- Whether the [event log](events.md) is on and how many bytes this month's file holds, and while it is on, how many of the month's whole-file reads the hook denied and how long they ran (`denied:`), and how many of the month's delegations went to paid Claude Haiku, what they cost and why (`spent:`).
 - The worker, with a probe shaped like a real call: same temperature, same `max_tokens`, a system message, so a provider that would refuse the real thing fails here. 200 = the key works, 401/403 = rejected, and a timeout is told from a host that cannot be reached. A `worker.json` it cannot trust fails the line.
 - The fallback binary, with `--version`, unless the fallback is off.
 - Every plugged project, with its adapter and limits. For each one it feeds the hook a throwaway file one line over the limit, and the `gate:` line fails unless that read is denied.
@@ -116,11 +116,15 @@ The proposal never falls below the defaults, because a repository of ten short f
 
 `doctor` measures again on every run and adds one `warn shape:` line per project that has outgrown its limits, which is the moment the hook starts denying files the model should read whole. It is never a `FAIL`: nothing is broken, the limits are simply no longer the right ones. Growth the other way needs no warning, because a limit nothing reaches is merely inert.
 
-To move it, name it in an adapter:
+To move them, put them in an adapter. `plug` and `doctor` end their line with the command that does it:
 
-```json
-{ "maxLines": 900 }
+```bash
+ccsaver adapter vellum maxLines=400 maxTokens=8000
 ```
+
+It writes `~/.config/ccsaver/adapters/<name>.json` at 600, creating the file or merging into what is already there, so an adapter that carries `rules` and `format` keeps them. It takes `maxLines` and `maxTokens` only, both positive integers; every other field is edited by hand. A project with no adapter gets a second command beside the first, `ccsaver plug <root> <name>`, because an adapter nothing points at changes nothing.
+
+While the [event log](events.md) is on, `doctor` also prints a `denied:` line: how many of this month's whole-file reads the hook actually denied, and the median length of the ones it did. That is the measured answer beside the predicted one, and the two disagree in a useful way — a project can hold long files the model never reads.
 
 ## Environment variables
 

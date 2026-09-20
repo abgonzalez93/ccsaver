@@ -34,18 +34,32 @@ after(() => {
 })
 
 test("a project whose files fit the limits in force is told so and proposes nothing", () => {
-  const survey = surveyFor(sourcesOf("small", 40, (at) => 20 + at))
+  const root = sourcesOf("small", 40, (at) => 20 + at)
+  const survey = surveyFor(root)
   assert.equal(survey.counted, 40)
   assert.equal(overshoots(survey, DEFAULT_LIMITS), false)
-  assert.match(proposalOf(survey, DEFAULT_LIMITS), /limits already fit$/)
+  assert.match(proposalOf(survey, DEFAULT_LIMITS, root), /limits already fit$/)
 })
 
 test("a project of long files proposes a line limit above them, rounded up to fifty", () => {
-  const survey = surveyFor(sourcesOf("long", 40, (at) => 400 + at * 20))
+  const root = sourcesOf("long", 40, (at) => 400 + at * 20)
+  const survey = surveyFor(root)
   assert.equal(overshoots(survey, DEFAULT_LIMITS), true)
   assert.ok(survey.suggested.maxLines > survey.typical.maxLines)
   assert.equal(survey.suggested.maxLines % 50, 0)
-  assert.match(proposalOf(survey, DEFAULT_LIMITS), /"maxLines": \d+/)
+  assert.match(proposalOf(survey, DEFAULT_LIMITS, root, "an-adapter"), /maxLines=\d+/)
+})
+
+test("the proposal is a command that can be run, and names the plug when there is no adapter", () => {
+  const root = sourcesOf("fixable", 40, (at) => 400 + at * 20)
+  const survey = surveyFor(root)
+  const withAdapter = proposalOf(survey, DEFAULT_LIMITS, root, "mine")
+  assert.match(withAdapter, /To fit them, run: ccsaver adapter mine maxLines=\d+$/)
+  const without = proposalOf(survey, DEFAULT_LIMITS, root)
+  assert.match(
+    without,
+    new RegExp(`ccsaver adapter fixable maxLines=\\d+ && ccsaver plug ${root} fixable$`),
+  )
 })
 
 test("a source file past the byte limit still counts, lines and tokens alike", () => {
@@ -57,19 +71,18 @@ test("a source file past the byte limit still counts, lines and tokens alike", (
   assert.equal(survey.counted, 40)
   assert.equal(survey.typical.maxLines, 1000)
   assert.ok(survey.typical.maxTokens > DEFAULT_LIMITS.maxTokens)
-  assert.match(proposalOf(survey, DEFAULT_LIMITS), /"maxLines": \d+, "maxTokens": \d+/)
+  assert.match(proposalOf(survey, DEFAULT_LIMITS, root, "a"), /maxLines=\d+ maxTokens=\d+$/)
 })
 
 test("a project of few but very wide lines is told its token limit is the one too small", () => {
-  const survey = surveyFor(
-    projectOf(
-      "wide",
-      spread(40, () => 100, 500),
-    ),
+  const root = projectOf(
+    "wide",
+    spread(40, () => 100, 500),
   )
+  const survey = surveyFor(root)
   assert.equal(overshoots(survey, DEFAULT_LIMITS), true)
-  const proposal = proposalOf(survey, DEFAULT_LIMITS)
-  assert.match(proposal, /\{ "maxTokens": \d+ \}/)
+  const proposal = proposalOf(survey, DEFAULT_LIMITS, root, "a")
+  assert.match(proposal, /maxTokens=\d+$/)
   assert.equal(proposal.includes("maxLines"), false)
 })
 
@@ -79,9 +92,10 @@ test("the proposal never falls below the defaults, however short the files are",
 })
 
 test("under twenty countable files it refuses to judge the limits", () => {
-  const survey = surveyFor(sourcesOf("few", 19, () => 900))
+  const root = sourcesOf("few", 19, () => 900)
+  const survey = surveyFor(root)
   assert.equal(overshoots(survey, DEFAULT_LIMITS), false)
-  assert.match(proposalOf(survey, DEFAULT_LIMITS), /too few to judge the limits in force$/)
+  assert.match(proposalOf(survey, DEFAULT_LIMITS, root), /too few to judge the limits in force$/)
 })
 
 test("pruned folders and binary files are left out of the count", () => {
@@ -114,7 +128,7 @@ test("doctor warns about a project that outgrew its limits and never fails for i
   assert.equal((await run(LAUNCHER, ["plug", root], { CCSAVER_HOME: home })).code, 0)
   const out = await run(LAUNCHER, ["doctor"], { CCSAVER_HOME: home })
   assert.match(out.stdout, new RegExp(`^warn shape: ${root} · measured: 40 of \\d+ files`, "m"))
-  assert.match(out.stdout, /"maxLines": \d+/)
+  assert.match(out.stdout, /To fit them, run: ccsaver adapter \S+ maxLines=\d+/)
   assert.equal(out.stdout.includes(`FAIL shape: ${root}`), false)
   rmSync(home, { recursive: true, force: true })
 })

@@ -1,5 +1,5 @@
 import { closeSync, openSync, readdirSync, readFileSync, readSync, statSync } from "node:fs"
-import { join } from "node:path"
+import { basename, join } from "node:path"
 import { BYTES_PER_TOKEN, DEFAULT_LIMITS, type Limits } from "./config.ts"
 import { attempt } from "./state.ts"
 
@@ -101,21 +101,41 @@ export const surveyFor = (root: string): Survey => {
   }
 }
 
-const tooSmall = ({ typical, suggested }: Survey, inForce: Limits): string[] => [
-  ...(typical.maxLines > inForce.maxLines ? [`"maxLines": ${suggested.maxLines}`] : []),
-  ...(typical.maxTokens > inForce.maxTokens ? [`"maxTokens": ${suggested.maxTokens}`] : []),
+interface Raise {
+  key: string
+  value: number
+}
+
+const tooSmall = ({ typical, suggested }: Survey, inForce: Limits): Raise[] => [
+  ...(typical.maxLines > inForce.maxLines ? [{ key: "maxLines", value: suggested.maxLines }] : []),
+  ...(typical.maxTokens > inForce.maxTokens
+    ? [{ key: "maxTokens", value: suggested.maxTokens }]
+    : []),
 ]
 
 export const overshoots = (survey: Survey, inForce: Limits): boolean =>
   survey.counted >= IN_TWENTY && tooSmall(survey, inForce).length > 0
 
-export const proposalOf = (survey: Survey, inForce: Limits): string => {
+const fixOf = (survey: Survey, inForce: Limits, root: string, adapter?: string): string => {
+  const name = adapter ?? basename(root)
+  const pairs = tooSmall(survey, inForce)
+    .map(({ key, value }) => `${key}=${value}`)
+    .join(" ")
+  const set = `ccsaver adapter ${name} ${pairs}`
+  return adapter === undefined ? `${set} && ccsaver plug ${root} ${name}` : set
+}
+
+export const proposalOf = (
+  survey: Survey,
+  inForce: Limits,
+  root: string,
+  adapter?: string,
+): string => {
   const { walked, counted, typical } = survey
   if (counted < IN_TWENTY)
     return `measured: ${counted} countable of ${walked} files, too few to judge the limits in force`
   const measured = `measured: ${counted} of ${walked} files, ${IN_TWENTY - 1} in ${IN_TWENTY} under ${typical.maxLines} lines and ${typical.maxTokens} tokens`
-  const raise = tooSmall(survey, inForce)
-  return raise.length === 0
-    ? `${measured}, which the ${inForce.maxLines}-line, ${inForce.maxTokens}-token limits already fit`
-    : `${measured}: the limits in force deny normal files here, and an adapter with { ${raise.join(", ")} } would not (docs/configuration.md#limits)`
+  return overshoots(survey, inForce)
+    ? `${measured}: the limits in force deny normal files here. To fit them, run: ${fixOf(survey, inForce, root, adapter)}`
+    : `${measured}, which the ${inForce.maxLines}-line, ${inForce.maxTokens}-token limits already fit`
 }

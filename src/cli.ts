@@ -1,12 +1,14 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import {
+  type Limits,
   limitsFor,
   plug,
   readPlugged,
   setClaude,
   setFallback,
   unplug,
+  writeLimits,
   writeWorker,
 } from "./config.ts"
 import { doctor } from "./doctor.ts"
@@ -20,6 +22,7 @@ const USAGE = `usage: ccsaver <command>
 
   setup                      ask for worker, key and fallback, then run doctor
   plug [dir] [adapter]       turn ccsaver on for one project (default: this folder)
+  adapter <name> k=v ...     set maxLines or maxTokens on an adapter, creating it
   unplug <dir>               turn it off again
   list                       show the plugged projects
   worker set <url> <model>   point at an OpenAI-compatible chat completions endpoint
@@ -36,6 +39,20 @@ const USAGE = `usage: ccsaver <command>
 
 const PACKAGE = join(import.meta.dirname, "..", "package.json")
 const HELP = [undefined, "help", "--help", "-h"]
+const LIMIT_KEYS = ["maxLines", "maxTokens"] as const
+
+const limitsGiven = (pairs: string[]): Partial<Limits> => {
+  const given = pairs.map((pair) => pair.split("="))
+  const wrong = given.filter(
+    ([key, value]) =>
+      !LIMIT_KEYS.some((known) => known === key) ||
+      !/^[1-9][0-9]*$/.test(value ?? "") ||
+      given.length === 0,
+  )
+  if (wrong.length > 0 || given.length === 0)
+    throw new Refusal(`usage: ccsaver adapter <name> ${LIMIT_KEYS.join("=<n> ")}=<n>`)
+  return Object.fromEntries(given.map(([key, value]) => [key, Number(value)]))
+}
 
 const version = (): string => {
   const raw = parsed(attempt(() => readFileSync(PACKAGE, "utf8")) ?? "")
@@ -60,8 +77,14 @@ const COMMANDS: Record<string, Command> = {
     const { root, adapter } = plug(first ?? process.cwd(), second)
     const limits = limitsFor(adapter)
     process.stdout.write(
-      `plugged ${root} · adapter ${adapter ?? "none"}\n${proposalOf(surveyFor(root), limits)}\n`,
+      `plugged ${root} · adapter ${adapter ?? "none"}\n${proposalOf(surveyFor(root), limits, root, adapter)}\n`,
     )
+    return 0
+  },
+  adapter: (first) => {
+    if (first === undefined) return undefined
+    const place = writeLimits(first, limitsGiven(process.argv.slice(4)))
+    process.stdout.write(`adapter ${first} written to ${place}\n`)
     return 0
   },
   unplug: (first) => {

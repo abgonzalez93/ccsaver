@@ -157,6 +157,28 @@ test("plug, list and unplug from the command line", async () => {
   assert.equal((await ccsaver([])).code, 0)
 })
 
+test("adapter writes the limits, merges into an existing adapter and refuses junk", async () => {
+  const home = tempDir("cli-adapter")
+  const ccs = (args: string[]): Promise<Ran> => run(LAUNCHER, args, { CCSAVER_HOME: home })
+  assert.equal((await ccs(["adapter", "fresh", "maxLines=400"])).code, 0)
+  assert.deepEqual(jsonOf(join(home, "adapters", "fresh.json")), { maxLines: 400 })
+  assert.equal((await ccs(["adapter", "fresh", "maxTokens=12000"])).code, 0)
+  assert.deepEqual(jsonOf(join(home, "adapters", "fresh.json")), {
+    maxLines: 400,
+    maxTokens: 12000,
+  })
+  assert.equal((await ccs(["adapter", "strict-ts", "maxLines=500"])).code, 0)
+  const merged = jsonOf(join(home, "adapters", "strict-ts.json"))
+  assert.deepEqual([merged["maxLines"], typeof merged["rules"]], [500, "string"])
+  assert.equal(statSync(join(home, "adapters", "strict-ts.json")).mode & 0o777, 0o600)
+  for (const junk of [["maxLines=abc"], ["bogus=3"], ["maxLines=0"], []]) {
+    const out = await ccs(["adapter", "fresh", ...junk])
+    assert.deepEqual([out.code, out.stdout], [1, ""], junk.join(" "))
+  }
+  assert.equal((await ccs(["adapter", "Bad Name", "maxLines=400"])).code, 1)
+  rmSync(home, { recursive: true, force: true })
+})
+
 test("help goes to stdout, a mistake gets the usage on stderr, and version is the package's", async () => {
   const help = await ccsaver(["--help"])
   assert.deepEqual([help.code, help.stderr], [0, ""])

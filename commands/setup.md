@@ -10,3 +10,5 @@ Set ccsaver up with the user, one step at a time. Ask, then run the command, the
 4. **The check.** Run `ccsaver doctor` and report every `warn` and `FAIL` with what fixes it. `FAIL probe:` means the key or the URL is wrong.
 
 Nothing is delegated until a project is plugged in: tell the user that `/ccsaver:plug` does that, and that it sends whole files from that project to the worker they just configured.
+
+Plugging also measures the project and says which limits its files ask for. What is specific to one project — house style for the writer, a formatter, the two limits the hook denies at — lives in an adapter, a small JSON file in `~/.config/ccsaver/adapters/`. `ccsaver adapter <name> maxLines=<n> maxTokens=<n>` writes the limits into one without opening an editor, and [docs/configuration.md](../docs/configuration.md#adapters) has the rest of the fields.

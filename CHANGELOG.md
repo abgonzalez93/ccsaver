@@ -4,6 +4,27 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.8.0 - 2026-09-20
+
+feat: ccsaver adapter writes the limits, and doctor counts what it denied
+
+- plug and doctor named a JSON object the user then had to go and paste by
+  hand; the line now ends in the command that does it, ccsaver adapter <name>
+  maxLines=<n> maxTokens=<n>
+- that command writes ~/.config/ccsaver/adapters/<name>.json at 600, creating
+  the file or merging into what is already there, so an adapter that carries
+  rules and format keeps them; it takes the two limits only, positive
+  integers, and every other field is still edited by hand
+- a project with no adapter gets a second command beside the first, the plug
+  that points at it, because an adapter nothing points at changes nothing
+- while the event log is on, doctor prints a denied: line: how many of the
+  month's whole-file reads the hook really denied and the median length of
+  those it did
+- that is the measured answer beside the predicted one, and the two disagree
+  usefully, because a project can hold long files the model never opens
+- setup names adapters, which it never did, and the doctor and plug command
+  prompts tell the model to offer the fix rather than describe it
+
 ## 0.7.4 - 2026-09-20
 
 test: the symlink test is written the way the formatter wants it

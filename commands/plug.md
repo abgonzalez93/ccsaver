@@ -7,7 +7,7 @@ Plugging a project in sends whole files from it to the worker the user configure
 
 Then run `ccsaver plug "$CLAUDE_PROJECT_DIR" $ARGUMENTS`. The argument, when there is one, is an adapter name.
 
-Plugging measures the project and prints a `measured:` line: how long and how heavy its files are, and whether the limits in force fit them. Read that line back to the user. When it proposes a `maxLines`, a `maxTokens` or both, say that the defaults are this repository's own house style and not a measured optimum, that a limit set too low is what makes a session slower rather than cheaper, and offer to write the adapter that carries them — `<name>.json` in `~/.config/ccsaver/adapters/`, then `ccsaver plug <dir> <name>`. When it says the limits already fit, there is nothing to do.
+Plugging measures the project and prints a `measured:` line: how long and how heavy its files are, and whether the limits in force fit them. Read that line back to the user. When the limits fall short, the line ends in the command that fixes it, `ccsaver adapter <name> maxLines=<n> …`, sometimes followed by a second `ccsaver plug` because an adapter nothing points at changes nothing. Offer to run it, and say what it changes: the defaults are this repository's own house style and not a measured optimum, and a limit set too low is what makes a session slower rather than cheaper. When it says the limits already fit, there is nothing to do.
 
 - `ccsaver list` shows what is plugged in.
 - `ccsaver unplug <dir>` takes one back out.

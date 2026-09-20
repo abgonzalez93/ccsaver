@@ -1,6 +1,6 @@
-import { readFileSync, realpathSync, statSync } from "node:fs"
+import { mkdirSync, readFileSync, realpathSync, statSync } from "node:fs"
 import { homedir } from "node:os"
-import { basename, join, resolve } from "node:path"
+import { basename, dirname, join, resolve } from "node:path"
 import { record } from "./log.ts"
 import {
   attempt,
@@ -99,12 +99,11 @@ const adapterOf = (raw: unknown): Adapter | undefined => {
   }
 }
 
+const adapterPlace = (name: string): string => join(stateHome(), "adapters", `${name}.json`)
+
 export const loadAdapter = (name: string): Adapter => {
   if (!ADAPTER_NAME.test(name)) throw new Refusal(`invalid adapter name: ${name}`)
-  const places = [
-    join(stateHome(), "adapters", `${name}.json`),
-    join(import.meta.dirname, "..", "adapters", `${name}.json`),
-  ]
+  const places = [adapterPlace(name), join(import.meta.dirname, "..", "adapters", `${name}.json`)]
   for (const place of places) {
     const text = attempt(() => readFileSync(place, "utf8"))
     if (text === undefined) continue
@@ -113,6 +112,17 @@ export const loadAdapter = (name: string): Adapter => {
     return adapter
   }
   throw new Refusal(`adapter ${name} not found in ${places.join(" or ")}`)
+}
+
+export const writeLimits = (name: string, limits: Partial<Limits>): string => {
+  if (!ADAPTER_NAME.test(name)) throw new Refusal(`invalid adapter name: ${name}`)
+  const before = attempt(() => loadAdapter(name)) ?? {}
+  const after: Adapter = { ...before, ...limits }
+  const place = adapterPlace(name)
+  mkdirSync(dirname(place), { recursive: true, mode: 0o700 })
+  writePrivate(place, `${JSON.stringify(after, null, 2)}\n`)
+  record("config", { action: "adapter limits", adapter: name, ...limits })
+  return place
 }
 
 export const limitsFor = (adapter: string | undefined): Limits => ({

@@ -124,10 +124,10 @@ const gate = (root: string, lines: number): Finding => {
   }
 }
 
-const shape = (root: string, limits: Limits): Finding[] => {
+const shape = (root: string, limits: Limits, adapter?: string): Finding[] => {
   const survey = surveyFor(root)
   return overshoots(survey, limits)
-    ? [{ level: "warn", text: `shape: ${root} · ${proposalOf(survey, limits)}` }]
+    ? [{ level: "warn", text: `shape: ${root} · ${proposalOf(survey, limits, root, adapter)}` }]
     : []
 }
 
@@ -142,7 +142,7 @@ const projects = (): Finding[] =>
           text: `plugged: ${root} · adapter ${adapter ?? "none"} · reads over ${limits.maxLines} lines or ${limits.maxTokens} tokens are denied`,
         },
         gate(root, limits.maxLines + 1),
-        ...shape(root, limits),
+        ...shape(root, limits, adapter),
       ]
     } catch (error) {
       return [{ level: "FAIL", text: `plugged: ${root} · ${messageOf(error)}` }]
@@ -160,14 +160,36 @@ const log = (): Finding => {
     : { level: "FAIL", text: `log: ${logDir()} must be 700 and its files 600` }
 }
 
-const spent = (): Finding[] => {
-  const text = attempt(() => readFileSync(logFile(), "utf8"))
-  if (text === undefined) return []
-  const calls = text
+const rowsOf = (kind: string): Record<PropertyKey, unknown>[] =>
+  (attempt(() => readFileSync(logFile(), "utf8")) ?? "")
     .split("\n")
     .map((line) => parsed(line))
     .filter(isRecord)
-    .filter((row) => row["kind"] === "delegate")
+    .filter((row) => row["kind"] === kind)
+
+const denied = (): Finding[] => {
+  const gates = rowsOf("gate").filter((row) => row["tool_use_id"] !== "doctor")
+  const whole = gates.filter((row) => row["reason"] !== "range")
+  if (whole.length === 0) return []
+  const why = whole.filter((row) => row["decision"] === "deny")
+  const counted = why
+    .flatMap((row) => (typeof row["lines"] === "number" ? [row["lines"]] : []))
+    .sort((first, second) => first - second)
+  const middle = counted[Math.floor(counted.length / 2)]
+  const longest = middle === undefined ? "" : `, median ${middle} lines`
+  const share = Math.round((100 * why.length) / whole.length)
+  return [
+    {
+      level: "ok",
+      text: `denied: ${why.length} of ${whole.length} whole-file reads this month (${share} %)${longest}`,
+    },
+  ]
+}
+
+const spent = (): Finding[] => {
+  const text = attempt(() => readFileSync(logFile(), "utf8"))
+  if (text === undefined) return []
+  const calls = rowsOf("delegate")
   const paid = calls.filter((row) => row["answered"] === "fallback")
   const usd = paid.reduce(
     (sum, row) => sum + (typeof row["cost"] === "number" ? row["cost"] : 0),
@@ -200,6 +222,7 @@ export const doctor = async (): Promise<number> => {
     permissions("plugged file", pluggedFile(), 0o600),
     permissions("worker file", workerFile(), 0o600),
     log(),
+    ...denied(),
     ...spent(),
     ...(await workers()),
     ...(plugged.length > 0 ? plugged : [NOTHING_PLUGGED]),
