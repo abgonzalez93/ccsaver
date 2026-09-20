@@ -4,6 +4,16 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.10.10 - 2026-09-20
+
+docs: the README table is one command per row, and says what is written inside a project
+
+- `unplug` shared a row with `list` and `doctor` with `version`; every command has its own row now, in the order `USAGE` prints them
+- `bulk-read` and `code-write` join the table, because `USAGE` has always printed them and the sentence under it claims the table is what `ccsaver` with no command prints
+- two lines said "nothing is ever written inside your projects" while a third documented the one thing that is, the target of a `code-write`; what they meant is that ccsaver keeps no state of its own there, so that is what they say
+- the protected places gain `.cargo`, `.yarn` and `.mvn`, which `PROTECTED_PLACE` has and the list did not
+- CONTRIBUTING 2.5 counts the lines it has rather than the ones it had
+
 ## 0.10.9 - 2026-09-20
 
 fix: an adapter file holding an array is malformed, not an empty adapter

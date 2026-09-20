@@ -113,7 +113,7 @@ export const invokeExternal = async (mode: string, system: string, message: stri
 
 Guard: *convention*. Revisit when a test needs to replace something that no parameter, variable or state file reaches, or when a seam gets a second implementation.
 
-**2.5 PREFER the flat `src/`.** It holds 11 files and about 1,850 lines. Folders and layers earn their place past 15 files or 3,000 lines; until then a new concept is a new file on the map of 2.1.
+**2.5 PREFER the flat `src/`.** It holds 11 files and about 1,900 lines. Folders and layers earn their place past 15 files or 3,000 lines; until then a new concept is a new file on the map of 2.1.
 Guard: *convention*.
 
 ## 3. Robustness

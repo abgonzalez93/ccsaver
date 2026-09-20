@@ -13,7 +13,7 @@ claude plugin marketplace add abgonzalez93/ccsaver
 claude plugin install ccsaver@abgonzalez93
 ```
 
-Open a new session, or run `/reload-plugins`, then type `/ccsaver:setup` to point it at a worker and store its key, and `/ccsaver:plug` to turn it on for the project you are in. `/ccsaver:doctor` checks it all again later. Nothing else is installed on your machine, and nothing is ever written inside your projects.
+Open a new session, or run `/reload-plugins`, then type `/ccsaver:setup` to point it at a worker and store its key, and `/ccsaver:plug` to turn it on for the project you are in. `/ccsaver:doctor` checks it all again later. Nothing else is installed on your machine, and ccsaver keeps no state of its own inside your projects.
 
 Needs Claude Code, Node.js 24.2 or newer, and a POSIX `sh`. Linux and macOS only.
 
@@ -60,7 +60,7 @@ Where it does not help:
   - So is any file that holds a private-key header, armoured or PGP, or a token with a well-known shape (AWS `AKIA…`, GitHub `ghp_…` and `github_pat_…`, GitLab `glpat-…`, npm `npm_…`, Slack `xoxb-…`, `sk-…` and `sk_…`/`rk_…` (OpenAI, Anthropic, Stripe), Google `AIza…`), whatever its name, and any binary file.
   - The list is a net, not a guarantee: a password pasted into `config.ts` goes out with it.
 - The state folder stays home: a call that names a file under `~/.config/ccsaver/` is refused before anything is sent, and the [event log](docs/events.md) in it is a local file that no code in ccsaver sends anywhere.
-- `code-write --target` never overwrites an existing file, only writes inside the plugged root (symlinked folders are followed first), and refuses the paths Claude Code itself protects: `.git`, `.claude`, `.vscode`, `.idea`, `.husky`, `.devcontainer` and the shell, git and package-manager config files. A refused target stops the call before anything is sent.
+- `code-write --target` never overwrites an existing file, only writes inside the plugged root (symlinked folders are followed first), and refuses the paths Claude Code itself protects: `.git`, `.claude`, `.vscode`, `.idea`, `.husky`, `.devcontainer`, `.cargo`, `.yarn`, `.mvn` and the shell, git and package-manager config files. A refused target stops the call before anything is sent.
 
 ## What the two permission rules grant
 
@@ -81,18 +81,22 @@ Claude Code 2.1.274 applies a skill's grant when you type `/ccsaver:bulk-reader`
 | --- | --- |
 | `ccsaver setup` | ask for worker, key and fallback, then run `doctor` |
 | `ccsaver plug [dir] [adapter]` | turn ccsaver on for one project; no directory means this one |
-| `ccsaver unplug <dir>` · `ccsaver list` | turn it off again · show what is plugged |
+| `ccsaver adapter <name> k=v ...` | set `maxLines` or `maxTokens` on an adapter, creating it if it is not there |
+| `ccsaver unplug <dir>` | turn it off again for that project |
+| `ccsaver list` | show the plugged projects |
 | `ccsaver worker set <url> <model>` | point at an OpenAI-compatible chat completions endpoint |
 | `ccsaver worker claude <path>\|auto` | pin the `claude` binary the fallback runs, or give it back to the session |
-| `ccsaver adapter <name> k=v ...` | set `maxLines` or `maxTokens` on an adapter, creating it if it is not there |
 | `ccsaver key set` | store the API key: typed with the echo off, or read from stdin |
 | `ccsaver fallback on\|off` | whether a call the worker cannot take goes to paid Claude Haiku |
 | `ccsaver log on\|off` | record events, metadata only, in a local file; off by default |
-| `ccsaver doctor` · `ccsaver version` | check everything · print the version |
+| `ccsaver doctor` | check permissions, key, worker, fallback and projects |
+| `ccsaver version` | print the version |
+| `ccsaver bulk-read --question=<q> --paths <file>...` | what the `bulk-reader` skill runs; `--project <dir>` names the project |
+| `ccsaver code-write --spec=<s> --reference <file>...` | what the `code-writer` skill runs; `--target <out>` writes the file |
 
-A setting is a noun and a value (`worker set`, `key set`, `adapter <name> k=v`, `fallback on|off`, `log on|off`); everything that does something is a verb (`plug`, `unplug`, `list`, `doctor`, `setup`). `ccsaver` with no command, and `help`, print that table on stdout and exit 0. A command given the wrong arguments prints its own line of the table on stderr and exits 1, so the line you need is never buried under the rest; a word that is no command at all prints `unknown command: <word>` and the whole table. A control character in an argument, in a path or in what the worker answers is written as `\\x1b` before it is printed, so nothing ccsaver echoes can repaint your terminal. The one exception is the code of a `code-write` without `--target`: that is a file's contents and travels byte for byte, which is one more reason to name a `--target`.
+A setting is a noun and a value (`worker set`, `key set`, `adapter <name> k=v`, `fallback on|off`, `log on|off`); everything that does something is a verb (`plug`, `unplug`, `list`, `doctor`, `setup`). The last two rows are the subcommands the skills run, and a hand rarely types them. `ccsaver` with no command, and `help`, print that table on stdout and exit 0. A command given the wrong arguments prints its own line of the table on stderr and exits 1, so the line you need is never buried under the rest; a word that is no command at all prints `unknown command: <word>` and the whole table. A control character in an argument, in a path or in what the worker answers is written as `\\x1b` before it is printed, so nothing ccsaver echoes can repaint your terminal. The one exception is the code of a `code-write` without `--target`: that is a file's contents and travels byte for byte, which is one more reason to name a `--target`.
 
-Nothing is written inside the project. The state lives in `~/.config/ccsaver/`: the key (600), `worker.json`, the `plugged` list, your own `adapters/`, Node's compile `cache/` and, once you ask for it, `log/`. `plug` stores the real path and refuses `/`, your home folder, any folder that contains the state folder, and a folder that is itself a store of credentials (`.ssh`, `.aws`, `.gnupg`, `.kube`, `.git`, `secrets`); a project *inside* one of them, `~/secrets/my-app`, still plugs.
+The target of a `code-write` is the one thing ccsaver ever writes inside a project; its own state never goes there, but in `~/.config/ccsaver/`: the key (600), `worker.json`, the `plugged` list, your own `adapters/`, Node's compile `cache/` and, once you ask for it, `log/`. `plug` stores the real path and refuses `/`, your home folder, any folder that contains the state folder, and a folder that is itself a store of credentials (`.ssh`, `.aws`, `.gnupg`, `.kube`, `.git`, `secrets`); a project *inside* one of them, `~/secrets/my-app`, still plugs.
 
 ## The rest
 
