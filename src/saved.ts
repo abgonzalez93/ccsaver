@@ -1,13 +1,13 @@
 import { existsSync, readdirSync } from "node:fs"
 import { tokensIn } from "./config.ts"
-import { logDir, monthKey, numberAt, type Row, type Rows, readMonth } from "./log.ts"
+import { logDir, MONTH, monthKey, numberAt, type Row, type Rows, readMonth } from "./log.ts"
 import { MODEL_NAME, type Prices, readPrices, workerNamed } from "./prices.ts"
 import { attempt, inColour } from "./state.ts"
 
 const REAL_LOW = 1.9
 const REAL_HIGH = 2.8
 const DENIAL_TOKENS = 94
-const MONTH_FILE = /^events-(\d{4}-\d{2})\.jsonl$/
+const MONTH_FILE = /^events-(.+)\.jsonl$/
 const BAR = 22
 const PER_MILLION = 1_000_000
 const GREEN = 32
@@ -150,6 +150,7 @@ export const tallied = (rows: Rows, from: Spend = NOTHING_SPENT): Spend =>
 const monthsOf = (): string[] =>
   (attempt(() => readdirSync(logDir())) ?? [])
     .flatMap((name) => MONTH_FILE.exec(name)?.[1] ?? [])
+    .filter((month) => MONTH.test(month))
     .sort()
 
 const tallyOver = (months: string[]): Spend =>

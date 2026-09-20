@@ -15,7 +15,7 @@ const LOG_VERSION = 1
 const LOG_LINE_BYTES = 4000
 const SCRUB_FROM = 8
 const SESSION_CHARS = 200
-const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/
+export const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/
 
 export const logDir = (): string => join(stateHome(), "log")
 

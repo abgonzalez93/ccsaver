@@ -250,3 +250,13 @@ test("the tokens the session read back because of ccsaver are counted, and left 
   const quiet = await saved(homeWith("read-back-quiet", [[]]))
   assert.equal(quiet.stdout.includes("read back because of ccsaver"), false)
 })
+
+test("a file in the log folder that is no month is skipped, never read as one", async () => {
+  const home = homeWith("stray", [twentyDenials()])
+  for (const name of ["events-2026-13.jsonl", "events-.jsonl", "events-2026-1.jsonl", "notes.txt"])
+    writeFileSync(join(home, "log", name), '{"v":1,"kind":"gate"}\n', { mode: 0o600 })
+  const out = await saved(home, ["all"])
+  assert.deepEqual([out.code, out.stderr], [0, ""])
+  assert.match(out.stdout, /^ccsaver saved · \d{4}-\d{2}$/m)
+  assert.match(out.stdout, /20 whole-file reads/)
+})

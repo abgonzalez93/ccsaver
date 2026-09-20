@@ -13,7 +13,7 @@ import {
   writeWorker,
 } from "./config.ts"
 import { doctor } from "./doctor.ts"
-import { crashed, record, setLog } from "./log.ts"
+import { crashed, MONTH, record, setLog } from "./log.ts"
 import { listedPrices, MODEL_NAME, readPrices, shownPrices, WORKER, writePrice } from "./prices.ts"
 import { report } from "./saved.ts"
 import { attempt, isRecord, messageOf, parsed, Refusal, scrubbed } from "./state.ts"
@@ -47,7 +47,6 @@ const USAGE = `${HEAD}
 const PACKAGE = join(import.meta.dirname, "..", "package.json")
 const HELP = ["help", "--help", "-h"]
 const LIMIT_KEYS = ["maxLines", "maxTokens"] as const
-const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/
 
 const limitsGiven = (pairs: string[]): Partial<Limits> => {
   const given = pairs.map((pair) => pair.split("="))
