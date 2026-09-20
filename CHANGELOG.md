@@ -4,6 +4,15 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.20.4 - 2026-09-20
+
+fix: the plug command that plug and doctor propose quotes a root with a space in it
+
+- `fixOf` wrote `ccsaver plug /home/you/My Project my-project`, which pasted would plug `/home/you/My` with the adapter `Project`, and commands/plug.md and commands/doctor.md tell Claude to offer that line
+- `quoted` moves from `src/worker.ts` to `src/state.ts`, where `survey.ts` may import it under the map of CONTRIBUTING 2.1, and the root goes through it like a `{target}` in an `after` line does
+- doctor's own interactive fix never went through a shell and was right already
+- `state.ts` is on the hook's import list and gains no module
+
 ## 0.20.3 - 2026-09-20
 
 fix: a plugged list that cannot be read stops plug and unplug instead of being written over

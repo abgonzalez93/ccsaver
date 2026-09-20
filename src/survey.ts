@@ -9,7 +9,7 @@ import {
   linesIn,
   tokensIn,
 } from "./config.ts"
-import { attempt } from "./state.ts"
+import { attempt, quoted } from "./state.ts"
 
 const PRUNED = [
   "node_modules",
@@ -118,7 +118,7 @@ export const fixOf = (survey: Survey, inForce: Limits, root: string, adapter?: s
     .map(([key, value]) => `${key}=${value}`)
     .join(" ")
   const set = `ccsaver adapter ${name} ${pairs}`
-  return adapter === undefined ? `${set} && ccsaver plug ${root} ${name}` : set
+  return adapter === undefined ? `${set} && ccsaver plug ${quoted(root)} ${name}` : set
 }
 
 export const proposalOf = (

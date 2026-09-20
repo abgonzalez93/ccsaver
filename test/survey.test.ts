@@ -74,6 +74,12 @@ test("the proposal is a command that can be run, and names the plug when there i
   )
 })
 
+test("a root with a space in it is quoted in the command the proposal names", () => {
+  const root = sourcesOf("has space", 40, (at) => 400 + at * 20)
+  const proposal = proposalOf(surveyFor(root), DEFAULT_LIMITS, root)
+  assert.ok(proposal.endsWith(` && ccsaver plug '${root}' has-space`), proposal)
+})
+
 test("a source file past the byte limit still counts, lines and tokens alike", () => {
   const root = projectOf(
     "heavy",

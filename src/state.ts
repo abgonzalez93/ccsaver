@@ -99,6 +99,9 @@ export const marked = (
   return label === "" ? text : `${label} ${text}`
 }
 
+export const quoted = (path: string): string =>
+  /^[\w./-]+$/.test(path) ? path : `'${path.replaceAll("'", "'\\''")}'`
+
 export const real = (path: string): string =>
   attempt(() => realpathSync.native(path)) ?? resolve(path)
 

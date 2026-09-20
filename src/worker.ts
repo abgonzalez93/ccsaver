@@ -15,6 +15,7 @@ import {
   isUnder,
   marked,
   messageOf,
+  quoted,
   real,
   scrubbed,
   stateHome,
@@ -123,9 +124,6 @@ const targetIn = (root: string, given: string): string => {
     fail(`refusing to overwrite ${given}: move or delete it first`)
   return target
 }
-
-const quoted = (path: string): string =>
-  /^[\w./-]+$/.test(path) ? path : `'${path.replaceAll("'", "'\\''")}'`
 
 const framed = (output: string): string => {
   const id = randomBytes(8).toString("hex")
