@@ -128,9 +128,9 @@ const fieldsHold = (raw: Record<PropertyKey, unknown>): boolean => {
 }
 
 const adapterOf = (raw: unknown): Adapter | undefined => {
-  if (!isRecord(raw) || !Object.keys(raw).every((key) => ADAPTER_KEYS.includes(key)))
+  if (!isRecord(raw) || Array.isArray(raw)) return undefined
+  if (!Object.keys(raw).every((key) => ADAPTER_KEYS.includes(key)) || !fieldsHold(raw))
     return undefined
-  if (!fieldsHold(raw)) return undefined
   const { rules, format, after, maxLines, maxTokens } = raw
   return {
     ...(typeof rules === "string" ? { rules } : {}),

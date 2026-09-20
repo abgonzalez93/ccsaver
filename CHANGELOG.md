@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.10.9 - 2026-09-20
+
+fix: an adapter file holding an array is malformed, not an empty adapter
+
+- `isRecord` is true for an array, and `Object.keys([])` is empty, so an adapter file of `[]` passed the unknown-key check and read as `{}`: a broken config taken for an absent one, which is 3.4 in miniature
+- the guard is in `adapterOf` rather than in `isRecord`, because the other six callers destructure fields an array cannot have and already answer Refusal or undefined
+- `Delegation.mode` goes with it: nothing ever assigned it, the mode travels beside the delegation in `record`, and a field no writer fills is a second place for the same value to appear
+
 ## 0.10.8 - 2026-09-20
 
 fix: the measured line says when it had to sample the project

@@ -40,7 +40,6 @@ export const CLAUDE_ON_PATH = "claude"
 export interface Delegation {
   root?: string
   adapter?: string | null
-  mode?: string
   files?: number
   outside?: number
   chars?: number
