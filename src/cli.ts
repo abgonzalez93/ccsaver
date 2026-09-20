@@ -79,32 +79,37 @@ type Outcome = number | undefined
 
 type Command = (rest: string[]) => Outcome
 
+const atMost =
+  (most: number, run: Command): Command =>
+  (rest: string[]): Outcome =>
+    rest.length > most ? undefined : run(rest)
+
 const printVersion: Command = (): Outcome => {
   say(`${version()}\n`)
   return 0
 }
 
 const COMMANDS: Record<string, Command> = {
-  plug: ([first, second]) => {
+  plug: atMost(2, ([first, second]) => {
     const { root, adapter } = plug(first ?? process.cwd(), second)
     const limits = limitsFor(adapter)
     say(
       `plugged ${root} · adapter ${adapter ?? "none"}\n${proposalOf(surveyFor(root), limits, root, adapter)}\n`,
     )
     return 0
-  },
+  }),
   adapter: ([first, ...pairs]) => {
     if (first === undefined) return undefined
     const place = writeLimits(first, limitsGiven(pairs))
     say(`adapter ${first} written to ${place}\n`)
     return 0
   },
-  unplug: ([first]) => {
+  unplug: atMost(1, ([first]) => {
     if (first === undefined) return undefined
     say(unplug(first) ? `unplugged ${first}\n` : `${first} was not plugged\n`)
     return 0
-  },
-  list: () => {
+  }),
+  list: atMost(0, () => {
     const entries = readPlugged()
     say(
       entries.length === 0
@@ -112,8 +117,8 @@ const COMMANDS: Record<string, Command> = {
         : entries.map(({ root, adapter }) => `${root}\t${adapter ?? ""}\n`).join(""),
     )
     return 0
-  },
-  worker: ([first, second, third]) => {
+  }),
+  worker: atMost(3, ([first, second, third]) => {
     if (first === "claude" && second !== undefined) {
       const pinned = setClaude(second === "auto" ? undefined : second)
       say(`fallback binary: ${pinned ?? "the session's own claude"}\n`)
@@ -124,25 +129,25 @@ const COMMANDS: Record<string, Command> = {
     say(`worker set to ${shown(second)} · ${third}\n`)
     if (advice !== undefined) process.stderr.write(scrubbed(`warn: ${advice}\n`))
     return 0
-  },
-  fallback: ([first]) => {
+  }),
+  fallback: atMost(1, ([first]) => {
     if (first !== "on" && first !== "off") return undefined
     setFallback(first === "on")
     say(`fallback ${first}\n`)
     return 0
-  },
-  log: ([first]) => {
+  }),
+  log: atMost(1, ([first]) => {
     if (first !== "on" && first !== "off") return undefined
     setLog(first === "on")
     say(`log ${first}\n`)
     return 0
-  },
-  saved: ([first]) => {
+  }),
+  saved: atMost(1, ([first]) => {
     if (first !== undefined && first !== "all" && !MONTH.test(first)) return undefined
     process.stdout.write(report(first))
     return 0
-  },
-  price: ([first, second]) => {
+  }),
+  price: atMost(2, ([first, second]) => {
     if (first === undefined) {
       say(listedPrices(readPrices()))
       return 0
@@ -157,9 +162,9 @@ const COMMANDS: Record<string, Command> = {
       )
     say(`price ${first} $${dollars}/M · ${shownPrices(writePrice(first, dollars))}\n`)
     return 0
-  },
-  version: printVersion,
-  "--version": printVersion,
+  }),
+  version: atMost(0, printVersion),
+  "--version": atMost(0, printVersion),
 }
 
 const commandOf = (command: string | undefined): Command | undefined =>
@@ -176,7 +181,7 @@ const main = async (): Promise<number> => {
     await runWorker(command, rest)
     return 0
   }
-  if (command === "doctor") return doctor()
+  if (command === "doctor" && rest.length === 0) return doctor()
   const code = commandOf(command)?.(rest)
   if (code !== undefined) return code
   if (command === undefined || HELP.includes(command)) {
@@ -184,7 +189,8 @@ const main = async (): Promise<number> => {
     return 0
   }
   const only = usageFor(command)
-  const wrong = only.length === 0 ? "unknown command" : "wrong arguments"
+  const known = command === "doctor" || commandOf(command) !== undefined
+  const wrong = known || only.length > 0 ? "wrong arguments" : "unknown command"
   const said =
     only.length === 0 ? `${wrong}: ${command}\n${USAGE}` : `${HEAD}\n\n${only.join("\n")}\n`
   process.stderr.write(scrubbed(said))

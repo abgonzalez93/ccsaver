@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.19.8 - 2026-09-20
+
+fix: a command says no to the arguments it cannot take
+
+- ccsaver price claude-opus-5 5.00 99.00 stored 5.00 and dropped the rest without a word, and so did log on nonsense, list extra, plug a b c and doctor now
+- the README says a command given the wrong arguments prints its own line of the table and exits 1: that is what it does now, one arity per command through atMost
+- a known command with no line of its own, --version, gets "wrong arguments" and the whole table instead of being called unknown
+
 ## 0.19.7 - 2026-09-20
 
 fix: a file in the log folder that is no month never stops saved all
