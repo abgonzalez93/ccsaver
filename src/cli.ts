@@ -14,7 +14,8 @@ import {
 } from "./config.ts"
 import { doctor } from "./doctor.ts"
 import { crashed, record, setLog } from "./log.ts"
-import { report, writePrice } from "./saved.ts"
+import { MODEL_NAME, shownPrices, WORKER, writePrice } from "./prices.ts"
+import { report } from "./saved.ts"
 import { attempt, isRecord, messageOf, parsed, Refusal, scrubbed } from "./state.ts"
 import { proposalOf, surveyFor } from "./survey.ts"
 import { shown } from "./transport.ts"
@@ -35,7 +36,7 @@ const USAGE = `${HEAD}
   fallback on|off            whether a call the worker cannot take goes to paid Claude Haiku
   log on|off                 record events (metadata only) in a local file; off by default
   saved [month|all]          what the log says it cost, and what it would have cost without
-  price main|worker <usd>    dollars per million input tokens, so saved can show money
+  price <model>|worker <usd> dollars per million input tokens, so saved can show money
   doctor                     check permissions, key, worker, fallback and projects
   version                    print the version
 
@@ -143,16 +144,14 @@ const COMMANDS: Record<string, Command> = {
     return 0
   },
   price: ([first, second]) => {
-    if ((first !== "main" && first !== "worker") || second === undefined) return undefined
+    if (first === undefined || second === undefined) return undefined
+    if (first !== WORKER && !MODEL_NAME.test(first)) return undefined
     const dollars = Number(second)
     if (!Number.isFinite(dollars) || dollars <= 0)
       throw new Refusal(
         `a price is dollars per million input tokens, a positive number; not: ${second}`,
       )
-    const after = writePrice(first, dollars)
-    say(
-      `price ${first} $${dollars}/M · main ${after.main ?? "unset"} · worker ${after.worker ?? "unset"}\n`,
-    )
+    say(`price ${first} $${dollars}/M · ${shownPrices(writePrice(first, dollars))}\n`)
     return 0
   },
   version: printVersion,

@@ -3,16 +3,31 @@ import { chmodSync, mkdirSync, rmSync, statSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { after, test } from "node:test"
 import { readMonth } from "../src/log.ts"
-import { moneyOf, NOTHING_SPENT, type Prices, seen, tallied } from "../src/saved.ts"
+import type { Prices } from "../src/prices.ts"
+import { moneyOf, NOTHING_SPENT, seen, tallied, totalled } from "../src/saved.ts"
 import { CLI, type Ran, run, tempDir } from "./helpers.ts"
 
 const AS_ROOT = process.getuid?.() === 0
 const WORK = tempDir("saved-work")
 
+const OPUS = "claude-opus-5"
+const FABLE = "claude-fable-5-1"
+
 const gate = (fields: Record<string, unknown>): Record<PropertyKey, unknown> => ({
   kind: "gate",
   decision: "allow",
+  model: OPUS,
   ...fields,
+})
+
+const spent = (models: Record<string, [number, number]>): typeof NOTHING_SPENT => ({
+  ...NOTHING_SPENT,
+  byModel: Object.fromEntries(
+    Object.entries(models).map(([model, [deniedTokens, rangedTokens]]) => [
+      model,
+      { deniedTokens, rangedTokens },
+    ]),
+  ),
 })
 
 const denial = (bytes: number): Record<PropertyKey, unknown> =>
@@ -56,7 +71,7 @@ test("doctor's own probe is left out of the reads it counts", () => {
     { ...denial(999_999), tool_use_id: "doctor" },
     { kind: "note", text: "ignored" },
   ])
-  assert.deepEqual([tally.denied, tally.deniedTokens], [1, 10_000])
+  assert.deepEqual([tally.denied, totalled(tally.byModel).deniedTokens], [1, 10_000])
 })
 
 test("a ranged read counts the part of the file its offset and limit cover", () => {
@@ -67,15 +82,12 @@ test("a ranged read counts the part of the file its offset and limit cover", () 
     { ...whole },
   ])
   assert.equal(tally.ranged, 3)
-  assert.equal(tally.rangedTokens, 1_000 + 1_111 + 10_000)
+  assert.equal(totalled(tally.byModel).rangedTokens, 1_000 + 1_111 + 10_000)
 })
 
 test("a read under the limit is neither denied nor counted as a range", () => {
   const tally = tallied([gate({ reason: "under", bytes: 900, lines: 20 })])
-  assert.deepEqual(
-    [tally.denied, tally.ranged, tally.deniedTokens, tally.rangedTokens],
-    [0, 0, 0, 0],
-  )
+  assert.deepEqual([tally.denied, tally.ranged, totalled(tally.byModel).deniedTokens], [0, 0, 0])
 })
 
 test("an external call that reports its usage is counted from that, not from chars/4", () => {
@@ -91,8 +103,8 @@ test("an external call that reports its usage is counted from that, not from cha
 })
 
 test("the band pairs low with low, so the percentage barely moves while the dollars swing", () => {
-  const tally = { ...NOTHING_SPENT, deniedTokens: 1_000_000, rangedTokens: 100_000 }
-  const money = moneyOf(tally, { main: 3 })
+  const tally = spent({ [OPUS]: [1_000_000, 100_000] })
+  const money = moneyOf(tally, { models: { [OPUS]: 3 } })
   assert.ok(money !== undefined)
   assert.deepEqual([money.without.low.toFixed(2), money.without.high.toFixed(2)], ["5.70", "8.40"])
   const low = Math.round((100 * money.saved.low) / money.without.low)
@@ -101,17 +113,18 @@ test("the band pairs low with low, so the percentage barely moves while the doll
 })
 
 test("no price for the session model means no money at all, not money at zero", () => {
-  const tally = { ...NOTHING_SPENT, deniedTokens: 1_000_000 }
-  assert.equal(moneyOf(tally, {}), undefined)
-  assert.equal(moneyOf(tally, { worker: 0.1 }), undefined)
-  const priced: Prices = { main: 3 }
+  const tally = spent({ [OPUS]: [1_000_000, 0] })
+  assert.equal(moneyOf(tally, { models: {} }), undefined)
+  assert.equal(moneyOf(tally, { models: {}, worker: 0.1 }), undefined)
+  assert.equal(moneyOf(tally, { models: { [FABLE]: 10 } }), undefined)
+  const priced: Prices = { models: { [OPUS]: 3 } }
   assert.ok(moneyOf(tally, priced) !== undefined)
 })
 
 test("an unpriced worker costs nothing rather than stopping the sum", () => {
-  const tally = { ...NOTHING_SPENT, externalTokens: 1_000_000, deniedTokens: 1_000_000 }
-  const free = moneyOf(tally, { main: 3 })
-  const paid = moneyOf(tally, { main: 3, worker: 0.5 })
+  const tally = { ...spent({ [OPUS]: [1_000_000, 0] }), externalTokens: 1_000_000 }
+  const free = moneyOf(tally, { models: { [OPUS]: 3 } })
+  const paid = moneyOf(tally, { models: { [OPUS]: 3 }, worker: 0.5 })
   assert.ok(free !== undefined && paid !== undefined)
   assert.equal(paid.used.low - free.used.low, 0.5)
 })
@@ -120,7 +133,7 @@ test("under twenty it names the two things it counts, not a total of log lines",
   const thin = homeWith("thin", [
     [denial(40_000), denial(40_000), { kind: "delegate", answered: "external", chars: 4_000 }],
   ])
-  await priced(thin, ["main", "3"])
+  await priced(thin, [OPUS, "3"])
   const out = await saved(thin)
   assert.equal(out.code, 0)
   assert.match(
@@ -137,14 +150,20 @@ test("without a price it counts tokens and names the command that adds one", asy
   const out = await saved(home)
   assert.equal(out.code, 0)
   assert.match(out.stdout, /denied {5}20 whole-file reads, 0\.20 M tokens by bytes\/4/)
-  assert.match(out.stdout, /no price is set, so this is tokens only: ccsaver price main/)
+  assert.match(out.stdout, /no model here has a price, so this is tokens only:/)
+  assert.match(
+    out.stdout,
+    new RegExp(
+      `${OPUS} denied 0\\.20 M tokens here and has no price[\\s\\S]*ccsaver price ${OPUS}`,
+    ),
+  )
 })
 
 test("a saving that is not one prints negative, with no percentage beside it", async () => {
   const home = homeWith("negative", [
     [...twenty(), { kind: "delegate", answered: "fallback", cost: 50 }],
   ])
-  await priced(home, ["main", "3"])
+  await priced(home, [OPUS, "3"])
   const out = await saved(home)
   assert.match(out.stdout, /saved {6}-\$4[0-9.]+ - -\$4[0-9.]+ +the delegations cost more/)
   assert.doesNotMatch(out.stdout, /%/)
@@ -160,7 +179,7 @@ test("a band that crosses zero is painted as neither a saving nor a loss", async
       ...Array.from({ length: 10 }, () => ({ kind: "delegate", answered: "fallback", cost: 0.12 })),
     ],
   ])
-  await priced(home, ["main", "3"])
+  await priced(home, [OPUS, "3"])
   const out = await saved(home)
   const line = out.stdout.split("\n").find((row) => row.startsWith("  saved")) ?? ""
   assert.match(line, /^ {2}saved {6}-\$0\.25 - \$0\.20 +the band crosses zero/)
@@ -169,10 +188,58 @@ test("a band that crosses zero is painted as neither a saving nor a loss", async
 
 test("reads the log cannot explain are called out instead of read as a clean win", async () => {
   const home = homeWith("orphan", [twenty()])
-  await priced(home, ["main", "3"])
+  await priced(home, [OPUS, "3"])
   const out = await saved(home)
   assert.match(out.stdout, /nothing here replaced those reads/)
   assert.match(out.stdout, /the gate watches the/)
+})
+
+test("each model is priced at its own rate, not at one rate for the month", () => {
+  const tally = spent({ [OPUS]: [1_000_000, 0], [FABLE]: [1_000_000, 0] })
+  const both = moneyOf(tally, { models: { [OPUS]: 5, [FABLE]: 10 } })
+  const one = moneyOf(spent({ [OPUS]: [2_000_000, 0] }), { models: { [OPUS]: 5 } })
+  assert.ok(both !== undefined && one !== undefined)
+  assert.equal(both.without.low.toFixed(4), ((1 * 5 + 1 * 10) * 1.9).toFixed(4))
+  assert.notEqual(both.without.low.toFixed(4), one.without.low.toFixed(4))
+})
+
+test("a model with no price is named with the command that gives it one, never guessed", async () => {
+  const home = homeWith("two-models", [
+    [
+      ...Array.from({ length: 20 }, () => denial(40_000)),
+      ...Array.from({ length: 4 }, () => ({ ...denial(400_000), model: FABLE })),
+    ],
+  ])
+  await priced(home, [OPUS, "5"])
+  const out = await saved(home)
+  assert.equal(out.code, 0)
+  assert.match(out.stdout, new RegExp(`at \\$5/M for ${OPUS}`))
+  assert.match(
+    out.stdout,
+    new RegExp(
+      `${FABLE} denied 0\\.40 M tokens here and has no price, so it is left out:\\n {2}ccsaver price ${FABLE} <usd per million>`,
+    ),
+  )
+  assert.doesNotMatch(out.stdout, new RegExp(`\\$[0-9.]+/M for ${FABLE}`))
+})
+
+test("a gate line the hook could not name a model for is counted apart, never folded in", async () => {
+  const home = homeWith("unnamed", [
+    Array.from({ length: 20 }, () => ({ ...denial(40_000), model: null })),
+  ])
+  await priced(home, [OPUS, "5"])
+  const out = await saved(home)
+  assert.match(out.stdout, /0\.20 M denied tokens are under no model the log names/)
+  assert.doesNotMatch(out.stdout, /^ {2}without/m)
+})
+
+test("the old single main price is refused, never read as the rate for every model", async () => {
+  const home = homeWith("legacy", [twenty()])
+  writeFileSync(join(home, "prices.json"), '{"main": 3}')
+  const out = await saved(home)
+  assert.equal(out.code, 1)
+  assert.match(out.stderr, /carries one main price for every model/)
+  assert.match(out.stderr, /ccsaver price <model> <usd>/)
 })
 
 test("all sums every month in the log, and a month names only that one", async () => {
@@ -207,13 +274,13 @@ test("the log being off is not a failure", async () => {
 
 test("a price is a positive number, stored privately, and shown back with both sides", async () => {
   const home = homeWith("prices", [twenty()])
-  const ok = await priced(home, ["main", "3"])
-  assert.deepEqual([ok.code, ok.stdout], [0, "price main $3/M · main 3 · worker unset\n"])
+  const ok = await priced(home, [OPUS, "3"])
+  assert.deepEqual([ok.code, ok.stdout], [0, `price ${OPUS} $3/M · ${OPUS} $3/M · worker unset\n`])
   const both = await priced(home, ["worker", "0.1"])
-  assert.equal(both.stdout, "price worker $0.1/M · main 3 · worker 0.1\n")
+  assert.equal(both.stdout, `price worker $0.1/M · ${OPUS} $3/M · worker $0.1/M\n`)
   for (const wrong of [
-    ["main", "-3"],
-    ["main", "0"],
+    [OPUS, "-3"],
+    [OPUS, "0"],
     ["worker", "abc"],
   ]) {
     const out = await priced(home, wrong)
@@ -227,7 +294,7 @@ test("a prices.json that cannot be read stops the command, never reads as no pri
   skip: AS_ROOT,
 }, async () => {
   const home = homeWith("unreadable", [twenty()])
-  await priced(home, ["main", "3"])
+  await priced(home, [OPUS, "3"])
   const file = join(home, "prices.json")
   chmodSync(file, 0o000)
   const out = await saved(home)
@@ -256,8 +323,8 @@ test("a month is YYYY-MM, so no reader of the log can be steered out of its fold
 
 test("a malformed prices.json stops the command instead of being ignored", async () => {
   const home = homeWith("malformed", [twenty()])
-  writeFileSync(join(home, "prices.json"), '{"main": "3"}')
+  writeFileSync(join(home, "prices.json"), '{"models": {"claude-opus-5": "3"}}')
   const out = await saved(home)
   assert.equal(out.code, 1)
-  assert.match(out.stderr, /prices\.json is malformed: fix it or delete it/)
+  assert.match(out.stderr, /prices\.json is malformed: every model needs a name and a price/)
 })

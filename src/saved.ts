@@ -1,7 +1,8 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs"
+import { existsSync, readdirSync } from "node:fs"
 import { tokensIn } from "./config.ts"
-import { logDir, monthKey, numberAt, type Row, type Rows, readMonth, record } from "./log.ts"
-import { attempt, inColour, isRecord, parsed, pricesFile, Refusal, writePrivate } from "./state.ts"
+import { logDir, monthKey, numberAt, type Row, type Rows, readMonth } from "./log.ts"
+import { MODEL_NAME, type Prices, readPrices } from "./prices.ts"
+import { attempt, inColour } from "./state.ts"
 
 const REAL_LOW = 1.9
 const REAL_HIGH = 2.8
@@ -14,12 +15,17 @@ const RED = 31
 const LABEL = 11
 const WIDTH = 18
 const SMALL = 1
+const UNNAMED = "(unnamed)"
+
+interface Read {
+  deniedTokens: number
+  rangedTokens: number
+}
 
 interface Spend {
   denied: number
-  deniedTokens: number
   ranged: number
-  rangedTokens: number
+  byModel: Record<string, Read>
   calls: number
   paid: number
   paidUsd: number
@@ -33,22 +39,18 @@ interface Band {
   high: number
 }
 
-export interface Prices {
-  main?: number
-  worker?: number
-}
-
 interface Money {
   without: Band
   used: Band
   saved: Band
 }
 
+const NO_READ: Read = { deniedTokens: 0, rangedTokens: 0 }
+
 export const NOTHING_SPENT: Spend = {
   denied: 0,
-  deniedTokens: 0,
   ranged: 0,
-  rangedTokens: 0,
+  byModel: {},
   calls: 0,
   paid: 0,
   paidUsd: 0,
@@ -64,16 +66,53 @@ const partOf = (lines: number, offset: number, limit: number): number => {
   return Math.max(0, took) / lines
 }
 
+const modelOf = (row: Row): string => {
+  const model = row["model"]
+  return typeof model === "string" && MODEL_NAME.test(model) ? model : UNNAMED
+}
+
+const withRead = (
+  byModel: Record<string, Read>,
+  model: string,
+  more: Read,
+): Record<string, Read> => {
+  const now = byModel[model] ?? NO_READ
+  return {
+    ...byModel,
+    [model]: {
+      deniedTokens: now.deniedTokens + more.deniedTokens,
+      rangedTokens: now.rangedTokens + more.rangedTokens,
+    },
+  }
+}
+
+export const totalled = (byModel: Record<string, Read>): Read =>
+  Object.values(byModel).reduce(
+    (sum, read) => ({
+      deniedTokens: sum.deniedTokens + read.deniedTokens,
+      rangedTokens: sum.rangedTokens + read.rangedTokens,
+    }),
+    NO_READ,
+  )
+
 const gateInto = (sum: Spend, row: Row): Spend => {
   const tokens = tokensIn(numberAt(row, "bytes"))
+  const model = modelOf(row)
   if (row["decision"] === "deny")
-    return { ...sum, denied: sum.denied + 1, deniedTokens: sum.deniedTokens + tokens }
+    return {
+      ...sum,
+      denied: sum.denied + 1,
+      byModel: withRead(sum.byModel, model, { deniedTokens: tokens, rangedTokens: 0 }),
+    }
   if (row["reason"] !== "range") return sum
   const part = partOf(numberAt(row, "lines"), numberAt(row, "offset"), numberAt(row, "limit"))
   return {
     ...sum,
     ranged: sum.ranged + 1,
-    rangedTokens: sum.rangedTokens + Math.round(tokens * part),
+    byModel: withRead(sum.byModel, model, {
+      deniedTokens: 0,
+      rangedTokens: Math.round(tokens * part),
+    }),
   }
 }
 
@@ -108,36 +147,21 @@ const tallyOver = (months: string[]): Spend =>
 
 export const seen = (tally: Spend): number => tally.denied + tally.calls
 
-const isPrice = (value: unknown): value is number =>
-  typeof value === "number" && Number.isFinite(value) && value > 0
-
-const readPrices = (): Prices => {
-  const text = attempt(() => readFileSync(pricesFile(), "utf8"))
-  if (text === undefined) {
-    if (!existsSync(pricesFile())) return {}
-    throw new Refusal(`${pricesFile()} cannot be read: check its owner and its mode`)
-  }
-  const raw = parsed(text)
-  const { main, worker } = isRecord(raw) ? raw : {}
-  if ((main !== undefined && !isPrice(main)) || (worker !== undefined && !isPrice(worker)))
-    throw new Refusal(`${pricesFile()} is malformed: fix it or delete it`)
-  return { ...(isPrice(main) ? { main } : {}), ...(isPrice(worker) ? { worker } : {}) }
-}
-
-export const writePrice = (which: "main" | "worker", usd: number): Prices => {
-  const after: Prices = { ...readPrices(), [which]: usd }
-  writePrivate(pricesFile(), `${JSON.stringify(after, null, 2)}\n`)
-  record("config", { action: "price", which, usd })
-  return after
-}
+const pricedIn = (tally: Spend, prices: Prices): { read: Read; each: number }[] =>
+  Object.entries(tally.byModel).flatMap(([model, read]) => {
+    const each = prices.models[model]
+    return each === undefined ? [] : [{ read, each }]
+  })
 
 export const moneyOf = (tally: Spend, prices: Prices): Money | undefined => {
-  const main = prices.main
-  if (main === undefined) return undefined
+  const priced = pricedIn(tally, prices)
+  if (priced.length === 0) return undefined
   const worker = prices.worker ?? 0
+  const at = (real: number, pick: (read: Read) => number): number =>
+    priced.reduce((sum, { read, each }) => sum + (pick(read) * real * each) / PER_MILLION, 0)
   const armOf = (real: number): [number, number] => [
-    (tally.deniedTokens * real * main) / PER_MILLION,
-    (tally.rangedTokens * real * main) / PER_MILLION +
+    at(real, (read) => read.deniedTokens),
+    at(real, (read) => read.rangedTokens) +
       (tally.externalTokens * worker) / PER_MILLION +
       tally.paidUsd,
   ]
@@ -174,8 +198,8 @@ const percentOf = (saved: number, without: number): number =>
   without > 0 ? Math.round((100 * saved) / without) : 0
 
 const countedIn = (tally: Spend): string[] => [
-  `  ${"denied".padEnd(LABEL)}${many(tally.denied, "whole-file read")}, ${millions(tally.deniedTokens)} tokens by bytes/4`,
-  `  ${"instead".padEnd(LABEL)}${many(tally.ranged, "ranged read")} while plugged, ${millions(tally.rangedTokens)} tokens`,
+  `  ${"denied".padEnd(LABEL)}${many(tally.denied, "whole-file read")}, ${millions(totalled(tally.byModel).deniedTokens)} tokens by bytes/4`,
+  `  ${"instead".padEnd(LABEL)}${many(tally.ranged, "ranged read")} while plugged, ${millions(totalled(tally.byModel).rangedTokens)} tokens`,
   `  ${"delegated".padEnd(LABEL)}${many(tally.calls, "call")} · ${tally.external} external (${millions(tally.externalTokens)} tokens) · ${tally.paid} paid Haiku (${usd(tally.paidUsd, 4)})`,
 ]
 
@@ -205,25 +229,46 @@ const moneyIn = (money: Money): string[] => {
   ]
 }
 
-const thinIn = (tally: Spend): string[] =>
-  seen(tally) < ENOUGH
-    ? [
-        `  ${many(tally.denied, "denied read")} and ${many(tally.calls, "delegation")}, and ${ENOUGH} of the two is where this starts to say anything`,
-      ]
-    : ["  no price is set, so this is tokens only: ccsaver price main <usd per million>"]
+const unpricedIn = (tally: Spend, prices: Prices): string[] =>
+  Object.entries(tally.byModel)
+    .filter(([model]) => prices.models[model] === undefined)
+    .flatMap(([model, read]) =>
+      model === UNNAMED
+        ? [`  ${millions(read.deniedTokens)} denied tokens are under no model the log names`]
+        : [
+            `  ${model} denied ${millions(read.deniedTokens)} tokens here and has no price, so it is left out:`,
+            `  ccsaver price ${model} <usd per million>`,
+          ],
+    )
 
-const pricedIn = (prices: Prices): string[] =>
-  prices.worker === undefined
-    ? [
-        `  at $${prices.main}/M for the session model; the worker's own tokens are not priced yet (ccsaver price worker <usd>)`,
-      ]
-    : [`  at $${prices.main}/M for the session model and $${prices.worker}/M for the worker`]
+const bodyOf = (tally: Spend, prices: Prices, money: Money | undefined): string[] => {
+  if (seen(tally) < ENOUGH)
+    return [
+      `  ${many(tally.denied, "denied read")} and ${many(tally.calls, "delegation")}, and ${ENOUGH} of the two is where this starts to say anything`,
+    ]
+  const unpriced = unpricedIn(tally, prices)
+  if (money === undefined)
+    return ["  no model here has a price, so this is tokens only:", ...unpriced]
+  return [...moneyIn(money), ...unpriced]
+}
+
+const rateIn = (tally: Spend, prices: Prices): string => {
+  const named = Object.keys(tally.byModel)
+    .flatMap((model) => {
+      const each = prices.models[model]
+      return each === undefined ? [] : [`$${each}/M for ${model}`]
+    })
+    .join(", ")
+  return prices.worker === undefined
+    ? `  at ${named}; the worker's own tokens are not priced yet (ccsaver price worker <usd>)`
+    : `  at ${named} and $${prices.worker}/M for the worker`
+}
 
 const orphaned = (tally: Spend): boolean =>
   tally.denied > 0 && tally.ranged === 0 && tally.calls === 0
 
 const footnotes = (tally: Spend, prices: Prices, priced: boolean): string[] => [
-  ...(priced ? pricedIn(prices) : []),
+  ...(priced ? [rateIn(tally, prices)] : []),
   `  a real Read measured ${REAL_LOW}-${REAL_HIGH}x the bytes/4 estimate, and that band is the whole spread here`,
   ...(tally.estimated > 0
     ? [
@@ -257,7 +302,7 @@ export const report = (given: string | undefined): string => {
     "",
     ...countedIn(tally),
     "",
-    ...(money === undefined ? thinIn(tally) : moneyIn(money)),
+    ...bodyOf(tally, prices, money),
     "",
     ...footnotes(tally, prices, money !== undefined),
   ]

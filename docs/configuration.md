@@ -141,14 +141,17 @@ ccsaver saved 2026-08    # that month
 ccsaver saved all        # every month the log still holds, one in memory at a time
 ```
 
-It needs two prices, in dollars per million input tokens, because ccsaver cannot see what your session pays:
+It needs prices, in dollars per million input tokens, because ccsaver cannot see what your session pays. **A price belongs to a model, not to the month**, because the model changes and the rates are far apart:
 
 ```bash
-ccsaver price main 3.00      # the model the session runs on
-ccsaver price worker 0.10    # the cheap worker
+ccsaver price claude-opus-5 5.00      # what your session model charges
+ccsaver price claude-fable-5-1 10.00  # and any other you work on
+ccsaver price worker 0.10             # the cheap worker
 ```
 
-They live in `~/.config/ccsaver/prices.json` (600), apart from `worker.json` so that the file holding the `fallback` switch gains no surface. No price is shipped: one would go stale, and a number without a source is what this project refuses to print. Without `price main` the report counts tokens and stops there. A `prices.json` that is there but malformed or unreadable stops the command, the same way `worker.json` does, and so does a month's log file that is there but cannot be read: a report that counted it as an empty month would be the one lie this command cannot afford.
+The hook records which model was running for every read it sees ([the event log](events.md)), so the report prices each model's reads at that model's own rate and never spreads one number over a month that changed model. A model that turns up in the log with no price of its own is **named, with the command that gives it one, and its tokens are left out of the sum** — a rate borrowed from another model would be a number without a source. Reads the hook could not name a model for are counted apart in the same way.
+
+They live in `~/.config/ccsaver/prices.json` (600), apart from `worker.json` so that the file holding the `fallback` switch gains no surface. No price is shipped: one would go stale, and a number without a source is what this project refuses to print. With no model priced the report counts tokens and stops there. A `prices.json` that is there but malformed or unreadable stops the command, the same way `worker.json` does, and so does a month's log file that is there but cannot be read: a report that counted it as an empty month would be the one lie this command cannot afford. A `prices.json` carrying the single `main` price of 0.13 and earlier is refused rather than read as the rate for every model.
 
 **The numbers are a band, never a point.** A real `Read` measured [1.9–2.8× the bytes/4 estimate](measurements.md#the-hooks-token-estimate-vs-a-real-read), so both columns carry that multiplier. It is the same unknown on both sides, so the two arms pair low with low: the dollars swing by half, and the percentage barely moves. Read the percentage.
 
@@ -162,6 +165,8 @@ ccsaver saved · 2026-09
   without    $10.45 - $15.40    ██████████████████████
   with       $0.76 - $0.97      █·····················
   saved      $9.69 - $14.43     93 % - 94 %
+
+  at $5/M for claude-opus-5 and $0.1/M for the worker
 ```
 
 `instead` is the line that keeps the rest honest: a denial is not a saving, because the model then reads the file by ranges and pays for those. It counts every ranged read in a plugged project, not only the ones a denial caused, which errs towards charging ccsaver for reads it never provoked rather than the other way round. A month where the delegations cost more than the reads they replaced prints a negative saving, in red, with no percentage beside it; a month whose band crosses zero — a loss at the low end of the 1.9–2.8× multiplier and a saving at the high end — says that in words and is painted no colour at all, because neither one would be true.

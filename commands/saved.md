@@ -17,14 +17,14 @@ Carry back every line the foot prints, because each one is a limit on the number
 
 A band that crosses zero is an answer too: say that the month may have cost more than it saved and that the data cannot tell which, never round it to a win. A negative saving is a real answer, not an error: report that the delegations cost more than the reads they replaced, and suggest raising the limits with `ccsaver adapter <name> maxLines=<n>` (a limit set too low is what makes a session slower rather than cheaper) or `ccsaver fallback off`.
 
-`no price is set` means it can only count tokens. Two prices turn them into money, in dollars per million **input** tokens:
+`no model here has a price` means it can only count tokens. A price belongs to one model, in dollars per million **input** tokens:
 
 ```bash
-ccsaver price main 3.00      # the model this session runs on
-ccsaver price worker 0.10    # the cheap worker
+ccsaver price claude-opus-5 5.00   # whichever model the report names
+ccsaver price worker 0.10          # the cheap worker
 ```
 
-Ask the user for both rather than guessing: a price you invent makes every figure below it fiction. Point them at their provider's pricing page and at Anthropic's for the session model.
+The report names every model it saw and singles out the ones with no price, whose tokens it leaves out of the sum. Read those lines back and offer to set each one. **Ask the user for the number rather than guessing it**: a price you invent makes every figure below it fiction, and it is the one thing here that cannot be measured from the machine. Point them at Anthropic's pricing page for the session models and at their provider's for the worker.
 
 `the log is off` means there is nothing to add up. `ccsaver log on` starts recording, metadata only and on this machine alone ([what it holds](../docs/events.md)) — and say that it records from that moment, so there is nothing to read until the plugin has done some work.
 

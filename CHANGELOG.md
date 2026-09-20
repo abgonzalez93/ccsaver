@@ -4,6 +4,16 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.15.0 - 2026-09-20
+
+feat!: a price belongs to a model, not to the whole month
+
+- prices.json held one main rate applied to every read of the month, so a month that ran Opus at $5 and Fable at $10 was priced wrong whichever number was typed, and nothing said so
+- ccsaver price <model> <usd> sets one rate per model; the report prices each model's reads at its own rate, reading the model the gate now records
+- a model with no price of its own is named with the command that gives it one and its tokens are left out, because a rate borrowed from another model is a number without a source; reads the hook could not name a model for are counted apart the same way
+- prices.json carrying the old single main price is refused rather than read as the rate for everything
+- src/prices.ts is the thirteenth file on the map and owns that file, its shape and its two writers
+
 ## 0.14.0 - 2026-09-20
 
 feat: the gate records which model the session was running
