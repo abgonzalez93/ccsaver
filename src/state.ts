@@ -27,6 +27,13 @@ export const attempt = <T>(run: () => T): T | undefined => {
   }
 }
 
+export const scrubbed = (text: string): string =>
+  text.replace(/\p{Cc}/gu, (char) =>
+    char === "\n" || char === "\t"
+      ? char
+      : `\\x${char.charCodeAt(0).toString(16).padStart(2, "0")}`,
+  )
+
 export const messageOf = (error: unknown): string =>
   error instanceof Error ? error.message : String(error)
 

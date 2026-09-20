@@ -4,6 +4,17 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.9.19 - 2026-09-20
+
+fix: nothing ccsaver echoes can repaint the terminal it prints in
+
+- `ccsaver unplug $'x\e[2J'` cleared the screen; a path or an argument carrying a control character is now written as `\x1b` before it is printed
+- `scrubbed` guards the funnels, not the call sites: `say` for every success line, the catch for every Refusal and crash, and doctor's finding loop, so a command added later is covered without being told
+- newline and tab pass through, because they are the separators we compose ourselves: list keeps its tab-separated rows
+- doctor scrubs only the finding text, never `painted`, so the level keeps its colour
+- the launcher had the same hole ahead of Node and gets `plain`, which deletes rather than escapes because POSIX `tr` cannot escape; the property that matters, no control character reaching the terminal, holds on both sides
+- README says it under the commands table
+
 ## 0.9.18 - 2026-09-20
 
 fix: both settings that live in worker.json name the command that creates it

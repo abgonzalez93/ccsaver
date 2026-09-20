@@ -20,6 +20,7 @@ import {
   messageOf,
   pluggedFile,
   readKey,
+  scrubbed,
   stateHome,
   workerFile,
 } from "./state.ts"
@@ -79,15 +80,15 @@ const answered = (question: string): boolean => {
 const offer = (fixes: Fix[]): void => {
   if (fixes.length === 0 || process.stdin.isTTY !== true) return
   for (const fix of fixes) {
-    process.stdout.write(`\nfix: ${fix.shown}\n`)
+    process.stdout.write(scrubbed(`\nfix: ${fix.shown}\n`))
     if (!answered("run it? [y/N] ")) {
       process.stdout.write("skipped\n")
       continue
     }
     try {
-      process.stdout.write(`${fix.apply()}\n`)
+      process.stdout.write(scrubbed(`${fix.apply()}\n`))
     } catch (error) {
-      process.stdout.write(`${painted("FAIL")} ${messageOf(error)}\n`)
+      process.stdout.write(`${painted("FAIL")} ${scrubbed(messageOf(error))}\n`)
     }
   }
 }
@@ -298,7 +299,8 @@ export const doctor = async (): Promise<number> => {
     ...(await workers()),
     ...(plugged.length > 0 ? plugged : [NOTHING_PLUGGED]),
   ]
-  for (const { level, text } of findings) process.stdout.write(`${painted(level)} ${text}\n`)
+  for (const { level, text } of findings)
+    process.stdout.write(`${painted(level)} ${scrubbed(text)}\n`)
   const count = (wanted: Level): number => findings.filter(({ level }) => level === wanted).length
   record("doctor", { ok: count("ok"), warn: count("warn"), fail: count("FAIL") })
   offer(findings.flatMap(({ fix }) => fix ?? []))

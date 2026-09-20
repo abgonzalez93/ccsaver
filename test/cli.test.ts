@@ -213,6 +213,22 @@ test("adapter writes the limits, merges into an existing adapter and refuses jun
   rmSync(home, { recursive: true, force: true })
 })
 
+test("a control character in an argument is escaped before it reaches the terminal", async () => {
+  const home = tempDir("cli-scrub")
+  const bare = (args: string[]): Promise<Ran> => run(LAUNCHER, args, { CCSAVER_HOME: home })
+  const wipe = "\u001b[2J"
+  const gone = await bare(["unplug", `missing${wipe}`])
+  assert.deepEqual([gone.code, gone.stdout], [0, "missing\\x1b[2J was not plugged\n"])
+  const named = await bare(["adapter", `bad${wipe}`, "maxLines=400"])
+  assert.deepEqual([named.code, named.stderr], [1, "Error: invalid adapter name: bad\\x1b[2J\n"])
+  const unknown = await bare([`nope${wipe}`])
+  assert.match(unknown.stderr, /^unknown command: nope\\x1b\[2J\n/)
+  const home_ = await run(LAUNCHER, ["list"], { CCSAVER_HOME: `relative${wipe}` }, "", WORK)
+  for (const out of [gone, named, unknown, home_])
+    assert.equal(`${out.stdout}${out.stderr}`.includes("\u001b"), false)
+  rmSync(home, { recursive: true, force: true })
+})
+
 test("a relative CCSAVER_HOME is refused, by the launcher and by the command", async () => {
   const relative = "state"
   const shell = await run(LAUNCHER, ["list"], { CCSAVER_HOME: relative }, "", WORK)

@@ -13,7 +13,7 @@ import {
 } from "./config.ts"
 import { doctor } from "./doctor.ts"
 import { crashed, record, setLog } from "./log.ts"
-import { attempt, isRecord, messageOf, parsed, Refusal } from "./state.ts"
+import { attempt, isRecord, messageOf, parsed, Refusal, scrubbed } from "./state.ts"
 import { proposalOf, surveyFor } from "./survey.ts"
 import { shown } from "./transport.ts"
 import { isMode, runWorker } from "./worker.ts"
@@ -65,12 +65,16 @@ const version = (): string => {
   return isRecord(raw) && typeof raw["version"] === "string" ? raw["version"] : "unknown"
 }
 
+const say = (text: string): void => {
+  process.stdout.write(scrubbed(text))
+}
+
 type Outcome = number | undefined
 
 type Command = (rest: string[]) => Outcome
 
 const printVersion: Command = (): Outcome => {
-  process.stdout.write(`${version()}\n`)
+  say(`${version()}\n`)
   return 0
 }
 
@@ -78,7 +82,7 @@ const COMMANDS: Record<string, Command> = {
   plug: ([first, second]) => {
     const { root, adapter } = plug(first ?? process.cwd(), second)
     const limits = limitsFor(adapter)
-    process.stdout.write(
+    say(
       `plugged ${root} · adapter ${adapter ?? "none"}\n${proposalOf(surveyFor(root), limits, root, adapter)}\n`,
     )
     return 0
@@ -86,17 +90,17 @@ const COMMANDS: Record<string, Command> = {
   adapter: ([first, ...pairs]) => {
     if (first === undefined) return undefined
     const place = writeLimits(first, limitsGiven(pairs))
-    process.stdout.write(`adapter ${first} written to ${place}\n`)
+    say(`adapter ${first} written to ${place}\n`)
     return 0
   },
   unplug: ([first]) => {
     if (first === undefined) return undefined
-    process.stdout.write(unplug(first) ? `unplugged ${first}\n` : `${first} was not plugged\n`)
+    say(unplug(first) ? `unplugged ${first}\n` : `${first} was not plugged\n`)
     return 0
   },
   list: () => {
     const entries = readPlugged()
-    process.stdout.write(
+    say(
       entries.length === 0
         ? "nothing is plugged in\n"
         : entries.map(({ root, adapter }) => `${root}\t${adapter ?? ""}\n`).join(""),
@@ -106,25 +110,25 @@ const COMMANDS: Record<string, Command> = {
   worker: ([first, second, third]) => {
     if (first === "claude" && second !== undefined) {
       const pinned = setClaude(second === "auto" ? undefined : second)
-      process.stdout.write(`fallback binary: ${pinned ?? "the session's own claude"}\n`)
+      say(`fallback binary: ${pinned ?? "the session's own claude"}\n`)
       return 0
     }
     if (first !== "set" || second === undefined || third === undefined) return undefined
     const advice = writeWorker(second, third)
-    process.stdout.write(`worker set to ${shown(second)} · ${third}\n`)
-    if (advice !== undefined) process.stderr.write(`warn: ${advice}\n`)
+    say(`worker set to ${shown(second)} · ${third}\n`)
+    if (advice !== undefined) process.stderr.write(scrubbed(`warn: ${advice}\n`))
     return 0
   },
   fallback: ([first]) => {
     if (first !== "on" && first !== "off") return undefined
     setFallback(first === "on")
-    process.stdout.write(`fallback ${first}\n`)
+    say(`fallback ${first}\n`)
     return 0
   },
   log: ([first]) => {
     if (first !== "on" && first !== "off") return undefined
     setLog(first === "on")
-    process.stdout.write(`log ${first}\n`)
+    say(`log ${first}\n`)
     return 0
   },
   version: printVersion,
@@ -155,7 +159,7 @@ const main = async (): Promise<number> => {
   const only = usageFor(command)
   const said =
     only.length === 0 ? `unknown command: ${command}\n${USAGE}` : `${HEAD}\n\n${only.join("\n")}\n`
-  process.stderr.write(said)
+  process.stderr.write(scrubbed(said))
   return 1
 }
 
@@ -164,6 +168,6 @@ try {
 } catch (error) {
   if (error instanceof Refusal) record("fail", { text: error.message })
   else crashed("cli", error)
-  process.stderr.write(`Error: ${messageOf(error)}\n`)
+  process.stderr.write(scrubbed(`Error: ${messageOf(error)}\n`))
   process.exitCode = 1
 }
