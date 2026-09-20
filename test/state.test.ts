@@ -235,6 +235,7 @@ test("a worker.json that is there but wrong is an error, never the same as no wo
     JSON.stringify({ url: "https://a.invalid" }),
     JSON.stringify({ url: "https://a.invalid", model: "a", fallback: "false" }),
     JSON.stringify({ url: "https://a.invalid", model: "a", claude: 7 }),
+    JSON.stringify({ url: "https://a.invalid", model: "a", fallbck: false }),
   ]
   for (const text of wrong) {
     writeFileSync(file, text)

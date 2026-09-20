@@ -113,7 +113,8 @@ test("a prices.json that is not an object stops the command, never reads as no p
   await priced(home, [OPUS, "3"])
   const file = join(home, "prices.json")
   const kept = readFileSync(file, "utf8")
-  for (const broken of ["[]", "5", '"hi"', "null", '{"models": {"claude-opus-5": 3}']) {
+  const misspelt = '{"models": {"claude-opus-5": 3}, "modles": {"claude-opus-5": 9}}'
+  for (const broken of ["[]", "5", '"hi"', "null", '{"models": {"claude-opus-5": 3}', misspelt]) {
     writeFileSync(file, broken)
     const out = await saved(home)
     assert.deepEqual([out.code, out.stdout], [1, ""], broken)

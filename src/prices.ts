@@ -15,6 +15,8 @@ export const MODEL_NAME = /^[a-z0-9][a-z0-9._-]{0,63}$/
 
 export const WORKER = "worker"
 
+const PRICE_KEYS = ["models", "worker", "main"]
+
 export interface Prices {
   models: Record<string, number>
   worker?: number
@@ -45,7 +47,11 @@ export const readPrices = (): Prices => {
     throw new Refusal(`${pricesFile()} cannot be read: check its owner and its mode`)
   }
   const raw = parsed(text)
-  if (!isRecord(raw) || Array.isArray(raw))
+  if (
+    !isRecord(raw) ||
+    Array.isArray(raw) ||
+    !Object.keys(raw).every((key) => PRICE_KEYS.includes(key))
+  )
     throw new Refusal(
       `${pricesFile()} is malformed: it holds one object, with models and worker inside it`,
     )

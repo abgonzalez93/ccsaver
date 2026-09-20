@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.20.7 - 2026-09-20
+
+fix: a worker.json or a prices.json with a key it does not know is malformed, never read with that key dropped
+
+- `readWorker` kept the keys it knew and ignored the rest, so `"fallbck": false` read as a worker with the switch left out, which is the paid fallback on (reproduced); `adapterOf` has refused an unknown key since the first adapter, and now the other two readers of a state file do the same
+- `readPrices` takes `models`, `worker` and the `main` it refuses by name, and nothing else
+- docs/configuration.md names the case beside the stray comma and the quoted boolean
+
 ## 0.20.6 - 2026-09-20
 
 fix: a formatter named by an absolute path outside the project is not run, and one that fails says what it printed

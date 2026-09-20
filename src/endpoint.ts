@@ -19,6 +19,11 @@ export interface Worker {
   fallback?: boolean
 }
 
+const WORKER_KEYS = ["url", "model", "claude", "fallback"]
+
+const malformed = (): string =>
+  `${workerFile()} is malformed: fix it or delete it, nothing was sent`
+
 export const readWorker = (): Worker | undefined => {
   const text = attempt(() => readFileSync(workerFile(), "utf8"))
   if (text === undefined) {
@@ -28,14 +33,16 @@ export const readWorker = (): Worker | undefined => {
     )
   }
   const raw = parsed(text)
-  const { url, model, claude, fallback } = isRecord(raw) ? raw : {}
+  if (!isRecord(raw) || !Object.keys(raw).every((key) => WORKER_KEYS.includes(key)))
+    throw new Refusal(malformed())
+  const { url, model, claude, fallback } = raw
   if (
     typeof url !== "string" ||
     typeof model !== "string" ||
     (claude !== undefined && typeof claude !== "string") ||
     (fallback !== undefined && typeof fallback !== "boolean")
   )
-    throw new Refusal(`${workerFile()} is malformed: fix it or delete it, nothing was sent`)
+    throw new Refusal(malformed())
   return {
     url,
     model,
