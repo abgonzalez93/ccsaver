@@ -28,4 +28,4 @@ ccsaver price worker 0.10          # the cheap worker
 
 `the log is off` means there is nothing to add up. `ccsaver log on` starts recording, metadata only and on this machine alone ([what it holds](../docs/events.md)) — and say that it records from that moment, so there is nothing to read until the plugin has done some work.
 
-Under twenty it refuses to judge, and that refusal is the honest answer: report it as "too early to tell", not as a failure. The twenty are denied reads plus delegations, not log lines, so a busy month can still be under it.
+There is no minimum: the bars come out from the first denied read. Read the `denied` and `delegated` counts back before the percentage — a band drawn from two reads is worth what two reads are worth, and saying so out loud is your job, not the report's.

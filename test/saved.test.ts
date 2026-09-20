@@ -4,7 +4,7 @@ import { join } from "node:path"
 import { after, test } from "node:test"
 import { readMonth } from "../src/log.ts"
 import type { Prices } from "../src/prices.ts"
-import { moneyOf, NOTHING_SPENT, seen, tallied, totalled } from "../src/saved.ts"
+import { moneyOf, NOTHING_SPENT, tallied, totalled } from "../src/saved.ts"
 import { CLI, type Ran, run, tempDir } from "./helpers.ts"
 
 const AS_ROOT = process.getuid?.() === 0
@@ -129,20 +129,27 @@ test("an unpriced worker costs nothing rather than stopping the sum", () => {
   assert.equal(paid.used.low - free.used.low, 0.5)
 })
 
-test("under twenty it names the two things it counts, not a total of log lines", async () => {
+test("a thin month draws the bars all the same, with the two counts over them", async () => {
   const thin = homeWith("thin", [
     [denial(40_000), denial(40_000), { kind: "delegate", answered: "external", chars: 4_000 }],
   ])
   await priced(thin, [OPUS, "3"])
   const out = await saved(thin)
   assert.equal(out.code, 0)
-  assert.match(
-    out.stdout,
-    /2 denied reads and 1 delegation, and 20 of the two is where this starts to say anything/,
-  )
-  assert.doesNotMatch(out.stdout, /events here/)
+  assert.match(out.stdout, /^ {2}denied {5}2 whole-file reads/m)
+  assert.match(out.stdout, /^ {2}delegated {2}1 call/m)
+  assert.match(out.stdout, /^ {2}without {4}\$/m)
+  assert.match(out.stdout, /^ {2}saved {6}.+ % - \d+ %$/m)
+  assert.doesNotMatch(out.stdout, /where this starts to say anything/)
+})
+
+test("a month with nothing to compare says so where the bars would be", async () => {
+  const home = homeWith("nothing", [[gate({ reason: "under", bytes: 100 })]])
+  await priced(home, [OPUS, "3"])
+  const out = await saved(home)
+  assert.equal(out.code, 0)
+  assert.match(out.stdout, /nothing was denied and nothing was read by ranges here/)
   assert.doesNotMatch(out.stdout, /^ {2}without {4}\$/m)
-  assert.equal(seen({ ...NOTHING_SPENT, denied: 19, calls: 1 }), 20)
 })
 
 test("without a price it counts tokens and names the command that adds one", async () => {

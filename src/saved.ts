@@ -7,7 +7,6 @@ import { attempt, inColour } from "./state.ts"
 const REAL_LOW = 1.9
 const REAL_HIGH = 2.8
 const MONTH_FILE = /^events-(\d{4}-\d{2})\.jsonl$/
-const ENOUGH = 20
 const BAR = 22
 const PER_MILLION = 1_000_000
 const GREEN = 32
@@ -145,8 +144,6 @@ const monthsOf = (): string[] =>
 const tallyOver = (months: string[]): Spend =>
   months.reduce((sum, month) => tallied(readMonth(month), sum), NOTHING_SPENT)
 
-export const seen = (tally: Spend): number => tally.denied + tally.calls
-
 const pricedIn = (tally: Spend, prices: Prices): { read: Read; each: number }[] =>
   Object.entries(tally.byModel).flatMap(([model, read]) => {
     const each = prices.models[model]
@@ -242,14 +239,11 @@ const unpricedIn = (tally: Spend, prices: Prices): string[] =>
     )
 
 const bodyOf = (tally: Spend, prices: Prices, money: Money | undefined): string[] => {
-  if (seen(tally) < ENOUGH)
-    return [
-      `  ${many(tally.denied, "denied read")} and ${many(tally.calls, "delegation")}, and ${ENOUGH} of the two is where this starts to say anything`,
-    ]
   const unpriced = unpricedIn(tally, prices)
-  if (money === undefined)
-    return ["  no model here has a price, so this is tokens only:", ...unpriced]
-  return [...moneyIn(money), ...unpriced]
+  if (money !== undefined) return [...moneyIn(money), ...unpriced]
+  return unpriced.length === 0
+    ? ["  nothing was denied and nothing was read by ranges here, so there is nothing to compare"]
+    : ["  no model here has a price, so this is tokens only:", ...unpriced]
 }
 
 const rateIn = (tally: Spend, prices: Prices): string => {
@@ -299,7 +293,7 @@ export const report = (given: string | undefined): string => {
   const months = given === "all" ? monthsOf() : [given ?? monthKey()]
   const tally = tallyOver(months)
   const prices = readPrices()
-  const money = seen(tally) < ENOUGH ? undefined : moneyOf(tally, prices)
+  const money = moneyOf(tally, prices)
   const lines = [
     `ccsaver saved · ${spanOf(months)}`,
     "",

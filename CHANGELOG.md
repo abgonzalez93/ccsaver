@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.19.0 - 2026-09-20
+
+feat: saved draws the bars from the first denied read
+
+- the twenty-event floor is gone, and ENOUGH and seen() with it: the denied and delegated counts printed over the bars are the sample they rest on, and reading a thin one as thin is the reader's work, not a refusal the report makes for them
+- a month with no denied read and no ranged read has nothing to set side by side and says so where the bars would go, instead of a bar drawn from zero
+- docs/configuration.md and commands/saved.md drop the refusal and say there is no minimum
+
 ## 0.18.0 - 2026-09-20
 
 feat: the worker price carries the model it points at
