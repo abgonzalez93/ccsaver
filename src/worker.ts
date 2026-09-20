@@ -1,7 +1,7 @@
 // Portions of this file are adapted from a third-party Apache-2.0 work and were modified; see NOTICE.
 import { spawnSync } from "node:child_process"
 import { randomBytes } from "node:crypto"
-import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs"
+import { lstatSync, readFileSync, statSync, writeFileSync } from "node:fs"
 import { basename, dirname, join, relative, resolve } from "node:path"
 import { parseArgs } from "node:util"
 import { checked, risky, unwrapped } from "./answer.ts"
@@ -110,7 +110,8 @@ const targetIn = (root: string, given: string): string => {
   const wanted = resolve(given)
   const target = join(real(dirname(wanted)), basename(wanted))
   refuse(targetRefusal(target, root), given)
-  if (existsSync(target)) fail(`refusing to overwrite ${given}: move or delete it first`)
+  if (attempt(() => lstatSync(target)) !== undefined)
+    fail(`refusing to overwrite ${given}: move or delete it first`)
   return target
 }
 

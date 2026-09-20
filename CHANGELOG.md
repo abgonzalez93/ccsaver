@@ -4,6 +4,13 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.19.19 - 2026-09-20
+
+fix: a symlink already at the target is refused before anything is sent
+
+- targetIn asked existsSync, which follows a symlink: a link at the target pointing at a file that does not exist yet read as no file, so the files went to the worker and only the wx flag of the write refused it afterwards, with EEXIST
+- it asks lstatSync now, so a link at the target is an existing file wherever it points, and the refusal comes before the call, as the README promises for every refused target
+
 ## 0.19.18 - 2026-09-20
 
 fix: an adapter that cannot be read is an error, never read as absent

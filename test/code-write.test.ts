@@ -248,3 +248,17 @@ test("a control character in the target cannot repaint the terminal", async () =
   assert.match(out.stdout, /^wrote .*made\\x1b\[2J\.ts \(1 lines\)\n$/)
   assert.equal(readFileSync(target, "utf8"), "export const wiped = 1\n")
 })
+
+test("a symlink already at the target is refused before anything is sent, wherever it points", async () => {
+  const before = server.seen.length
+  const planted = join(OUTSIDE, "planted.ts")
+  const target = join(PROJECT, "dangling.ts")
+  symlinkSync(planted, target)
+  const out = await codeWrite(PROJECT, target)
+  assert.equal(out.code, 1)
+  assert.match(
+    out.stderr,
+    /^Error: refusing to overwrite .*dangling\.ts: move or delete it first$/m,
+  )
+  assert.deepEqual([existsSync(planted), server.seen.length], [false, before])
+})

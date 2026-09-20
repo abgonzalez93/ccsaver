@@ -60,7 +60,7 @@ Where it does not help:
   - So is any file that holds a private-key header, armoured or PGP, or a token with a well-known shape (AWS `AKIA…`, GitHub `ghp_…` and `github_pat_…`, GitLab `glpat-…`, npm `npm_…`, Slack `xoxb-…`, `sk-…` and `sk_…`/`rk_…` (OpenAI, Anthropic, Stripe), Google `AIza…`), whatever its name, and any binary file.
   - The list is a net, not a guarantee: a password pasted into `config.ts` goes out with it.
 - The state folder stays home: a call that names a file under `~/.config/ccsaver/` is refused before anything is sent, and the [event log](docs/events.md) in it is a local file that no code in ccsaver sends anywhere.
-- `code-write --target` never overwrites an existing file, only writes inside the plugged root (symlinked folders are followed first), and refuses the paths Claude Code itself protects: `.git`, `.claude`, `.vscode`, `.idea`, `.husky`, `.devcontainer`, `.cargo`, `.yarn`, `.mvn` and the shell, git and package-manager config files. A refused target stops the call before anything is sent.
+- `code-write --target` never overwrites an existing file (a symlink already at that path counts, wherever it points), only writes inside the plugged root (symlinked folders are followed first), and refuses the paths Claude Code itself protects: `.git`, `.claude`, `.vscode`, `.idea`, `.husky`, `.devcontainer`, `.cargo`, `.yarn`, `.mvn` and the shell, git and package-manager config files. A refused target stops the call before anything is sent.
 
 ## What the two permission rules grant
 
