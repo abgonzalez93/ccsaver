@@ -2,15 +2,8 @@ import { spawnSync } from "node:child_process"
 import { existsSync, mkdtempSync, readSync, rmSync, statSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import {
-  type Limits,
-  limitsFor,
-  plug,
-  readPlugged,
-  readWorker,
-  type Worker,
-  writeLimits,
-} from "./config.ts"
+import { type Limits, limitsFor, plug, readPlugged, writeLimits } from "./config.ts"
+import { readWorker, type Worker } from "./endpoint.ts"
 import { logDir, logFile, numberAt, type Rows, readEvents, record } from "./log.ts"
 import {
   adaptersDir,

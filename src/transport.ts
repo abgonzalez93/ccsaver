@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process"
 import { writeSync } from "node:fs"
 import { tmpdir } from "node:os"
 import type { Tally } from "./answer.ts"
-import type { Worker } from "./config.ts"
+import type { Worker } from "./endpoint.ts"
 import { record } from "./log.ts"
 import {
   attempt,

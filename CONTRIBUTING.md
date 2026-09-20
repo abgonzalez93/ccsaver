@@ -2,7 +2,7 @@
 
 The rules of this repository, for a person or a model. The [README](README.md) and the pages it links under [docs/](docs/) say what ccsaver does; this file says how its code is written.
 
-Each rule names its **guard**: the compiler switch (`tsconfig.json`), the Biome rule (`biome.json`) or the test that goes red when the rule is broken. A rule that no tool checks says *convention*: the reviewer is the guard. Examples cite a file and a symbol, like `src/config.ts` · `readWorker`, and `test/conventions.test.ts` fails when that symbol is gone.
+Each rule names its **guard**: the compiler switch (`tsconfig.json`), the Biome rule (`biome.json`) or the test that goes red when the rule is broken. A rule that no tool checks says *convention*: the reviewer is the guard. Examples cite a file and a symbol, like `src/endpoint.ts` · `readWorker`, and `test/conventions.test.ts` fails when that symbol is gone.
 
 ## The gate
 
@@ -20,7 +20,7 @@ Guard: `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noPr
 ```ts
 // ❌ an optional field assigned undefined
 return { url, model, claude: claude || undefined }
-// ✅ `src/config.ts` · `readWorker`: the field is there or it is not
+// ✅ `src/endpoint.ts` · `readWorker`: the field is there or it is not
 return { url, model, ...(claude ? { claude } : {}) }
 ```
 
@@ -30,7 +30,7 @@ Guard: Biome `noExplicitAny`, `noEvolvingTypes`, `noNonNullAssertion`; `as` by `
 ```ts
 // ❌ blesses whatever the file holds
 const worker = JSON.parse(text) as Worker
-// ✅ `src/config.ts` · `readWorker`: unknown in, checked fields out
+// ✅ `src/endpoint.ts` · `readWorker`: unknown in, checked fields out
 const raw = parsed(text)
 const { url, model } = isRecord(raw) ? raw : {}
 if (typeof url !== "string" || typeof model !== "string") throw new Refusal(`${workerFile()} is malformed`)
@@ -67,27 +67,28 @@ Guard: `noUnusedLocals`, `noUnusedParameters`, Biome `noUnusedImports`, `noUnuse
 **1.7 PREFER a function a reader holds in their head: cognitive complexity 15 or less.**
 Guard: *convention*, measured with `pnpm exec biome lint --only=complexity/noExcessiveCognitiveComplexity src test`. Nothing in `src` or `test` is over it. The last one that was, the field-by-field guard `adapterOf` in `src/config.ts` (18), came under by splitting the rejecting from the building: `fieldsHold` says whether the fields hold, `adapterOf` builds from them. A new function over 15 is split before it lands; three that resist put the rule in `biome.json` as an error.
 
-**1.8 ALWAYS keep every file readable whole under this project's own gate: 350 lines and 32 KB.** A file splits by responsibility before it gets there, the way `worker.ts` gave birth to `boundary.ts`, `answer.ts` and `transport.ts`. Two files are excused, in `UNREAD_WHOLE`: `pnpm-lock.yaml`, and `CHANGELOG.md`, which grows by one section per commit and is read from the top. Splitting either one buys nothing, because neither holds a responsibility that could move; ccsaver's own hook answers a whole-file `Read` of them with Grep or a range, which is how they are read anyway.
+**1.8 ALWAYS keep every file readable whole under this project's own gate: 350 lines and 32 KB.** A file splits by responsibility before it gets there, the way `worker.ts` gave birth to `boundary.ts`, `answer.ts` and `transport.ts`, and `config.ts` to `endpoint.ts`: what goes is what the hook never reads, because every line left in a file the hook imports is parsed on every `Read` (4.4). Two files are excused, in `UNREAD_WHOLE`: `pnpm-lock.yaml`, and `CHANGELOG.md`, which grows by one section per commit and is read from the top. Splitting either one buys nothing, because neither holds a responsibility that could move; ccsaver's own hook answers a whole-file `Read` of them with Grep or a range, which is how they are read anyway.
 Guard: `test/conventions.test.ts`.
 
 ## 2. Architecture
 
-**2.1 ALWAYS respect the map.** Thirteen files, one reason to change each, arrows that never turn back.
+**2.1 ALWAYS respect the map.** Fourteen files, one reason to change each, arrows that never turn back.
 
 | File | Owns | Imports |
 | --- | --- | --- |
 | `src/state.ts` | the state folder, the key, the guards, what a terminal may be shown (`scrubbed`, `tinted`), `Refusal` | `node:` only |
 | `src/log.ts` | the event log, its switch and its reader | `state` |
-| `src/config.ts` | what the user configured: the plugged roots, the adapters, the worker, and how a file is weighed against a limit | `log`, `state` |
+| `src/config.ts` | what the user configured: the plugged roots, the adapters, and how a file is weighed against a limit | `log`, `state` |
+| `src/endpoint.ts` | `worker.json`: the url, the model, the pinned binary and the fallback switch | `log`, `state` |
 | `src/survey.ts` | how long a project's files are, and what limit that asks for | `config`, `state` |
 | `src/answer.ts` | pure text work on the worker's answer | nothing |
 | `src/boundary.ts` | what may leave the machine | `state` |
-| `src/transport.ts` | the two ways out: `fetch` to the worker, spawn of the fallback | `config`, `log`, `state`, the `Tally` type of `answer` |
-| `src/worker.ts` | the `bulk-read` and `code-write` flows | `answer`, `boundary`, `config`, `log`, `state`, `transport` |
+| `src/transport.ts` | the two ways out: `fetch` to the worker, spawn of the fallback | `log`, `state`, the `Worker` type of `endpoint`, the `Tally` type of `answer` |
+| `src/worker.ts` | the `bulk-read` and `code-write` flows | `answer`, `boundary`, `config`, `endpoint`, `log`, `state`, `transport` |
 | `src/prices.ts` | `prices.json`: one price per model, one for the worker | `log`, `state` |
 | `src/saved.ts` | what the log says it cost, and what it would have cost | `config`, `log`, `prices`, `state` |
-| `src/doctor.ts` | every check `doctor` runs and the level each one reports | `config`, `log`, `state`, `survey`, `transport` |
-| `src/cli.ts` | arguments and the exit code | `config`, `doctor`, `log`, `prices`, `saved`, `state`, `survey`, `transport`, `worker` |
+| `src/doctor.ts` | every check `doctor` runs and the level each one reports | `config`, `endpoint`, `log`, `state`, `survey`, `transport` |
+| `src/cli.ts` | arguments and the exit code | `config`, `doctor`, `endpoint`, `log`, `prices`, `saved`, `state`, `survey`, `transport`, `worker` |
 | `src/hook.ts` | the `Read` gate | `config`, `log`, `state` |
 
 Guard: Biome `noImportCycles`, which is why the log cannot live in `src/state.ts`: it needs `stateHome` and the stored key, and every command that records a `config` event would then point back at it. The import list of `src/hook.ts` is pinned by `test/conventions.test.ts`, because it is the start-up cost of every `Read` (4.4).
@@ -119,7 +120,7 @@ export const invokeExternal = async (mode: string, system: string, message: stri
 
 Guard: *convention*. Revisit when a test needs to replace something that no parameter, variable or state file reaches, or when a seam gets a second implementation.
 
-**2.5 PREFER the flat `src/`.** It holds 13 files and about 2,400 lines. Folders and layers earn their place past 15 files or 3,000 lines; until then a new concept is a new file on the map of 2.1.
+**2.5 PREFER the flat `src/`.** It holds 14 files and about 2,500 lines. Folders and layers earn their place past 15 files or 3,000 lines; until then a new concept is a new file on the map of 2.1.
 Guard: *convention*.
 
 ## 3. Robustness

@@ -11,16 +11,8 @@ import {
 } from "node:fs"
 import { join } from "node:path"
 import { after, test } from "node:test"
-import {
-  loadAdapter,
-  plug,
-  pluggedRootOf,
-  readPlugged,
-  readWorker,
-  setFallback,
-  unplug,
-  writeWorker,
-} from "../src/config.ts"
+import { loadAdapter, plug, pluggedRootOf, readPlugged, unplug } from "../src/config.ts"
+import { readWorker, setFallback, writeWorker } from "../src/endpoint.ts"
 import { isEncrypted, messageOf, Refusal } from "../src/state.ts"
 import { tempDir } from "./helpers.ts"
 

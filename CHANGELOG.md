@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.19.11 - 2026-09-20
+
+refactor: worker.json leaves config.ts for endpoint.ts
+
+- config.ts owned the plugged roots, the adapters, how a file is weighed and the endpoint, and stood at 309 of the 350 lines this project's own gate allows
+- what left is what the hook never imports: readWorker, writeWorker, setFallback, setClaude and the Worker type, so config.ts is 220 lines and the hook's import list is untouched
+- measured paired, two rounds of 30 runs each: 30.1 and 30.4 ms whole against 31.4 and 30.0 ms split, which is free rather than faster, and docs/measurements.md says so
+
 ## 0.19.10 - 2026-09-20
 
 refactor: one painter for doctor and for saved

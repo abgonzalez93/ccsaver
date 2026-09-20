@@ -6,13 +6,11 @@ import {
   limitsFor,
   plug,
   readPlugged,
-  setClaude,
-  setFallback,
   unplug,
   writeLimits,
-  writeWorker,
 } from "./config.ts"
 import { doctor } from "./doctor.ts"
+import { setClaude, setFallback, writeWorker } from "./endpoint.ts"
 import { crashed, MONTH, record, setLog } from "./log.ts"
 import { listedPrices, MODEL_NAME, readPrices, shownPrices, WORKER, writePrice } from "./prices.ts"
 import { report } from "./saved.ts"
