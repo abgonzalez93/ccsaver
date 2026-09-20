@@ -18,6 +18,7 @@ import {
   inColour,
   isEncrypted,
   keyFile,
+  keyIsCarriable,
   keyIsStored,
   messageOf,
   pluggedFile,
@@ -127,6 +128,17 @@ const probe = async (url: string, model: string, key: string): Promise<Finding> 
   }
 }
 
+const keyFault = (key: string | undefined): Finding => {
+  if (key !== undefined)
+    return {
+      level: "FAIL",
+      text: `key: ${keyFile()} holds a character no HTTP header can carry, so no request was made: run ccsaver key set`,
+    }
+  return keyIsStored()
+    ? { level: "FAIL", text: `key: ${keyFile()} cannot be read: check its owner and its mode` }
+    : { level: "FAIL", text: "key: missing, run: ccsaver key set" }
+}
+
 const external = async (worker: Worker | undefined): Promise<Finding[]> => {
   if (worker === undefined)
     return [{ level: "warn", text: "worker: not configured, every delegation uses the fallback" }]
@@ -136,13 +148,7 @@ const external = async (worker: Worker | undefined): Promise<Finding[]> => {
     text: `worker: ${shown(worker.url)} · ${worker.model}`,
   }
   const key = readKey()
-  if (key === undefined)
-    return [
-      configured,
-      keyIsStored()
-        ? { level: "FAIL", text: `key: ${keyFile()} cannot be read: check its owner and its mode` }
-        : { level: "FAIL", text: "key: missing, run: ccsaver key set" },
-    ]
+  if (key === undefined || !keyIsCarriable(key)) return [configured, keyFault(key)]
   return [
     configured,
     permissions("key", keyFile(), 0o600),

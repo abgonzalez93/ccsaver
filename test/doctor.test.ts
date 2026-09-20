@@ -245,6 +245,21 @@ test("doctor tells a key it cannot read from a key that is not there", async () 
   assert.equal(out.stdout.includes("key: missing"), false)
 })
 
+test("doctor names a key no HTTP header can carry, never the host as unreachable", async () => {
+  const home = join(WORK, "bent-home")
+  writeHome(home, {
+    worker: { url: server.url, model: "cheap-1" },
+    key: "k-pasted\u201d-0123456789",
+  })
+  const before = server.seen.length
+  const out = await ccsaver(["doctor"], "", { CCSAVER_HOME: home })
+  assert.equal(out.code, 1)
+  assert.match(out.stdout, /^FAIL key: .*api-key holds a character no HTTP header can carry/m)
+  assert.equal(out.stdout.includes("unreachable"), false)
+  assert.equal(out.stdout.includes("probe:"), false)
+  assert.equal(server.seen.length, before)
+})
+
 test("doctor on a machine with no state only warns, and creates nothing", async () => {
   const home = join(WORK, "no-home")
   const out = await ccsaver(["doctor"], "", { CCSAVER_HOME: home })

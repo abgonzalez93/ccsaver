@@ -179,6 +179,24 @@ test("a key that cannot be read is named, never taken for a key that was never s
   assert.match(out.stdout, /FROM-CLAUDE/)
 })
 
+test("a key no HTTP header can carry is named, and the request is never made", async () => {
+  const bent = join(WORK, "home-bent")
+  writeHome(bent, {
+    plugged: PLUGGED,
+    worker: { url: server.url, model: "cheap-1" },
+    key: "k-pasted\u201d-0123456789",
+  })
+  const before = server.seen.length
+  const out = await bulkRead(SOURCE, { CCSAVER_HOME: bent })
+  assert.match(
+    out.stderr,
+    /^\[ccsaver: .*api-key holds a character no HTTP header can carry.*falling back\]$/m,
+  )
+  assert.equal(out.stderr.includes("unreachable"), false)
+  assert.equal(server.seen.length, before)
+  assert.match(out.stdout, /FROM-CLAUDE/)
+})
+
 test("tells a timeout from a dead port and from a body that is not JSON", async () => {
   const hung = createServer(() => {})
   await new Promise<void>((ready) => {

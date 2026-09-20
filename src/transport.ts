@@ -10,6 +10,7 @@ import {
   isEncrypted,
   isRecord,
   keyFile,
+  keyIsCarriable,
   keyIsStored,
   messageOf,
   parsed,
@@ -238,7 +239,12 @@ const gaveNothing = (model: string, response: Response, raw: unknown): void => {
   )
 }
 
-const keyless = (): { fell: string; said: string } => {
+const keyTrouble = (key: string | undefined): { fell: string; said: string } => {
+  if (key !== undefined)
+    return {
+      fell: "key malformed",
+      said: `${keyFile()} holds a character no HTTP header can carry, a line break or an accent that came with a paste (ccsaver key set)`,
+    }
   const unreadable = keyIsStored()
   return {
     fell: unreadable ? "key unreadable" : "no key",
@@ -259,8 +265,8 @@ export const invokeExternal = async (
     return undefined
   }
   const key = readKey()
-  if (key === undefined) {
-    const { fell, said } = keyless()
+  if (key === undefined || !keyIsCarriable(key)) {
+    const { fell, said } = keyTrouble(key)
     delegation.fell = fell
     note(`${said}, falling back`)
     return undefined

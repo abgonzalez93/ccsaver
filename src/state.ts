@@ -13,6 +13,7 @@ import { join, resolve } from "node:path"
 const SECRET_PLACE =
   /(^|\/)(\.?secrets?|\.ssh|\.aws|\.gnupg|\.kube|\.git)(\/|$)|(^|\/)\.docker\/config\.json$/i
 const LOCAL_HOSTS = ["127.0.0.1", "localhost", "[::1]"]
+const CARRIABLE = /^[\x20-\x7e]+$/
 
 let secret: string | undefined
 
@@ -60,6 +61,8 @@ export const readKey = (): string | undefined => {
 export const storedKey = (): string | undefined => secret ?? readKey()
 
 export const keyIsStored = (): boolean => existsSync(keyFile())
+
+export const keyIsCarriable = (key: string): boolean => CARRIABLE.test(key)
 
 export const pluggedFile = (): string => join(stateHome(), "plugged")
 
