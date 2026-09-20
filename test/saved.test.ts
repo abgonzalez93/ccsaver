@@ -116,12 +116,18 @@ test("an unpriced worker costs nothing rather than stopping the sum", () => {
   assert.equal(paid.used.low - free.used.low, 0.5)
 })
 
-test("twenty events is where it starts to judge, and under it says how many there are", async () => {
-  const thin = homeWith("thin", [[denial(40_000), denial(40_000)]])
+test("under twenty it names the two things it counts, not a total of log lines", async () => {
+  const thin = homeWith("thin", [
+    [denial(40_000), denial(40_000), { kind: "delegate", answered: "external", chars: 4_000 }],
+  ])
   await priced(thin, ["main", "3"])
   const out = await saved(thin)
   assert.equal(out.code, 0)
-  assert.match(out.stdout, /2 events here, and 20 is where this starts to say anything/)
+  assert.match(
+    out.stdout,
+    /2 denied reads and 1 delegation, and 20 of the two is where this starts to say anything/,
+  )
+  assert.doesNotMatch(out.stdout, /events here/)
   assert.doesNotMatch(out.stdout, /^ {2}without {4}\$/m)
   assert.equal(seen({ ...NOTHING_SPENT, denied: 19, calls: 1 }), 20)
 })

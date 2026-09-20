@@ -207,7 +207,9 @@ const moneyIn = (money: Money): string[] => {
 
 const thinIn = (tally: Spend): string[] =>
   seen(tally) < ENOUGH
-    ? [`  ${seen(tally)} events here, and ${ENOUGH} is where this starts to say anything`]
+    ? [
+        `  ${many(tally.denied, "denied read")} and ${many(tally.calls, "delegation")}, and ${ENOUGH} of the two is where this starts to say anything`,
+      ]
     : ["  no price is set, so this is tokens only: ccsaver price main <usd per million>"]
 
 const pricedIn = (prices: Prices): string[] =>

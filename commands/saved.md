@@ -28,4 +28,4 @@ Ask the user for both rather than guessing: a price you invent makes every figur
 
 `the log is off` means there is nothing to add up. `ccsaver log on` starts recording, metadata only and on this machine alone ([what it holds](../docs/events.md)) — and say that it records from that moment, so there is nothing to read until the plugin has done some work.
 
-Under twenty events it refuses to judge, and that refusal is the honest answer: report it as "too early to tell", not as a failure.
+Under twenty it refuses to judge, and that refusal is the honest answer: report it as "too early to tell", not as a failure. The twenty are denied reads plus delegations, not log lines, so a busy month can still be under it.

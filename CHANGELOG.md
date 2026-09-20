@@ -4,6 +4,13 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.13.8 - 2026-09-20
+
+fix: under twenty, saved names the two things it counts
+
+- it said "8 events here" directly under three lines showing 5 denied reads, 63 ranged reads and 3 delegations, and "events" is the word docs/events.md uses for log lines, of which that month had 345
+- the twenty are denied reads plus delegations, the two sides of the comparison; the line says so now
+
 ## 0.13.7 - 2026-09-20
 
 refactor: said is transport's own, not an export nobody imports
