@@ -178,6 +178,14 @@ test("a line over 4,000 bytes is replaced by a stub that keeps its size", async 
   assert.equal(logged(HOME).includes("xxxx"), false)
 })
 
+test("a session id from outside cannot grow a line past the cap the stub is there for", async () => {
+  const before = logged(HOME).length
+  await hook({ session_id: "S".repeat(9000), ...WHOLE })
+  const written = logged(HOME).slice(before)
+  assert.ok(Buffer.byteLength(written) < 4096, String(Buffer.byteLength(written)))
+  assert.equal(String(events(HOME).at(-1)?.["session"]).length, 200)
+})
+
 test("a stored key under 8 characters is left alone, so unrelated text survives", async () => {
   assert.equal((await ccsaver(["key", "set"], "k-1234\n")).code, 0)
   assert.equal((await ccsaver(["worker", "set", server.url, "k-1234"])).code, 0)

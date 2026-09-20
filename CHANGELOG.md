@@ -4,6 +4,13 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.12.3 - 2026-09-20
+
+fix: a long session id no longer defeats the 4,000-byte log line
+
+- a line past the cap is replaced by a stub, but the stub keeps the head, and session was the one field of that head coming from outside: a session id of 9,000 characters wrote a 9,094-byte line, over the 4,096 that keeps two appends from tearing each other
+- sessionOf cuts it at 200 characters, which bounds the stub by construction whatever the hook is handed on its stdin
+
 ## 0.12.2 - 2026-09-20
 
 fix: a log that cannot be read stops the count instead of reporting zero

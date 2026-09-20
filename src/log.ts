@@ -7,6 +7,7 @@ export type Rows = Record<PropertyKey, unknown>[]
 const LOG_VERSION = 1
 const LOG_LINE_BYTES = 4000
 const SCRUB_FROM = 8
+const SESSION_CHARS = 200
 const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/
 
 export const logDir = (): string => join(stateHome(), "log")
@@ -15,6 +16,11 @@ export const monthKey = (now = new Date()): string => now.toISOString().slice(0,
 
 export const logFile = (now = new Date()): string => join(logDir(), `events-${monthKey(now)}.jsonl`)
 
+const sessionOf = (given: unknown): string | null => {
+  const text = typeof given === "string" ? given : process.env["CLAUDE_CODE_SESSION_ID"] || null
+  return text === null ? null : text.slice(0, SESSION_CHARS)
+}
+
 export const record = (kind: string, fields: Record<string, unknown>, session?: unknown): void => {
   try {
     const now = new Date()
@@ -22,8 +28,7 @@ export const record = (kind: string, fields: Record<string, unknown>, session?: 
       v: LOG_VERSION,
       ts: now.toISOString(),
       kind,
-      session:
-        typeof session === "string" ? session : process.env["CLAUDE_CODE_SESSION_ID"] || null,
+      session: sessionOf(session),
       pid: process.pid,
     }
     const full = JSON.stringify({ ...head, ...fields })
