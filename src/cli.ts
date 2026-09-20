@@ -103,7 +103,7 @@ const COMMANDS: Record<string, Command> = {
     return 0
   },
   unplug: atMost(1, ([first]) => {
-    if (first === undefined) return undefined
+    if (!first) return undefined
     say(unplug(first) ? `unplugged ${first}\n` : `${first} was not plugged\n`)
     return 0
   }),

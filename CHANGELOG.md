@@ -4,6 +4,13 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.19.20 - 2026-09-20
+
+fix: unplug with an empty name prints its usage line instead of unplugging the working directory
+
+- resolve("") is the working directory, so ccsaver unplug "" unplugged the folder the command ran in and printed "unplugged " with no name
+- an empty name is now the same as no name: the usage line of unplug on stderr and exit 1
+
 ## 0.19.19 - 2026-09-20
 
 fix: a symlink already at the target is refused before anything is sent
