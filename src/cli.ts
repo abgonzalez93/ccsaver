@@ -157,9 +157,11 @@ const main = async (): Promise<number> => {
     return 0
   }
   const only = usageFor(command)
+  const wrong = only.length === 0 ? "unknown command" : "wrong arguments"
   const said =
-    only.length === 0 ? `unknown command: ${command}\n${USAGE}` : `${HEAD}\n\n${only.join("\n")}\n`
+    only.length === 0 ? `${wrong}: ${command}\n${USAGE}` : `${HEAD}\n\n${only.join("\n")}\n`
   process.stderr.write(scrubbed(said))
+  record("fail", { text: `${wrong}: ${command}` })
   return 1
 }
 

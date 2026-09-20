@@ -245,6 +245,21 @@ test("doctor counts the month's denied reads and leaves its own probe out of the
   rmSync(fresh, { recursive: true, force: true })
 })
 
+test("a command line that goes nowhere leaves a fail, and says which kind", async () => {
+  const before = events(HOME).length
+  assert.equal((await ccsaver(["frobnicate"])).code, 1)
+  assert.equal((await ccsaver(["worker", "claude"])).code, 1)
+  assert.deepEqual(
+    events(HOME)
+      .slice(before)
+      .map(({ kind, text }) => [kind, text]),
+    [
+      ["fail", "unknown command: frobnicate"],
+      ["fail", "wrong arguments: worker"],
+    ],
+  )
+})
+
 test("doctor says nothing about denied reads while the log is off", async () => {
   const quiet = tempDir("events-quiet")
   writeHome(quiet, { plugged: [[PROJECT]] })

@@ -4,6 +4,16 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.10.0 - 2026-09-20
+
+feat: a mistake on the command line leaves a fail in the log
+
+- docs/events.md already promised that a mistake on the command line is a `fail`; it was true for the seventeen Refusals and false for every command that fell through to the usage, which recorded nothing at all
+- the row says which kind: `unknown command: frobnicate` against `wrong arguments: worker`, so the log tells a typo from a command called with the wrong shape
+- the text goes through JSON.stringify on its way to the file, so a control character in it is escaped there without a second scrub
+- a new test in events.test.ts walks both paths and pins the two texts in order
+- docs/events.md names the two cases it was already covering in spirit
+
 ## 0.9.20 - 2026-09-20
 
 fix: the refusals that hid the value they rejected now print it
