@@ -262,3 +262,14 @@ test("a symlink already at the target is refused before anything is sent, wherev
   )
   assert.deepEqual([existsSync(planted), server.seen.length], [false, before])
 })
+
+test("a target that climbs out through .. or names a folder is refused, and nothing is sent", async () => {
+  const before = server.seen.length
+  const climbed = await codeWrite(PROJECT, `${PROJECT}/src/../../escaped.ts`)
+  assert.equal(climbed.code, 1)
+  assert.match(climbed.stderr, /^Error: refusing to write outside the plugged project/)
+  const folder = await codeWrite(PROJECT, PROJECT)
+  assert.equal(folder.code, 1)
+  assert.match(folder.stderr, /^Error: refusing to overwrite /)
+  assert.deepEqual([existsSync(join(WORK, "escaped.ts")), server.seen.length], [false, before])
+})

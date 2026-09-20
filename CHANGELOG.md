@@ -4,6 +4,16 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.19.21 - 2026-09-20
+
+test: the edges of the gate, the target and the worker's answer are pinned
+
+- the hook: a last line without its newline counts as a line, an empty file passes, a symlink is judged by what it points at, and without CLAUDE_PROJECT_DIR the working directory decides
+- the arithmetic behind the limits: linesIn counts the way Read numbers lines, CRLF included, and tokensIn rounds half up, 32,001 bytes to 8,000 tokens
+- scrubbed escapes a carriage return, a C1 control and a NUL, and leaves the line break and the tab alone
+- an external answer with no text in it, an empty string, parts without text, no choices or a null body, is no answer and falls back saying so
+- a code-write target that climbs out through .. or names a folder is refused with nothing sent, and with the fallback off a worker that fails leaves no target behind
+
 ## 0.19.20 - 2026-09-20
 
 fix: unplug with an empty name prints its usage line instead of unplugging the working directory

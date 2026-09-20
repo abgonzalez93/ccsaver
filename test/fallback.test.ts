@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { mkdirSync, rmSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { after, before, beforeEach, test } from "node:test"
 import { troubleOf } from "../src/transport.ts"
@@ -187,4 +187,15 @@ test("the fallback names the cause it used to hide behind spawnSync", () => {
   assert.equal(troubleOf(ran("EPIPE")), undefined)
   assert.equal(troubleOf(ran("ETIMEDOUT")), "fallback worker timed out after 85 s")
   assert.equal(troubleOf(ran("ENOENT")), "fallback worker could not run: spawnSync claude ENOENT")
+})
+
+test("with the fallback off, a code-write the worker cannot take leaves no target behind", async () => {
+  server.reply.status = 429
+  const target = join(PROJECT, "never.ts")
+  const out = await cli(
+    ["code-write", "--project", PROJECT, "--spec=s", "--reference", SOURCE, "--target", target],
+    { CCSAVER_HOME: OFF_HOME },
+  )
+  assert.deepEqual([out.code, out.stdout, existsSync(target)], [1, "", false])
+  assert.match(out.stderr, /^Error: the worker gave no answer \(status\) and the fallback is off/m)
 })

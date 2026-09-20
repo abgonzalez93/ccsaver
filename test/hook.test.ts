@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { spawnSync } from "node:child_process"
-import { mkdirSync, rmSync, truncateSync, writeFileSync } from "node:fs"
+import { mkdirSync, rmSync, symlinkSync, truncateSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { after, test } from "node:test"
 import { HOOK, type Ran, run, tempDir, writeHome } from "./helpers.ts"
@@ -143,4 +143,27 @@ test("a Read of what is no regular file is let through at once, never waited on"
   const made = spawnSync("mkfifo", [pipe]).status === 0
   assert.equal(await denied({ tool_input: { file_path: WORK } }), false)
   if (made) assert.equal(await denied({ tool_input: { file_path: pipe } }), false)
+})
+
+test("a last line without its newline counts, an empty file passes, and a symlink is judged by its target", async () => {
+  const bare = join(WORK, "bare.txt")
+  const partial = join(WORK, "partial.txt")
+  const empty = join(WORK, "empty.txt")
+  const alias = join(WORK, "alias.txt")
+  writeFileSync(bare, "x\n".repeat(350).slice(0, -1))
+  writeFileSync(partial, `${"x\n".repeat(350)}x`)
+  writeFileSync(empty, "")
+  symlinkSync(LONG, alias)
+  assert.equal(await denied({ tool_input: { file_path: bare } }), false)
+  assert.equal(await denied({ tool_input: { file_path: partial } }), true)
+  assert.equal(await denied({ tool_input: { file_path: empty } }), false)
+  assert.equal(await denied({ tool_input: { file_path: alias } }), true)
+})
+
+test("without CLAUDE_PROJECT_DIR the hook judges from the working directory", async () => {
+  const env = { CCSAVER_HOME: HOME, CLAUDE_PROJECT_DIR: "" }
+  const input = JSON.stringify({ tool_input: { file_path: LONG } })
+  const here = await run("node", [HOOK], env, input, PROJECT)
+  assert.match(here.stdout, /"permissionDecision":"deny"/)
+  assert.equal((await run("node", [HOOK], env, input, UNPLUGGED)).stdout, "")
 })

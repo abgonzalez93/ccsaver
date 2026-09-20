@@ -220,3 +220,22 @@ test("tells a timeout from a dead port and from a body that is not JSON", async 
     ["timeout", "unreachable", "not json"],
   )
 })
+
+test("an answer with no text in it is no answer, and falls back saying so", async () => {
+  const bodies = [
+    JSON.stringify({ choices: [{ message: { content: "" }, finish_reason: "stop" }] }),
+    JSON.stringify({ choices: [{ message: { content: [{ type: "reasoning", text: 7 }] } }] }),
+    JSON.stringify({ choices: [] }),
+    "null",
+  ]
+  for (const raw of bodies) {
+    server.reply.raw = raw
+    const out = await bulkRead(SOURCE)
+    assert.match(out.stdout, /FROM-CLAUDE/, raw)
+    assert.match(
+      out.stderr,
+      /^\[ccsaver: cheap-1 answered 200 without a complete result, falling back\]$/m,
+      raw,
+    )
+  }
+})

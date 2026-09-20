@@ -12,15 +12,17 @@ import {
 import { join } from "node:path"
 import { after, test } from "node:test"
 import {
+  linesIn,
   loadAdapter,
   plug,
   pluggedRootOf,
   readPlugged,
+  tokensIn,
   unplug,
   writeLimits,
 } from "../src/config.ts"
 import { readWorker, setFallback, writeWorker } from "../src/endpoint.ts"
-import { isEncrypted, messageOf, Refusal } from "../src/state.ts"
+import { isEncrypted, messageOf, Refusal, scrubbed } from "../src/state.ts"
 import { tempDir } from "./helpers.ts"
 
 const AS_ROOT = process.getuid?.() === 0
@@ -252,4 +254,20 @@ test("an adapter that is there but cannot be read is an error, never read as abs
   chmodSync(mine, 0o600)
   assert.equal(readFileSync(mine, "utf8"), kept)
   rmSync(mine)
+})
+
+test("lines are counted the way Read numbers them, and bytes/4 rounds half up", () => {
+  const texts = ["", "x", "x\n", "\n", "x\nx", "a\r\nb\r\n", "\n\n"]
+  assert.deepEqual(
+    texts.map((text) => linesIn(Buffer.from(text))),
+    [0, 1, 1, 1, 2, 2, 2],
+  )
+  assert.deepEqual(
+    [0, 1, 2, 3, 32_000, 32_001, 32_002].map(tokensIn),
+    [0, 0, 1, 1, 8000, 8000, 8001],
+  )
+})
+
+test("scrubbed escapes every control character but the line break and the tab", () => {
+  assert.equal(scrubbed("a\rb\u009bc\u0000d\ne\tf"), "a\\x0db\\x9bc\\x00d\ne\tf")
 })
