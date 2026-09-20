@@ -16,7 +16,7 @@ ccsaver worker claude ~/.local/bin/claude   # optional: pin the binary the fallb
 
 Any OpenAI-compatible chat completions endpoint works.
 
-- The URL must be `https`, or point at `localhost`, `127.0.0.1` or `[::1]`.
+- The URL must be `https`, or `http` to `localhost`, `127.0.0.1` or `[::1]`. Any other scheme is refused as you set it, because `fetch` cannot use one: a stored `ftp://localhost/…` would have sent every call to the paid fallback under a message that blamed the host.
 - A url that carries a user name or a password (`https://me:token@…`) is refused as you set it. `fetch` rejects one outright, so every call would have fallen through to the paid worker and `doctor` would have reported the host as unreachable.
 - A query string is kept, because some endpoints need one, and never printed: `worker set`, `doctor` and a failing probe show the origin and the path only, so a key a provider suggests passing as `?key=…` stays out of the session's context.
 - A redirect from the worker counts as a failure, never followed with your file in hand.

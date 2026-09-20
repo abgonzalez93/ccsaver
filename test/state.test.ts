@@ -151,10 +151,17 @@ test("the worker url must be encrypted and the pinned fallback survives a new wo
     ["http://[::1]:8080/v1", "http://localhost/v1", "http://127.0.0.1/v1"].map(isEncrypted),
     [true, true, true],
   )
-  assert.deepEqual(["http://[::2]/v1", "http://example.invalid/v1"].map(isEncrypted), [
-    false,
-    false,
-  ])
+  assert.deepEqual(
+    [
+      "http://[::2]/v1",
+      "http://example.invalid/v1",
+      "ftp://localhost/v1",
+      "ws://127.0.0.1/v1",
+      "file://localhost/v1",
+    ].map(isEncrypted),
+    [false, false, false, false, false],
+  )
+  assert.throws(() => writeWorker("ftp://localhost/v1", "m"), /https/)
   writeFileSync(
     join(HOME, "worker.json"),
     JSON.stringify({ url: "https://a.invalid", model: "a", claude: "/opt/claude" }),

@@ -80,7 +80,11 @@ export const isUnder = (path: string, root: string): boolean =>
 
 export const isEncrypted = (url: string): boolean => {
   const parts = attempt(() => new URL(url))
-  return parts?.protocol === "https:" || LOCAL_HOSTS.includes(parts?.hostname ?? "")
+  if (parts === undefined) return false
+  return (
+    parts.protocol === "https:" ||
+    (parts.protocol === "http:" && LOCAL_HOSTS.includes(parts.hostname))
+  )
 }
 
 export const writePrivate = (path: string, text: string): void => {

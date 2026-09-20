@@ -4,6 +4,13 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.12.4 - 2026-09-20
+
+fix: a worker url is https, or http to a local host, and no other scheme
+
+- isEncrypted only asked the host on the second branch, so ftp://localhost and ws://127.0.0.1 were stored as workers: fetch cannot use either, so every call fell to the paid Haiku under a note that blamed the host
+- the key never travelled, because fetch refuses the scheme before it sends, but doctor reported a url that was never valid as one that was unreachable
+
 ## 0.12.3 - 2026-09-20
 
 fix: a long session id no longer defeats the 4,000-byte log line
