@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.9.6 - 2026-09-20
+
+fix: ccsaver adapter refuses a pair it would otherwise cut in half
+
+- maxLines=400=oops was taken as 400, because split("=") dropped everything after the second field
+- the guard that checked it also carried a condition that could never be true inside a filter, given.length === 0, already checked on the line below
+- a command now takes the rest of the argument list instead of three fixed slots, so adapter stops reaching into process.argv behind the type that describes it
+
 ## 0.9.5 - 2026-09-20
 
 refactor: doctor reads the month's log once, through the file that owns it

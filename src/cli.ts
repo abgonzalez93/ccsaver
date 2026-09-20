@@ -44,10 +44,10 @@ const LIMIT_KEYS = ["maxLines", "maxTokens"] as const
 const limitsGiven = (pairs: string[]): Partial<Limits> => {
   const given = pairs.map((pair) => pair.split("="))
   const wrong = given.filter(
-    ([key, value]) =>
+    ([key, value, extra]) =>
       !LIMIT_KEYS.some((known) => known === key) ||
-      !/^[1-9][0-9]*$/.test(value ?? "") ||
-      given.length === 0,
+      extra !== undefined ||
+      !/^[1-9][0-9]*$/.test(value ?? ""),
   )
   if (wrong.length > 0 || given.length === 0)
     throw new Refusal(`usage: ccsaver adapter <name> ${LIMIT_KEYS.join("=<n> ")}=<n>`)
@@ -61,11 +61,7 @@ const version = (): string => {
 
 type Outcome = number | undefined
 
-type Command = (
-  first: string | undefined,
-  second: string | undefined,
-  third: string | undefined,
-) => Outcome
+type Command = (rest: string[]) => Outcome
 
 const printVersion: Command = (): Outcome => {
   process.stdout.write(`${version()}\n`)
@@ -73,7 +69,7 @@ const printVersion: Command = (): Outcome => {
 }
 
 const COMMANDS: Record<string, Command> = {
-  plug: (first, second) => {
+  plug: ([first, second]) => {
     const { root, adapter } = plug(first ?? process.cwd(), second)
     const limits = limitsFor(adapter)
     process.stdout.write(
@@ -81,13 +77,13 @@ const COMMANDS: Record<string, Command> = {
     )
     return 0
   },
-  adapter: (first) => {
+  adapter: ([first, ...pairs]) => {
     if (first === undefined) return undefined
-    const place = writeLimits(first, limitsGiven(process.argv.slice(4)))
+    const place = writeLimits(first, limitsGiven(pairs))
     process.stdout.write(`adapter ${first} written to ${place}\n`)
     return 0
   },
-  unplug: (first) => {
+  unplug: ([first]) => {
     if (first === undefined) return undefined
     process.stdout.write(unplug(first) ? `unplugged ${first}\n` : `${first} was not plugged\n`)
     return 0
@@ -101,7 +97,7 @@ const COMMANDS: Record<string, Command> = {
     )
     return 0
   },
-  worker: (first, second, third) => {
+  worker: ([first, second, third]) => {
     if (first === "claude" && second !== undefined) {
       const pinned = setClaude(second === "auto" ? undefined : second)
       process.stdout.write(`fallback binary: ${pinned ?? "the session's own claude"}\n`)
@@ -113,13 +109,13 @@ const COMMANDS: Record<string, Command> = {
     if (advice !== undefined) process.stderr.write(`warn: ${advice}\n`)
     return 0
   },
-  fallback: (first) => {
+  fallback: ([first]) => {
     if (first !== "on" && first !== "off") return undefined
     setFallback(first === "on")
     process.stdout.write(`fallback ${first}\n`)
     return 0
   },
-  log: (first) => {
+  log: ([first]) => {
     if (first !== "on" && first !== "off") return undefined
     setLog(first === "on")
     process.stdout.write(`log ${first}\n`)
@@ -133,13 +129,13 @@ const commandOf = (command: string | undefined): Command | undefined =>
   command !== undefined && Object.hasOwn(COMMANDS, command) ? COMMANDS[command] : undefined
 
 const main = async (): Promise<number> => {
-  const [command, first, second, third] = process.argv.slice(2)
+  const [command, ...rest] = process.argv.slice(2)
   if (isMode(command)) {
-    await runWorker(command, process.argv.slice(3))
+    await runWorker(command, rest)
     return 0
   }
   if (command === "doctor") return doctor()
-  const code = commandOf(command)?.(first, second, third)
+  const code = commandOf(command)?.(rest)
   if (code !== undefined) return code
   const asked = HELP.includes(command)
   const stream = asked ? process.stdout : process.stderr
