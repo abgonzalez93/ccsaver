@@ -27,7 +27,7 @@ import {
   writePrivate,
 } from "./state.ts"
 
-interface Plugged {
+export interface Plugged {
   root: string
   adapter?: string
 }
@@ -96,8 +96,13 @@ const isStrings = (value: unknown): value is string[] =>
 const isCount = (value: unknown): value is number =>
   typeof value === "number" && Number.isInteger(value) && value > 0 && value <= LIMIT_CEILING
 
-export const readPlugged = (): Plugged[] =>
-  (attempt(() => readFileSync(pluggedFile(), "utf8")) ?? "")
+export const readPlugged = (): Plugged[] => {
+  const text = attempt(() => readFileSync(pluggedFile(), "utf8"))
+  if (text === undefined && existsSync(pluggedFile()))
+    throw new Refusal(
+      `${pluggedFile()} cannot be read: check its owner and its mode, nothing was changed`,
+    )
+  return (text ?? "")
     .split("\n")
     .filter((line) => line.length > 0)
     .map((line): Plugged => {
@@ -105,6 +110,7 @@ export const readPlugged = (): Plugged[] =>
       return adapter ? { root, adapter } : { root }
     })
     .filter(({ root }) => root.startsWith("/") && root !== "/")
+}
 
 const writePlugged = (entries: Plugged[]): void => {
   writePrivate(

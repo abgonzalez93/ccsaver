@@ -137,6 +137,19 @@ test("a corrupt state line never plugs the whole disk", () => {
   assert.equal(readPlugged().length, kept.split("\n").length - 1)
 })
 
+test("a plugged list that cannot be read stops plug and unplug, never read as empty and written over", {
+  skip: AS_ROOT,
+}, () => {
+  const file = join(HOME, "plugged")
+  const kept = readFileSync(file, "utf8")
+  chmodSync(file, 0o000)
+  assert.throws(readPlugged, /plugged cannot be read: check its owner and its mode/)
+  assert.throws(() => plug(SIBLING), /cannot be read/)
+  assert.throws(() => unplug(SIBLING), /cannot be read/)
+  chmodSync(file, 0o600)
+  assert.equal(readFileSync(file, "utf8"), kept)
+})
+
 test("the deepest plugged root wins and a sibling prefix never matches", () => {
   plug(PROJECT)
   plug(NESTED, "strict-ts")

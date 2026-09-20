@@ -4,6 +4,16 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.20.3 - 2026-09-20
+
+fix: a plugged list that cannot be read stops plug and unplug instead of being written over
+
+- `readPlugged` read a `plugged` file it could not open as an empty list, and `plug` or `unplug` then wrote that list back with one line, losing every root plugged before (reproduced with chmod 000: two projects gone); `list` said nothing was plugged in
+- it now asks `existsSync` before it hands back an empty list, the way `readWorker`, `readPrices`, `textAt` and `findAdapter` already do, and stops with the file's name and "nothing was changed"
+- `doctor` turns that into one `FAIL plugged:` line and reports everything else; the hook never reaches it, because `hooks/read-gate` asks `[ -r ]` of the file before Node starts
+- `config.ts` is on the hook's import list and gains no module; the new call runs only on the failure path
+- CONTRIBUTING 3.4 and the README name the case
+
 ## 0.20.2 - 2026-09-20
 
 fix: saved no longer counts a ranged read of a file past the byte limit as the whole file

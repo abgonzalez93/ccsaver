@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process"
 import { existsSync, mkdtempSync, readSync, rmSync, statSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { type Limits, limitsFor, plug, readPlugged, writeLimits } from "./config.ts"
+import { type Limits, limitsFor, type Plugged, plug, readPlugged, writeLimits } from "./config.ts"
 import { readWorker, type Worker } from "./endpoint.ts"
 import { logDir, logFile, numberAt, type Rows, readEvents, record } from "./log.ts"
 import {
@@ -208,23 +208,30 @@ const shape = (root: string, limits: Limits, adapter?: string): Finding[] => {
   ]
 }
 
-const projects = (): Finding[] =>
-  readPlugged().flatMap(({ root, adapter }) => {
-    if (!existsSync(root)) return [{ level: "warn", text: `plugged: ${root} no longer exists` }]
-    try {
-      const limits = limitsFor(adapter)
-      return [
-        {
-          level: "ok",
-          text: `plugged: ${root} · adapter ${adapter ?? "none"} · reads over ${limits.maxLines} lines or ${limits.maxTokens} tokens are denied`,
-        },
-        gate(root, limits.maxLines + 1),
-        ...shape(root, limits, adapter),
-      ]
-    } catch (error) {
-      return [{ level: "FAIL", text: `plugged: ${root} · ${messageOf(error)}` }]
-    }
-  })
+const project = ({ root, adapter }: Plugged): Finding[] => {
+  if (!existsSync(root)) return [{ level: "warn", text: `plugged: ${root} no longer exists` }]
+  try {
+    const limits = limitsFor(adapter)
+    return [
+      {
+        level: "ok",
+        text: `plugged: ${root} · adapter ${adapter ?? "none"} · reads over ${limits.maxLines} lines or ${limits.maxTokens} tokens are denied`,
+      },
+      gate(root, limits.maxLines + 1),
+      ...shape(root, limits, adapter),
+    ]
+  } catch (error) {
+    return [{ level: "FAIL", text: `plugged: ${root} · ${messageOf(error)}` }]
+  }
+}
+
+const projects = (): Finding[] => {
+  try {
+    return readPlugged().flatMap(project)
+  } catch (error) {
+    return [{ level: "FAIL", text: `plugged: ${messageOf(error)}` }]
+  }
+}
 
 const log = (): Finding => {
   const mode = modeOf(logDir())

@@ -89,6 +89,19 @@ test("doctor fails on a worker.json it cannot trust", async () => {
   assert.match(out.stdout, /^ok {3}gate: /m)
 })
 
+test("a plugged list doctor cannot read is one FAIL line, never nothing plugged", {
+  skip: process.getuid?.() === 0,
+}, async () => {
+  chmodSync(join(HOME, "plugged"), 0o000)
+  const out = await ccsaver(["doctor"])
+  chmodSync(join(HOME, "plugged"), 0o600)
+  assert.equal(out.code, 1)
+  assert.match(out.stdout, /^FAIL plugged: .*plugged cannot be read: check its owner and its mode/m)
+  assert.doesNotMatch(out.stdout, /plugged: nothing/)
+  assert.match(out.stdout, /^ok {3}state: /m)
+  assert.match(out.stdout, /^(ok|warn|FAIL) +fallback: /m)
+})
+
 test("doctor reports the fallback, the limits of each project and a folder that is gone", async () => {
   rmSync(GONE, { recursive: true })
   const out = await ccsaver(["doctor"])
