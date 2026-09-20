@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
+import { constants } from "node:buffer"
 import { spawnSync } from "node:child_process"
-import { mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
+import { mkdirSync, rmSync, symlinkSync, truncateSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { after, before, beforeEach, test } from "node:test"
 import {
@@ -205,8 +206,28 @@ test("refuses the options of the other mode instead of running and saying nothin
 })
 
 test("fails loudly on a missing file and on a missing question", async () => {
-  assert.equal((await bulkRead(join(PROJECT, "nope.ts"))).code, 1)
+  const missing = await bulkRead(join(PROJECT, "nope.ts"))
+  assert.equal(missing.code, 1)
+  assert.match(missing.stderr, /^Error: file not found or unreadable: .*nope\.ts$/m)
   assert.equal((await cli(["bulk-read", "--project", PROJECT, "--paths", SOURCE])).code, 1)
+})
+
+test("a file too big to read in one call is named as that before it is opened, and nothing leaves", async () => {
+  const before = server.seen.length
+  const huge = join(PROJECT, "huge.txt")
+  writeFileSync(huge, "x\n")
+  truncateSync(huge, constants.MAX_STRING_LENGTH + 1)
+  const started = performance.now()
+  const out = await bulkRead(huge)
+  const took = performance.now() - started
+  rmSync(huge)
+  assert.deepEqual([out.code, out.stdout], [1, ""])
+  assert.match(
+    out.stderr,
+    /^Error: too big to read in one call, \d+ bytes where the most is \d+: .*huge\.txt$/m,
+  )
+  assert.equal(server.seen.length, before)
+  assert.ok(took < 2_000, `${took} ms`)
 })
 
 test("a control character in the worker's answer cannot repaint the terminal", async () => {

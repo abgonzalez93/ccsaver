@@ -1,7 +1,8 @@
 // Portions of this file are adapted from a third-party Apache-2.0 work and were modified; see NOTICE.
+import { constants } from "node:buffer"
 import { spawnSync } from "node:child_process"
 import { randomBytes } from "node:crypto"
-import { lstatSync, readFileSync, statSync, writeFileSync } from "node:fs"
+import { lstatSync, readFileSync, type Stats, statSync, writeFileSync } from "node:fs"
 import { basename, dirname, join, relative, resolve } from "node:path"
 import { parseArgs } from "node:util"
 import { checked, risky, unwrapped } from "./answer.ts"
@@ -68,13 +69,20 @@ const refuse = (reason: string | undefined, given: string): void => {
   if (reason !== undefined) fail(`${reason}: ${given}`)
 }
 
+const shapeRefusal = (stat: Stats): string | undefined => {
+  if (!stat.isFile()) return "not a regular file"
+  return stat.size > constants.MAX_STRING_LENGTH
+    ? `too big to read in one call, ${stat.size} bytes where the most is ${constants.MAX_STRING_LENGTH}`
+    : undefined
+}
+
 const fileBlock = (given: string, numbered: boolean, root: string): Sent => {
   const path = real(given)
   const inside = isUnder(path, root)
   const label = inside ? relative(root, path) : given
   refuse(pathRefusal(given, path, root, real(stateHome())), given)
   const stat = attempt(() => statSync(path))
-  if (stat !== undefined && !stat.isFile()) fail(`not a regular file: ${given}`)
+  if (stat !== undefined) refuse(shapeRefusal(stat), given)
   const text =
     attempt(() => readFileSync(path, "utf8")) ?? fail(`file not found or unreadable: ${given}`)
   refuse(contentRefusal(text), given)

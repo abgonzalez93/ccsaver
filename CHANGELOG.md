@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.20.8 - 2026-09-20
+
+fix: a file too big to read in one call is named as that before it is opened, not as missing
+
+- `fileBlock` read the whole file and let `readFileSync` fail, so a 600 MB file came back as `file not found or unreadable` (reproduced), after 2 GB of it had been read into memory for nothing: Node reads the bytes first and only then refuses to make them a string
+- the `stat` that was already in hand is now weighed against the string limit Node exposes in `node:buffer`, and the call stops before the file is opened, with the size and the limit in the line
+- `shapeRefusal` holds the two answers a `stat` can give, not a regular file and too big, beside the `refuse` that prints them
+
 ## 0.20.7 - 2026-09-20
 
 fix: a worker.json or a prices.json with a key it does not know is malformed, never read with that key dropped
