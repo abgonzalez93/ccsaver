@@ -99,8 +99,8 @@ test("pruned folders and binary files are left out of the count", () => {
 })
 
 test("a symlinked directory is never walked, so a loop cannot hang the measurement", () => {
-  const root = projectOf("linked", spread(20, () => 10))
-  const elsewhere = projectOf("linked-target", spread(30, () => 4000))
+  const root = sourcesOf("linked", 20, () => 10)
+  const elsewhere = sourcesOf("linked-target", 30, () => 4000)
   symlinkSync(elsewhere, join(root, "src", "vendored"))
   symlinkSync(root, join(root, "src", "loop"))
   const survey = surveyFor(root)

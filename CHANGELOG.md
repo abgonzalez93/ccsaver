@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.7.4 - 2026-09-20
+
+test: the symlink test is written the way the formatter wants it
+
+- it built its two trees with the nested call biome expands, so the commit
+  before this one left the repository one formatting error short of the gate
+- it uses sourcesOf, the helper the other tests in the file already use
+
 ## 0.7.3 - 2026-09-20
 
 docs: the plug command tells the user about both limits, not just maxLines
