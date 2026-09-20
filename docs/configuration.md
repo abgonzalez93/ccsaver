@@ -177,6 +177,6 @@ Three things it cannot see, and says so at the foot when they bite: the gate wat
 | `CLAUDE_CODE_EXECPATH` | the fallback, `doctor` | the binary of the running session (undocumented, observed in Claude Code 2.1) |
 | `CLAUDE_CODE_SESSION_ID` | the event log | the `session` field of every line |
 | `CLAUDE_CODE_CHILD_SESSION` | `doctor` | tells a shell inside a session from one outside (undocumented, observed in 2.1): a `claude` that does not run is a `FAIL` inside and a `warn` outside |
-| `NO_COLOR`, `TERM` | `doctor` | whether the level labels are painted: only on a terminal, with `NO_COLOR` unset and `TERM` other than `dumb`. Nothing else is ever painted, and the word `ok`, `warn` or `FAIL` is always there, so the meaning never depends on the colour |
+| `NO_COLOR`, `TERM` | `doctor`, `saved` | whether a level label or the `saved` band is painted: only on a terminal, with `NO_COLOR` unset and `TERM` other than `dumb`. Nothing else is ever painted, and the colour never carries the meaning on its own: the word `ok`, `warn` or `FAIL` is always beside the level, the sign is always in front of the band, and a band that crosses zero says so in words |
 
 ccsaver sets `NODE_COMPILE_CACHE` (the `cache/` folder of the state folder) for the hook and the command, and four for the fallback: `MAX_THINKING_TOKENS=0`, `CLAUDE_CODE_EFFORT_LEVEL=low`, `CLAUDE_CODE_DISABLE_TERMINAL_TITLE=1` and `CLAUDE_CODE_PROMPT_CACHE_TTL=5m`.
