@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.20.10 - 2026-09-20
+
+fix: key set with an argument after it prints its usage line instead of reading the key
+
+- the launcher took `ccsaver key set extra` as `key set` and asked for the key, while every other command has refused an argument it does not take since 0.19.9
+- the launcher now claims `key set` only when nothing follows it; anything else reaches the CLI, where `key` carries the same `atMost` as its siblings and answers `key takes at most 1 argument, not 2: set extra` over its row of the table
+- test/mistakes.test.ts holds the new row
+
 ## 0.20.9 - 2026-09-20
 
 fix: doctor passes a state file stricter than 600 and a folder stricter than 700

@@ -69,7 +69,7 @@ asked() {
   [ -n "$reply" ] || { said 31 ✗ Error: "nothing typed, setup stopped"; return 1; }
 }
 
-if [ "$1" = key ] && [ "$2" = set ]; then
+if [ "$1" = key ] && [ "$2" = set ] && [ $# -eq 2 ]; then
   store_key || exit 1
   said 36 → '' "check it with: ccsaver doctor"
   exit 0

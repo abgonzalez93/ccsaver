@@ -48,6 +48,7 @@ const MISTAKES: [string[], string, string][] = [
   ],
   [["key"], "key needs set: ccsaver key set", "ccsaver key set   "],
   [["key", "get"], "key takes set, not: get", "ccsaver key set   "],
+  [["key", "set", "extra"], "key takes at most 1 argument, not 2: set extra", "ccsaver key set   "],
   [["fallback"], "fallback needs on or off", "ccsaver fallback on|off"],
   [["fallback", "sideways"], "fallback takes on or off, not: sideways", "ccsaver fallback on|off"],
   [["log"], "log needs on or off", "ccsaver log on|off"],

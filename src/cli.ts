@@ -222,11 +222,11 @@ const COMMANDS: Record<string, Command> = {
     const before = was === undefined ? "" : ` (was $${was}/M)`
     return done("ok", `price ${first} $${dollars}/M${before} · ${all}`)
   }),
-  key: ([first]) => {
+  key: atMost("key", 1, ([first]) => {
     if (first === "set")
       return "key set belongs to the launcher: run ccsaver key set, not node src/cli.ts"
     return first === undefined ? "key needs set: ccsaver key set" : `key takes set, not: ${first}`
-  },
+  }),
   version: atMost("version", 0, printVersion),
   "--version": atMost("--version", 0, printVersion),
 }
