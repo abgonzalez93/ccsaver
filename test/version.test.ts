@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
-import { bump, changelogOf, filedAt, filing, levelOf, sectionOf } from "../scripts/version.ts"
+import { bump, changelogOf, levelOf, sectionOf } from "../scripts/version.ts"
 
 const CHANGELOG = "# Changelog\n\nIntro.\n\n## Unreleased\n\n- an old note\n\n## 0.1.0\n\nFirst.\n"
 
@@ -31,63 +31,29 @@ test("an entry is the subject and the bullets of the body: prose and trailers st
 
 test("the changelog is the parent's plus one section, and an Unreleased heading is absorbed", () => {
   const mine = CHANGELOG.replace("Intro.", "A new intro.")
-  const { text, overflow } = changelogOf(mine, CHANGELOG, "## 0.2.0 - 2026-01-02\n\nfeat: a", "")
+  const next = changelogOf(mine, CHANGELOG, "## 0.2.0 - 2026-01-02\n\nfeat: a")
   assert.equal(
-    text,
+    next,
     "# Changelog\n\nA new intro.\n\n## 0.2.0 - 2026-01-02\n\nfeat: a\n\n- an old note\n\n## 0.1.0\n\nFirst.\n",
   )
-  assert.deepEqual(overflow, [])
-  assert.equal(changelogOf(text, CHANGELOG, "## 0.2.0 - 2026-01-02\n\nfeat: a", "").text, text)
+  assert.equal(changelogOf(next, CHANGELOG, "## 0.2.0 - 2026-01-02\n\nfeat: a"), next)
 })
 
-test("a version the archive already holds is not carried twice", () => {
-  const { text, overflow } = changelogOf(
-    CHANGELOG,
-    CHANGELOG,
-    "## 0.2.0 - 2026-01-02\n\nfeat: a",
-    "## 0.1.0\n\nFirst, in full.\n",
-  )
-  assert.doesNotMatch(text, /## 0\.1\.0/)
-  assert.deepEqual(overflow, [])
-})
-
-test("what no longer fits in the changelog is handed over, never dropped", () => {
+test("no section is ever dropped, however long the changelog grows", () => {
   const old = Array.from(
     { length: 60 },
     (_, index) => `## 0.0.${60 - index}\n\n${"- a line\n".repeat(9)}`,
   )
-  const { text, overflow } = changelogOf(
+  const next = changelogOf(
     "# Changelog\n\nIntro.\n",
     `# Changelog\n\n${old.join("\n")}`,
     "## 0.1.0\n\nfeat: a",
-    "",
   )
-  assert.ok(text.split("\n").length <= 350 && text.length <= 32_000)
-  assert.match(text, /^# Changelog\n\nIntro\.\n\n## 0\.1\.0\n\nfeat: a\n\n## 0\.0\.60\n/)
-  assert.doesNotMatch(text, /^## 0\.0\.1$/m)
-  const kept = [...text.matchAll(/^## (\S+)$/gm)].map(([, version]) => version)
-  const handed = overflow.map((part) => part.split("\n")[0]?.slice(3))
-  assert.deepEqual(
-    [...kept, ...handed],
-    ["0.1.0", ...Array.from({ length: 60 }, (_, index) => `0.0.${60 - index}`)],
-  )
-})
-
-test("the archive takes the overflow, and starts a new file when the newest one is full", () => {
-  const section = (version: string): string =>
-    `## ${version}\n\n${"- a line\n".repeat(9)}`.trimEnd()
-  assert.deepEqual(filing([], [section("0.0.1")]), [
-    { path: filedAt(1), now: "", next: `${section("0.0.1")}\n` },
+  assert.ok(next.split("\n").length > 350)
+  const kept = [...next.matchAll(/^## (\S+)$/gm)].map(([, version]) => version)
+  assert.deepEqual(kept, [
+    "0.1.0",
+    ...Array.from({ length: 60 }, (_, index) => `0.0.${60 - index}`),
   ])
-  const full = Array.from({ length: 28 }, (_, index) => section(`0.0.${index + 1}`)).join("\n\n")
-  const [onto] = filing([`${full}\n`], [section("0.0.99")])
-  assert.equal(onto?.path, filedAt(1))
-  assert.equal(onto?.next, `${section("0.0.99")}\n\n${full}\n`)
-  const brimming = Array.from({ length: 29 }, (_, index) => section(`0.0.${index + 1}`)).join(
-    "\n\n",
-  )
-  assert.deepEqual(filing([`${brimming}\n`], [section("0.0.99")]), [
-    { path: filedAt(2), now: "", next: `${section("0.0.99")}\n` },
-  ])
-  assert.deepEqual(filing(["a\n"], []), [])
+  assert.match(next, /\n- a line\n$/)
 })

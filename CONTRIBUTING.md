@@ -67,7 +67,7 @@ Guard: `noUnusedLocals`, `noUnusedParameters`, Biome `noUnusedImports`, `noUnuse
 **1.7 PREFER a function a reader holds in their head: cognitive complexity 15 or less.**
 Guard: *convention*, measured with `pnpm exec biome lint --only=complexity/noExcessiveCognitiveComplexity src test`. One function is over it and is the written exception: the field-by-field guard `adapterOf` in `src/config.ts` (18). A new function over 15 is split before it lands; a fourth one puts the rule in `biome.json` as an error and brings all of them under it.
 
-**1.8 ALWAYS keep every file readable whole under this project's own gate: 350 lines and 32 KB.** A file splits by responsibility before it gets there, the way `worker.ts` gave birth to `boundary.ts`, `answer.ts` and `transport.ts`. The one exception is `pnpm-lock.yaml`, which nobody reads whole.
+**1.8 ALWAYS keep every file readable whole under this project's own gate: 350 lines and 32 KB.** A file splits by responsibility before it gets there, the way `worker.ts` gave birth to `boundary.ts`, `answer.ts` and `transport.ts`. Two files are excused, in `UNREAD_WHOLE`: `pnpm-lock.yaml`, and `CHANGELOG.md`, which grows by one section per commit and is read from the top. Splitting either one buys nothing, because neither holds a responsibility that could move; ccsaver's own hook answers a whole-file `Read` of them with Grep or a range, which is how they are read anyway.
 Guard: `test/conventions.test.ts`.
 
 ## 2. Architecture
@@ -88,7 +88,7 @@ Guard: `test/conventions.test.ts`.
 
 Guard: Biome `noImportCycles`, which is why the log cannot live in `src/state.ts`: it needs `stateHome` and the stored key, and every command that records a `config` event would then point back at it. The import list of `src/hook.ts` is pinned by `test/conventions.test.ts`, because it is the start-up cost of every `Read` (4.4).
 
-Off the map: `scripts/version.ts`, the git hook of 5.3. It is no part of the product: nothing in `src/` imports it, and it imports `node:` built-ins, the guards of `src/state.ts` and the limits of `src/config.ts`, by `test/conventions.test.ts`.
+Off the map: `scripts/version.ts`, the git hook of 5.3. It is no part of the product: nothing in `src/` imports it, and it imports `node:` built-ins and the guards of `src/state.ts`, by `test/conventions.test.ts`.
 
 Off the map too: `bin/ccsaver`, the POSIX `sh` launcher, which holds `key set` and `setup`, because only a shell can turn a terminal's echo off and the key must never reach a Node argument list. `setup` asks for the four settings, hands each one to the CLI and shares `store_key` with `key set`, so the key file keeps one writer. The launcher appends one event of its own, the `key set` line, in shell: the line format of `src/log.ts` · `LOG_VERSION` therefore has two writers, and a change to it has to touch both or the month's file will hold two shapes.
 
@@ -213,7 +213,7 @@ Guard: `pnpm test` starts from a state folder that does not exist, so a test tha
 
 The hook needs Node.js 24.2, the floor `package.json` declares: `scripts/version.ts` runs on `import.meta.main`, which 24.0 and 24.1 leave undefined, so on those it does nothing and says nothing.
 
-The message is also the release note. The hook of `.githooks/` turns the type into the next version (`scripts/version.ts` · `bump`) and the subject with its bullets into the entry of `CHANGELOG.md` (`scripts/version.ts` · `sectionOf`), amends the commit and tags it (`scripts/version.ts` · `tagged`), which also drops the tag an `--amend` orphaned. An entry that no longer fits is filed under `docs/changelog/` (`scripts/version.ts` · `filing`), never dropped. `docs/versions.md` has the behaviour case by case. NEVER type a version, and NEVER edit a section of `CHANGELOG.md`: the hook rebuilds the sections from the parent commit, so a hand edit does not survive its own commit.
+The message is also the release note. The hook of `.githooks/` turns the type into the next version (`scripts/version.ts` · `bump`) and the subject with its bullets into the entry of `CHANGELOG.md` (`scripts/version.ts` · `sectionOf`), amends the commit and tags it (`scripts/version.ts` · `tagged`), which also drops the tag an `--amend` orphaned. No entry is ever dropped: `CHANGELOG.md` holds every version back to the first commit. `docs/versions.md` has the behaviour case by case. NEVER type a version, and NEVER edit a section of `CHANGELOG.md`: the hook rebuilds the sections from the parent commit, so a hand edit does not survive its own commit.
 Guard: `test/version.test.ts` for the hook, one throwaway repository per way of making a commit; `test/skills.test.ts` for the one version; the wording of a message is *convention*.
 
 ```

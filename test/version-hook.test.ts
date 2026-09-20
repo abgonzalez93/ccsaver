@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { spawnSync } from "node:child_process"
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs"
+import { mkdirSync, readdirSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { test } from "node:test"
 import { REPO, tempDir } from "./helpers.ts"
@@ -90,15 +90,6 @@ const patchesOf = (repo: string, count: number): string[] => {
     .map((name) => join(dir, name))
 }
 
-const filedIn = (repo: string): string[] => {
-  const dir = join(repo, "docs", "changelog")
-  return existsSync(dir)
-    ? readdirSync(dir)
-        .sort()
-        .map((name) => readFileSync(join(dir, name), "utf8"))
-    : []
-}
-
 const fat = (repo: string, name: string, bullets: number): string => {
   writeFileSync(join(repo, `${name}.txt`), name)
   git(repo, "add", ".")
@@ -106,48 +97,15 @@ const fat = (repo: string, name: string, bullets: number): string => {
   return git(repo, "commit", "-qm", `fix: ${name}\n\n${body.join("\n")}`)
 }
 
-test("no section is ever lost: what leaves the changelog is filed under docs/changelog", () => {
+test("no section is ever lost: the changelog keeps every version, past any file size", () => {
   const repo = fresh()
   const rounds = Array.from({ length: 14 }, (_, index) => index + 1)
   for (const round of rounds) fat(repo, `round-${round}`, 30)
-  const files = [git(repo, "show", "HEAD:CHANGELOG.md"), ...filedIn(repo)]
-  assert.ok(filedIn(repo).length > 0)
-  for (const text of files)
-    assert.ok(
-      text.split("\n").length <= 350 && Buffer.byteLength(text) <= 32_000,
-      `${text.split("\n").length} lines`,
-    )
-  const found = files.flatMap((text) =>
-    [...text.matchAll(/^## (\S+)/gm)].map(([, version]) => version),
-  )
+  const text = git(repo, "show", "HEAD:CHANGELOG.md")
+  assert.ok(text.split("\n").length > 350)
+  const found = [...text.matchAll(/^## (\S+)/gm)].map(([, version]) => version)
   assert.deepEqual(found.toSorted(), ["0.1.0", ...rounds.map((round) => `0.1.${round}`)].toSorted())
   assert.equal(git(repo, "status", "--porcelain"), "")
-})
-
-const tagsIn = (repo: string): string[] =>
-  git(repo, "tag", "--list")
-    .split("\n")
-    .filter((line) => line !== "")
-    .toSorted()
-
-const commitAt = (repo: string, ref: string): string => git(repo, "rev-parse", `${ref}^{commit}`)
-
-test("every commit is tagged, and an amend that moves the number leaves no orphan behind", () => {
-  const repo = fresh()
-  commit(repo, "fix: one")
-  assert.deepEqual(tagsIn(repo), ["v0.1.1"])
-  assert.equal(commitAt(repo, "v0.1.1"), commitAt(repo, "HEAD"))
-  commit(repo, "fix: two")
-  assert.deepEqual(tagsIn(repo), ["v0.1.1", "v0.1.2"])
-
-  git(repo, "commit", "-q", "--amend", "--no-edit")
-  assert.deepEqual(tagsIn(repo), ["v0.1.1", "v0.1.2"])
-  assert.equal(commitAt(repo, "v0.1.2"), commitAt(repo, "HEAD"))
-
-  git(repo, "commit", "-q", "--amend", "-m", "feat: two, reworded")
-  assert.deepEqual(tagsIn(repo), ["v0.1.1", "v0.2.0"])
-  assert.equal(commitAt(repo, "v0.2.0"), commitAt(repo, "HEAD"))
-  assert.equal(git(repo, "tag", "--no-merged", "HEAD").trim(), "")
 })
 
 test("git commit: every commit carries its version in both manifests and its entry on top", () => {

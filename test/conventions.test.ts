@@ -7,7 +7,7 @@ import { isRecord, parsed } from "../src/state.ts"
 import { REPO } from "./helpers.ts"
 
 const SKIPPED = [".git", "node_modules"]
-const UNREAD_WHOLE = ["pnpm-lock.yaml"]
+const UNREAD_WHOLE = ["pnpm-lock.yaml", "CHANGELOG.md"]
 const COMMENTS = [
   "// Portions of this file are adapted from a third-party Apache-2.0 work and were modified; see NOTICE.",
   "// the folder is the switch: without it the append fails and nothing else changes",
@@ -82,7 +82,7 @@ test("every JSON.parse lands in unknown, and every throw in src is a Refusal", (
   assert.deepEqual(thrown, [])
 })
 
-test("every file is readable whole under the default gate, the lockfile excepted", () => {
+test("every file is readable whole under the default gate, the two append-only ones aside", () => {
   const over = filesUnder(REPO).flatMap((path) => {
     if (UNREAD_WHOLE.includes(named(path))) return []
     const bytes = readFileSync(path)

@@ -20,6 +20,6 @@ House laws:
 - `src/` imports `node:` built-ins and its own files: zero runtime dependencies.
 - Names carry the meaning: code has no comments.
 - Every function is an arrow const with an explicit return type; `unknown` is narrowed by a guard that checks at run time, and `as const` is the only `as`.
-- Every file stays under this project's own gate, 350 lines and 32 KB: split by responsibility first.
+- Every file stays under this project's own gate, 350 lines and 32 KB: split by responsibility first. Two are excused in `UNREAD_WHOLE`, `pnpm-lock.yaml` and `CHANGELOG.md`, and nothing else joins them without the owner's word.
 - A development dependency, or a rule or override in `biome.json`, waits for the owner's approval.
 - Commits: `type: subject` in English, a bullet-list body. The type sets the version: a git hook (`git config core.hooksPath .githooks`, once per clone) writes it and `CHANGELOG.md`, never a hand.
