@@ -2,7 +2,7 @@
 
 Every commit on `main` carries its own number, written by a git hook. [CHANGELOG.md](../CHANGELOG.md) is what it writes.
 
-Every commit is a version. A git hook reads the message of the commit it has just seen, writes the next number into `package.json` and `.claude-plugin/plugin.json`, puts the subject and the bullets of the body on top of `CHANGELOG.md`, amends that commit with the three files and tags it `v<number>`. Nobody types a number, edits the changelog, makes a tag or pushes one. Turn both on once per clone: `feat` moves the second number and anything else the third; a breaking change (`!`, or a `BREAKING CHANGE:` footer) moves the first once it is past 0, and the second until then. It needs Node.js 24.2, the floor `package.json` declares: `scripts/version.ts` runs on `import.meta.main`, which 24.0 and 24.1 leave undefined, so on those it runs, versions nothing and says nothing. Turn them on once per clone:
+Every commit is a version. A git hook reads the message of the commit it has just seen, writes the next number into `package.json` and `.claude-plugin/plugin.json`, puts the subject and the bullets of the body on top of `CHANGELOG.md`, amends that commit with the three files and tags it `v<number>`. Nobody types a number, edits the changelog, makes a tag or pushes one. `feat` moves the second number and anything else the third; a breaking change (`!`, or a `BREAKING CHANGE:` footer) moves the first once it is past 0, and the second until then. It needs Node.js 24.2, the floor `package.json` declares: `scripts/version.ts` runs on `import.meta.main`, which 24.0 and 24.1 leave undefined, so on those it runs, versions nothing and says nothing. Turn them on once per clone:
 
 ```bash
 git config core.hooksPath .githooks

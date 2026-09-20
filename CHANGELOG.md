@@ -4,6 +4,15 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.20.11 - 2026-09-20
+
+docs: the rules name their two exceptions, the line count is today's, and a stray half-sentence leaves versions.md
+
+- CONTRIBUTING 1.6 said `readWorker` was the only reader of `worker.json` while `src/prices.ts` · `workerNamed` has read it on its own since the worker's name joined the price lines; the rule now names that exception and why, and names `src/saved.ts` · `tallied` as the one export only the tests call
+- the map row of `prices.ts` owns that lenient read
+- 2.5 said about 2,500 lines of `src/`; there are about 2,800, still short of the 3,000 the rule sets for folders
+- docs/versions.md had "Turn both on once per clone:" in front of the rules for `feat` and `fix`, a leftover of an edit; the real instruction with its two `git config` lines stays where it was
+
 ## 0.20.10 - 2026-09-20
 
 fix: key set with an argument after it prints its usage line instead of reading the key

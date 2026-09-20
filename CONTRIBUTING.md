@@ -61,7 +61,7 @@ Module-level mutable state exists twice, `secret` in `src/state.ts`, read throug
 **1.5 NEVER comment code.** Names carry the what, the README and the pages under `docs/` carry the why. The complete list of exceptions: the one-line attribution header on a file that holds adapted third-party material (Apache-2.0 asks for it; [NOTICE](NOTICE) names the files), and one line inside a `catch` that is empty on purpose, saying why (`src/log.ts` · `record`).
 Guard: `test/conventions.test.ts`.
 
-**1.6 NEVER leave dead code, PREFER the helper that exists.** `attempt` for a call whose failure is an expected answer, `parsed` for JSON text, `isRecord` to open an unknown object, `messageOf` for a caught error, `real` and `isUnder` for paths, `isSecretPlace` for a folder that holds credentials, whether a file is leaving it or a root is being plugged, `linesIn` and `tokensIn` for bytes weighed against a limit, `readKey`, `readWorker` and `readEvents` as the only readers of their files.
+**1.6 NEVER leave dead code, PREFER the helper that exists.** `attempt` for a call whose failure is an expected answer, `parsed` for JSON text, `isRecord` to open an unknown object, `messageOf` for a caught error, `real` and `isUnder` for paths, `isSecretPlace` for a folder that holds credentials, whether a file is leaving it or a root is being plugged, `linesIn` and `tokensIn` for bytes weighed against a limit, `readKey`, `readWorker` and `readEvents` as the only readers of their files, with one exception named here: `src/prices.ts` · `workerNamed` reads `worker.json` on its own, because the model beside `worker` in a price line is decoration, and a broken file there must not stop a report that `readWorker` would refuse. One export is a test seam and nothing else: `src/saved.ts` · `tallied`, which `report.ts` never calls because it folds a month through `foldMonth` without holding its rows, and which the tests feed rows by hand.
 Guard: `noUnusedLocals`, `noUnusedParameters`, Biome `noUnusedImports`, `noUnusedVariables`; an unused export and a duplicated helper are *convention*.
 
 **1.7 PREFER a function a reader holds in their head: cognitive complexity 15 or less.**
@@ -85,7 +85,7 @@ Guard: `test/conventions.test.ts`.
 | `src/boundary.ts` | what may leave the machine | `state` |
 | `src/transport.ts` | the two ways out: `fetch` to the worker, spawn of the fallback | `log`, `state`, the `Worker` type of `endpoint`, the `Tally` type of `answer` |
 | `src/worker.ts` | the `bulk-read` and `code-write` flows | `answer`, `boundary`, `config`, `endpoint`, `log`, `state`, `transport` |
-| `src/prices.ts` | `prices.json`: one price per model, one for the worker | `log`, `state` |
+| `src/prices.ts` | `prices.json`: one price per model, one for the worker, and the worker's name beside a price, its own lenient read of `worker.json` | `log`, `state` |
 | `src/saved.ts` | what the log says was spent, added up month by month | `config`, `log`, `prices`, `state` |
 | `src/report.ts` | what `ccsaver saved` prints, and every caveat under it | `log`, `prices`, `saved`, `state` |
 | `src/doctor.ts` | every check `doctor` runs and the level each one reports | `config`, `endpoint`, `log`, `state`, `survey`, `transport` |
@@ -121,7 +121,7 @@ export const invokeExternal = async (mode: string, system: string, message: stri
 
 Guard: *convention*. Revisit when a test needs to replace something that no parameter, variable or state file reaches, or when a seam gets a second implementation.
 
-**2.5 PREFER the flat `src/`.** It holds 15 files and about 2,500 lines. Folders and layers earn their place past 15 files or 3,000 lines; until then a new concept is a new file on the map of 2.1.
+**2.5 PREFER the flat `src/`.** It holds 15 files and about 2,800 lines. Folders and layers earn their place past 15 files or 3,000 lines; until then a new concept is a new file on the map of 2.1.
 Guard: *convention*.
 
 ## 3. Robustness
