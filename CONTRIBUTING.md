@@ -90,7 +90,9 @@ Guard: Biome `noImportCycles`, which is why the log cannot live in `src/state.ts
 
 Off the map: `scripts/version.ts`, the git hook of 5.3. It is no part of the product: nothing in `src/` imports it, and it imports `node:` built-ins, the guards of `src/state.ts` and the limits of `src/config.ts`, by `test/conventions.test.ts`.
 
-Off the map too: `bin/ccsaver`, the POSIX `sh` launcher, which holds `key set` so the key never reaches a Node argument list. It appends one event of its own, the `key set` line, in shell: the line format of `src/log.ts` · `LOG_VERSION` therefore has two writers, and a change to it has to touch both or the month's file will hold two shapes.
+Off the map too: `bin/ccsaver`, the POSIX `sh` launcher, which holds `key set` and `setup`, because only a shell can turn a terminal's echo off and the key must never reach a Node argument list. `setup` asks for the four settings, hands each one to the CLI and shares `store_key` with `key set`, so the key file keeps one writer. The launcher appends one event of its own, the `key set` line, in shell: the line format of `src/log.ts` · `LOG_VERSION` therefore has two writers, and a change to it has to touch both or the month's file will hold two shapes.
+
+Off the map as well: `commands/`, the three markdown files behind `/ccsaver:setup`, `/ccsaver:plug` and `/ccsaver:doctor`. They are prompts for Claude, not code: they call the subcommands a shell would call and hold no logic of their own.
 
 **2.2 ALWAYS import from the file that owns the symbol**, by relative path with the real extension. No barrel, no `export *`, no default export.
 Guard: Biome `useImportExtensions`, `allowImportingTsExtensions`; barrels are *convention*.

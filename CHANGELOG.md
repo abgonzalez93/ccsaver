@@ -2,6 +2,17 @@
 
 Every commit is a version. A git hook writes each section from the commit message, its subject and the bullets of its body ([how](README.md#versions)), and the numbers follow [Semantic Versioning](https://semver.org/). The file keeps the newest versions that fit in 350 lines; `git log` has every one.
 
+## 0.5.0 - 2026-09-20
+
+feat: ccsaver sets itself up from inside Claude Code
+
+- commands/: /ccsaver:setup, /ccsaver:plug and /ccsaver:doctor, short markdown that calls the ccsaver already on the Bash tool's PATH. A session needs no shell of its own any more
+- ccsaver setup asks for url, model, key and fallback and ends with doctor, in the launcher, where the echo can be turned off; it shares store_key with key set so the key file keeps one writer
+- the key still never travels as an argument: key set reads one line from stdin when there is no terminal, so ccsaver key set < file works from a session and /ccsaver:setup is told to delete the file and never read it
+- ccsaver plug with no directory plugs the one it runs in
+- the key entry of the COMMANDS table is gone: it only pointed at the launcher, and the usage says where key set lives
+- README: the three slash commands under Install, the two ways the key arrives, plug with no directory; CONTRIBUTING 2.1 places setup and commands/ off the map
+
 ## 0.4.15 - 2026-09-20
 
 docs: install from GitHub, in two lines and one copy

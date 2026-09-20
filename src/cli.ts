@@ -34,12 +34,13 @@ import { isMode, runWorker } from "./worker.ts"
 
 const USAGE = `usage: ccsaver <command>
 
-  plug <dir> [adapter]       turn ccsaver on for one project
+  setup                      ask for worker, key and fallback, then run doctor
+  plug [dir] [adapter]       turn ccsaver on for one project (default: this folder)
   unplug <dir>               turn it off again
   list                       show the plugged projects
   worker set <url> <model>   point at an OpenAI-compatible chat completions endpoint
   worker claude <path>|auto  pin the claude binary the fallback runs (auto: the session's own)
-  key set                    store the API key (typed on the terminal, never an argument)
+  key set                    store the API key, read from the terminal or from stdin
   fallback on|off            whether a call the worker cannot take goes to paid Claude Haiku
   log on|off                 record events (metadata only) in a local file; off by default
   doctor                     check permissions, key, worker, fallback and projects
@@ -258,8 +259,7 @@ const printVersion: Command = (): Outcome => {
 
 const COMMANDS: Record<string, Command> = {
   plug: (first, second) => {
-    if (first === undefined) return undefined
-    const { root, adapter } = plug(first, second)
+    const { root, adapter } = plug(first ?? process.cwd(), second)
     process.stdout.write(`plugged ${root} · adapter ${adapter ?? "none"}\n`)
     return 0
   },
@@ -300,11 +300,6 @@ const COMMANDS: Record<string, Command> = {
     setLog(first === "on")
     process.stdout.write(`log ${first}\n`)
     return 0
-  },
-  key: (first) => {
-    if (first !== "set") return undefined
-    process.stderr.write("Error: run the ccsaver launcher (bin/ccsaver key set)\n")
-    return 1
   },
   version: printVersion,
   "--version": printVersion,

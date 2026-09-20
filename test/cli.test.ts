@@ -5,7 +5,6 @@ import { join } from "node:path"
 import { after, before, beforeEach, test } from "node:test"
 import { isRecord } from "../src/state.ts"
 import {
-  CLI,
   type FakeServer,
   fakeClaude,
   LAUNCHER,
@@ -105,10 +104,41 @@ test("the launcher works through a symlink", async () => {
   assert.equal(existsSync(join(HOME, "cache")), true)
 })
 
-test("key set needs the launcher", async () => {
-  const out = await run("node", [CLI, "key", "set"], { CCSAVER_HOME: HOME })
+test("setup asks for the four settings, keeps the key off the terminal and ends with doctor", async () => {
+  const home = tempDir("cli-setup")
+  const out = await run(
+    LAUNCHER,
+    ["setup"],
+    { CCSAVER_HOME: home, CLAUDE_CODE_EXECPATH: FAKE },
+    `${server.url}\ncheap-1\n${OLD_KEY}\nn\n`,
+  )
+  assert.equal(everything(out).includes(OLD_KEY), false)
+  assert.deepEqual(jsonOf(join(home, "worker.json")), {
+    url: server.url,
+    model: "cheap-1",
+    fallback: false,
+  })
+  assert.equal(readFileSync(join(home, "api-key"), "utf8"), `${OLD_KEY}\n`)
+  assert.match(out.stdout, /^ok {3}probe: cheap-1 accepted the key in \d+ ms$/m)
+  assert.equal(out.code, 0)
+  rmSync(home, { recursive: true, force: true })
+})
+
+test("setup stops on an empty answer and writes nothing", async () => {
+  const home = tempDir("cli-setup-empty")
+  const out = await run(LAUNCHER, ["setup"], { CCSAVER_HOME: home }, "\n")
   assert.equal(out.code, 1)
-  assert.match(out.stderr, /^Error: run the ccsaver launcher/)
+  assert.match(out.stderr, /Error: nothing typed, setup stopped\n$/)
+  assert.equal(existsSync(join(home, "worker.json")), false)
+  rmSync(home, { recursive: true, force: true })
+})
+
+test("plug with no directory plugs the one the command runs in", async () => {
+  const home = tempDir("cli-here")
+  const out = await run(LAUNCHER, ["plug"], { CCSAVER_HOME: home }, "", PROJECT)
+  assert.deepEqual([out.code, out.stdout], [0, `plugged ${PROJECT} · adapter none\n`])
+  assert.equal(readFileSync(join(home, "plugged"), "utf8"), `${PROJECT}\t\n`)
+  rmSync(home, { recursive: true, force: true })
 })
 
 test("plug, list and unplug from the command line", async () => {
@@ -122,7 +152,6 @@ test("plug, list and unplug from the command line", async () => {
   const refused = await ccsaver(["plug", "/"])
   assert.equal(refused.code, 1)
   assert.match(refused.stderr, /^Error: refusing to plug \/: /)
-  assert.equal((await ccsaver(["plug"])).code, 1)
   assert.equal((await ccsaver(["frobnicate"])).code, 1)
   assert.equal((await ccsaver([])).code, 0)
 })

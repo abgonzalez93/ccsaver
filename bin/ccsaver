@@ -7,9 +7,18 @@ done
 root=$(cd "$(dirname "$self")/.." && pwd -P) || exit 1
 home=${CCSAVER_HOME:-$HOME/.config/ccsaver}
 
-if [ "$1" = key ] && [ "$2" = set ]; then
+if [ -d "$home" ]; then
+  NODE_COMPILE_CACHE="$home/cache"
+  export NODE_COMPILE_CACHE
+fi
+
+cli() {
+  node "$root/src/cli.ts" "$@"
+}
+
+store_key() {
   umask 077
-  mkdir -p "$home" && chmod 700 "$home" || exit 1
+  mkdir -p "$home" && chmod 700 "$home" || return 1
   if [ -t 0 ]; then
     trap 'stty echo' EXIT INT TERM
     stty -echo
@@ -23,25 +32,49 @@ if [ "$1" = key ] && [ "$2" = set ]; then
   fi
   if [ -z "$key" ]; then
     echo "Error: empty key, nothing was written" >&2
-    exit 1
+    return 1
   fi
-  printf '%s\n' "$key" > "$home/api-key.new" && mv "$home/api-key.new" "$home/api-key" || exit 1
+  printf '%s\n' "$key" > "$home/api-key.new" && mv "$home/api-key.new" "$home/api-key" || return 1
   chmod 600 "$home/api-key"
   if [ -d "$home/log" ]; then
     now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
     (printf '{"v":1,"ts":"%s","kind":"config","session":null,"pid":%s,"action":"key set"}\n' "$now" "$$" >> "$home/log/events-${now%%-[0-9][0-9]T*}.jsonl") 2>/dev/null
   fi
-  echo "key stored in $home/api-key (600); check it with: ccsaver doctor" >&2
+  echo "key stored in $home/api-key (600)" >&2
+}
+
+asked() {
+  printf '%s' "$1" >&2
+  IFS= read -r reply || return 1
+  [ -n "$reply" ] || { echo "Error: nothing typed, setup stopped" >&2; return 1; }
+}
+
+if [ "$1" = key ] && [ "$2" = set ]; then
+  store_key || exit 1
+  echo "check it with: ccsaver doctor" >&2
   exit 0
 fi
 
-if [ "$1" = doctor ] && ! node -e 'const [major, minor] = process.versions.node.split(".").map(Number); process.exit(major > 24 || (major === 24 && minor >= 2) ? 0 : 1)' 2>/dev/null; then
-  echo "FAIL node: ccsaver needs Node.js 24.2 or newer, this PATH has $(node --version 2>/dev/null || echo none)"
-  exit 1
+case "$1" in
+doctor | setup)
+  if ! node -e 'const [major, minor] = process.versions.node.split(".").map(Number); process.exit(major > 24 || (major === 24 && minor >= 2) ? 0 : 1)' 2>/dev/null; then
+    echo "FAIL node: ccsaver needs Node.js 24.2 or newer, this PATH has $(node --version 2>/dev/null || echo none)"
+    exit 1
+  fi
+  ;;
+esac
+
+if [ "$1" = setup ]; then
+  asked 'worker url (https://…/v1/chat/completions): ' || exit 1
+  url=$reply
+  asked 'worker model: ' || exit 1
+  cli worker set "$url" "$reply" || exit 1
+  store_key || exit 1
+  printf 'let paid Claude Haiku answer what the worker cannot? [Y/n] ' >&2
+  IFS= read -r reply
+  case $reply in [Nn]*) cli fallback off || exit 1 ;; *) cli fallback on || exit 1 ;; esac
+  cli doctor
+  exit $?
 fi
 
-if [ -d "$home" ]; then
-  NODE_COMPILE_CACHE="$home/cache"
-  export NODE_COMPILE_CACHE
-fi
 exec node "$root/src/cli.ts" "$@"

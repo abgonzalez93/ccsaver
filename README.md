@@ -54,7 +54,15 @@ claude plugin marketplace add abgonzalez93/ccsaver
 claude plugin install ccsaver@abgonzalez93
 ```
 
-Then open a new session, or run `/reload-plugins`. Nothing else is installed on your machine: the `ccsaver` command travels with the plugin, and Claude Code puts its `bin/` folder on the Bash tool's `PATH`, so you configure it and plug projects in from inside a session.
+Then open a new session, or run `/reload-plugins`, and type:
+
+```
+/ccsaver:setup      point it at a cheap worker, store the key, check the result
+/ccsaver:plug       turn it on for this project
+/ccsaver:doctor     check it again later
+```
+
+Nothing else is installed on your machine. The `ccsaver` command travels with the plugin and Claude Code puts its `bin/` folder on the Bash tool's `PATH`, so the three commands above are all a session needs; a shell of your own can run the same subcommands when that `PATH` has the plugin's `bin/` on it.
 
 ## Update
 
@@ -67,9 +75,10 @@ Then open a new session or run `/reload-plugins`. A third-party marketplace has 
 
 ## Plug a project in
 
-Ask Claude to run these, or run them yourself in a shell that has the plugin's `bin/` on its `PATH`:
+`/ccsaver:plug` does this for the project you are in. The subcommands behind it:
 
 ```bash
+ccsaver plug                              # this folder, default limits
 ccsaver plug ~/code/my-project            # hook + skills on, default limits
 ccsaver plug ~/code/my-project strict-ts  # same, with an adapter
 ccsaver list
@@ -91,13 +100,23 @@ log/          the event log, only after `ccsaver log on` (700, one 600 file per 
 
 ## Point it at a cheap worker
 
+`/ccsaver:setup` asks for all of it and ends with `doctor`. `ccsaver setup` does the same from a shell. The subcommands behind them:
+
 ```bash
 ccsaver worker set https://your-provider.example/v1/chat/completions some-small-model
-ccsaver key set     # never an argument: typed with the echo off, or read from stdin
+ccsaver key set                             # see below: never an argument
 ccsaver doctor
-ccsaver fallback off   # optional: never spend on the Claude Haiku fallback
+ccsaver fallback off                        # optional: never spend on the Claude Haiku fallback
 ccsaver worker claude ~/.local/bin/claude   # optional: pin the binary the fallback runs
 ```
+
+**The key never travels as an argument.** On a terminal `ccsaver key set` asks for it with the echo off. Everywhere else it reads one line from stdin, so from inside Claude Code you save the key in a file only you touch and let it be read without ever being shown:
+
+```bash
+ccsaver key set < ~/my-key.txt && rm ~/my-key.txt
+```
+
+`/ccsaver:setup` walks that path and is told not to read the file. Nothing about the key reaches the session: not the command line, not the transcript, not the event log, which records the bare fact of a `key set` and no more.
 
 Any OpenAI-compatible chat completions endpoint works; the URL must be `https`, or point at `localhost`, `127.0.0.1` or `[::1]`. A url that carries a user name or a password (`https://me:token@…`) is refused as you set it: `fetch` rejects one outright, so every call would have fallen through to the paid worker and `doctor` would have reported the host as unreachable. A query string is kept, because some endpoints need one, and never printed: `worker set`, `doctor` and a failing probe show the origin and the path only, so a key that a provider suggests passing as `?key=…` stays out of the session's context. Without a worker, or whenever it fails, times out (30 s: the slowest real call measured took 19 s) or cuts its answer short, the call goes to Claude Haiku through your own Claude Code binary (every request caps the answer at 8,192 tokens with `max_tokens`, so a provider's own default never decides, and an answer cut at either limit says so before it falls back): the one the session runs on (`CLAUDE_CODE_EXECPATH`, an undocumented variable observed in Claude Code 2.1), then `claude` on your `PATH`. `ccsaver worker claude <path>` pins another binary, which wins over both, and `ccsaver worker claude auto` unpins it; only pin a path that survives updates: the IDE extensions keep their binary in a versioned folder. A redirect from the worker counts as a failure, never followed with your file in hand. When the fallback itself reports an error, the command fails with that error instead of handing it over as an answer. Every fall to the paid worker says why on stderr first, a worker that has no key stored included; a key that is there but cannot be read (wrong owner, wrong mode) is named as that, never reported as no key at all. A fallback that runs out of its 85 s says so instead of printing `spawnSync claude ETIMEDOUT`.
 
