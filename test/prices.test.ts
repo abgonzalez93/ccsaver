@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import { chmodSync, rmSync, statSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { after, test } from "node:test"
-import { CLI, logHome, type Ran, run, tempDir, twentyDenials } from "./helpers.ts"
+import { CLI, logHome, type Ran, run, tempDir, twentyDenials, writeHome } from "./helpers.ts"
 
 const AS_ROOT = process.getuid?.() === 0
 const OPUS = "claude-opus-5"
@@ -28,16 +28,16 @@ test("price with nothing after it lists what is set, one to a line", async () =>
   const empty = await priced(home, [])
   assert.deepEqual(
     [empty.code, empty.stdout],
-    [
-      0,
-      "no model has a price yet: ccsaver price <model> <usd per million>\n  worker                      unset\n",
-    ],
+    [0, "no model has a price yet: ccsaver price <model> <usd per million>\n  worker   unset\n"],
   )
   await priced(home, [OPUS, "5"])
   await priced(home, ["worker", "0"])
   const full = await priced(home, [])
   assert.equal(full.code, 0)
-  assert.equal(full.stdout, `  ${OPUS.padEnd(28)}$5/M\n  ${"worker".padEnd(28)}free\n`)
+  assert.equal(full.stdout, `  ${OPUS.padEnd(16)}$5/M\n  ${"worker".padEnd(16)}free\n`)
+  writeHome(home, { worker: { url: "https://h/v1/chat/completions", model: "gemma-3" } })
+  const named = await priced(home, [])
+  assert.equal(named.stdout, `  ${OPUS.padEnd(19)}$5/M\n  ${"worker (gemma-3)".padEnd(19)}free\n`)
 })
 
 test("a worker that costs nothing is set down as free, not left looking unanswered", async () => {
@@ -46,12 +46,15 @@ test("a worker that costs nothing is set down as free, not left looking unanswer
   ])
   await priced(home, [OPUS, "5"])
   const nagged = await saved(home)
-  assert.match(nagged.stdout, /the worker's own tokens are not priced yet/)
+  assert.match(nagged.stdout, /the worker has no price for its own tokens yet/)
   const set = await priced(home, ["worker", "0"])
   assert.equal(set.stdout, `price worker $0/M · ${OPUS} $5/M · worker free\n`)
   const out = await saved(home)
   assert.match(out.stdout, /at \$5\/M for claude-opus-5, and the worker is free/)
-  assert.doesNotMatch(out.stdout, /not priced yet/)
+  assert.doesNotMatch(out.stdout, /no price for its own tokens/)
+  writeHome(home, { worker: { url: "https://h/v1/chat/completions", model: "gemma-3" } })
+  const named = await saved(home)
+  assert.match(named.stdout, /and the worker \(gemma-3\) is free/)
   const wrong = await priced(home, [OPUS, "0"])
   assert.equal(wrong.code, 1)
   assert.match(wrong.stderr, /0 only for a worker that is free/)

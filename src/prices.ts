@@ -1,6 +1,14 @@
 import { existsSync, readFileSync } from "node:fs"
 import { record } from "./log.ts"
-import { attempt, isRecord, parsed, pricesFile, Refusal, writePrivate } from "./state.ts"
+import {
+  attempt,
+  isRecord,
+  parsed,
+  pricesFile,
+  Refusal,
+  workerFile,
+  writePrivate,
+} from "./state.ts"
 
 export const MODEL_NAME = /^[a-z0-9][a-z0-9._-]{0,63}$/
 
@@ -57,7 +65,13 @@ export const writePrice = (which: string, usd: number): Prices => {
   return after
 }
 
-const RATE = 28
+export const workerNamed = (): string => {
+  const raw = parsed(attempt(() => readFileSync(workerFile(), "utf8")) ?? "")
+  const model = isRecord(raw) ? raw["model"] : undefined
+  return typeof model === "string" && model !== "" ? `${WORKER} (${model})` : WORKER
+}
+
+const GAP = 3
 
 export const listedPrices = ({ models, worker }: Prices): string => {
   const free = worker === undefined ? "unset" : worker === 0 ? "free" : `$${worker}/M`
@@ -65,9 +79,9 @@ export const listedPrices = ({ models, worker }: Prices): string => {
     model,
     `$${each}/M`,
   ])
-  const lines = [...rows, [WORKER, free]]
-    .map(([name = "", rate = ""]) => `  ${name.padEnd(RATE)}${rate}`)
-    .join("\n")
+  const all: [string, string][] = [...rows, [workerNamed(), free]]
+  const width = Math.max(...all.map(([name]) => name.length)) + GAP
+  const lines = all.map(([name, rate]) => `  ${name.padEnd(width)}${rate}`).join("\n")
   return rows.length === 0
     ? `no model has a price yet: ccsaver price <model> <usd per million>\n${lines}\n`
     : `${lines}\n`
@@ -76,5 +90,5 @@ export const listedPrices = ({ models, worker }: Prices): string => {
 export const shownPrices = ({ models, worker }: Prices): string =>
   [
     ...Object.entries(models).map(([model, each]) => `${model} $${each}/M`),
-    `worker ${worker === undefined ? "unset" : worker === 0 ? "free" : `$${worker}/M`}`,
+    `${workerNamed()} ${worker === undefined ? "unset" : worker === 0 ? "free" : `$${worker}/M`}`,
   ].join(" · ")

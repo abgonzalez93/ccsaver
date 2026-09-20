@@ -1,7 +1,7 @@
 import { existsSync, readdirSync } from "node:fs"
 import { tokensIn } from "./config.ts"
 import { logDir, monthKey, numberAt, type Row, type Rows, readMonth } from "./log.ts"
-import { MODEL_NAME, type Prices, readPrices } from "./prices.ts"
+import { MODEL_NAME, type Prices, readPrices, workerNamed } from "./prices.ts"
 import { attempt, inColour } from "./state.ts"
 
 const REAL_LOW = 1.9
@@ -259,11 +259,12 @@ const rateIn = (tally: Spend, prices: Prices): string => {
       return each === undefined ? [] : [`$${each}/M for ${model}`]
     })
     .join(", ")
+  const worker = workerNamed()
   if (prices.worker === undefined)
-    return `  at ${named}; the worker's own tokens are not priced yet (ccsaver price worker <usd>)`
+    return `  at ${named}; the ${worker} has no price for its own tokens yet (ccsaver price worker <usd>)`
   return prices.worker === 0
-    ? `  at ${named}, and the worker is free`
-    : `  at ${named} and $${prices.worker}/M for the worker`
+    ? `  at ${named}, and the ${worker} is free`
+    : `  at ${named} and $${prices.worker}/M for the ${worker}`
 }
 
 const orphaned = (tally: Spend): boolean =>

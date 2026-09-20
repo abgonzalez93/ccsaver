@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.18.0 - 2026-09-20
+
+feat: the worker price carries the model it points at
+
+- price lists it, the confirmation line and the foot of the report all name the model from worker.json beside the word worker, so a worker aimed somewhere else months ago is never read as the one running now
+- the price column is now as wide as its longest name, which a fixed 28 could not hold once a name carries a model
+- docs/configuration.md says where the model shows, and its example report carries one
+
 ## 0.17.0 - 2026-09-20
 
 feat: ccsaver price with nothing after it lists what is set
