@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.20.12 - 2026-09-20
+
+refactor: one guard opens the first choice of a worker's answer, and one line prices the worker
+
+- `isCutShort` and `contentOf` each walked `raw.choices[0]` with the same three checks; `firstChoice` is the one place that opens it, and CONTRIBUTING 3.3 cites it
+- `listedPrices` and `shownPrices` spelled the same unset/free/rate ternary letter for letter; `rateOf` holds it once
+- no behaviour changes: the 257 tests pass as they were
+
 ## 0.20.11 - 2026-09-20
 
 docs: the rules name their two exceptions, the line count is today's, and a stray half-sentence leaves versions.md

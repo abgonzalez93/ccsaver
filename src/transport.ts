@@ -201,11 +201,13 @@ export const fellOf = (error: unknown): Fell => {
   return error instanceof SyntaxError ? "not json" : "unreachable"
 }
 
-const isCutShort = (raw: unknown): boolean =>
-  isRecord(raw) &&
-  Array.isArray(raw["choices"]) &&
-  isRecord(raw["choices"][0]) &&
-  raw["choices"][0]["finish_reason"] === "length"
+const firstChoice = (raw: unknown): Record<PropertyKey, unknown> | undefined => {
+  if (!isRecord(raw) || !Array.isArray(raw["choices"])) return undefined
+  const first: unknown = raw["choices"][0]
+  return isRecord(first) ? first : undefined
+}
+
+const isCutShort = (raw: unknown): boolean => firstChoice(raw)?.["finish_reason"] === "length"
 
 const textOf = (content: unknown): string => {
   if (typeof content === "string") return content
@@ -216,9 +218,8 @@ const textOf = (content: unknown): string => {
 }
 
 const contentOf = (raw: unknown): string | undefined => {
-  if (!isRecord(raw) || !Array.isArray(raw["choices"])) return undefined
-  const first: unknown = raw["choices"][0]
-  if (!isRecord(first) || !isRecord(first["message"]) || first["finish_reason"] === "length")
+  const first = firstChoice(raw)
+  if (first === undefined || !isRecord(first["message"]) || first["finish_reason"] === "length")
     return undefined
   const text = textOf(first["message"]["content"])
   return text.length > 0 ? text : undefined

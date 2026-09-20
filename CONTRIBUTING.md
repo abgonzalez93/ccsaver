@@ -156,9 +156,10 @@ Guard: *convention*.
 ```ts
 // ❌ trusts the shape of a response from the network
 const content = (await response.json()).choices[0].message.content
-// ✅ `src/transport.ts` · `contentOf`
+// ✅ `src/transport.ts` · `firstChoice`, the one guard `contentOf` and `isCutShort` open the answer with
 if (!isRecord(raw) || !Array.isArray(raw["choices"])) return undefined
 const first: unknown = raw["choices"][0]
+return isRecord(first) ? first : undefined
 ```
 
 Guard: `test/conventions.test.ts` for `JSON.parse`; `noPropertyAccessFromIndexSignature` forces the bracket on an unchecked key. No schema library: zero runtime dependencies is a promise (5.4). Revisit past 10 untrusted shapes or a shape nested more than 2 levels deep.

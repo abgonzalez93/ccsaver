@@ -91,13 +91,15 @@ export const workerNamed = (): string => {
 
 const GAP = 3
 
+const rateOf = (worker: number | undefined): string =>
+  worker === undefined ? "unset" : worker === 0 ? "free" : `$${worker}/M`
+
 export const listedPrices = ({ models, worker }: Prices): string => {
-  const free = worker === undefined ? "unset" : worker === 0 ? "free" : `$${worker}/M`
   const rows: [string, string][] = Object.entries(models).map(([model, each]) => [
     model,
     `$${each}/M`,
   ])
-  const all: [string, string][] = [...rows, [workerNamed(), free]]
+  const all: [string, string][] = [...rows, [workerNamed(), rateOf(worker)]]
   const width = Math.max(...all.map(([name]) => name.length)) + GAP
   const lines = all.map(([name, rate]) => `  ${name.padEnd(width)}${rate}`).join("\n")
   return rows.length === 0
@@ -108,5 +110,5 @@ export const listedPrices = ({ models, worker }: Prices): string => {
 export const shownPrices = ({ models, worker }: Prices): string =>
   [
     ...Object.entries(models).map(([model, each]) => `${model} $${each}/M`),
-    `${workerNamed()} ${worker === undefined ? "unset" : worker === 0 ? "free" : `$${worker}/M`}`,
+    `${workerNamed()} ${rateOf(worker)}`,
   ].join(" · ")
