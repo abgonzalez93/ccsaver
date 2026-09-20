@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { existsSync, readFileSync, statSync } from "node:fs"
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs"
 import { join } from "node:path"
 import { test } from "node:test"
 import { isRecord } from "../src/state.ts"
@@ -53,6 +53,42 @@ test("the plugin's own files name each other, and what they point at can run", (
     assert.ok(existsSync(path), path)
     assert.ok((statSync(path).mode & 0o100) !== 0, `${file} is not executable`)
   }
+})
+
+const USAGE_BLOCK = /const USAGE = `([\s\S]*?)`\n/
+const NAMED = /(?:^|`)ccsaver ([a-z-]+)/gm
+
+const answered = (): Set<string> => {
+  const source = readFileSync(join(REPO, "src", "cli.ts"), "utf8")
+  const usage = USAGE_BLOCK.exec(source)?.[1] ?? ""
+  return new Set(usage.split("\n").flatMap((line) => /^ {2}([a-z-]+)/.exec(line)?.[1] ?? []))
+}
+
+const pages = (dir: string): string[] =>
+  readdirSync(join(REPO, dir)).filter((name) => name.endsWith(".md"))
+
+test("every command a prompt of ours tells Claude to run is one the CLI answers", () => {
+  const known = answered()
+  assert.ok(known.size > 10)
+  const places = [
+    ...pages("commands").map((name) => join("commands", name)),
+    ...SKILLS.map(([skill]) => join("skills", skill, "SKILL.md")),
+  ]
+  const unknown = places.flatMap((place) =>
+    [...readFileSync(join(REPO, place), "utf8").matchAll(NAMED)].flatMap(([, word = ""]) =>
+      known.has(word) ? [] : [`${place} names ccsaver ${word}`],
+    ),
+  )
+  assert.deepEqual(unknown, [])
+})
+
+test("every slash command carries the one-line description the plugin menu shows", () => {
+  const without = pages("commands").flatMap((name) => {
+    const [, front = ""] =
+      /^---\n([\s\S]*?)\n---\n/.exec(readFileSync(join(REPO, "commands", name), "utf8")) ?? []
+    return /^description: \S.*$/m.test(front) ? [] : [name]
+  })
+  assert.deepEqual(without, [])
 })
 
 test("code-writer tells Claude what a warn: line asks for", () => {

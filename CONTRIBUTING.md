@@ -95,7 +95,11 @@ Off the map: `scripts/version.ts`, the git hook of 5.3. It is no part of the pro
 
 Off the map too: `bin/ccsaver`, the POSIX `sh` launcher, which holds `key set` and `setup`, because only a shell can turn a terminal's echo off and the key must never reach a Node argument list. `setup` asks for the four settings, hands each one to the CLI and shares `store_key` with `key set`, so the key file keeps one writer. The launcher appends one event of its own, the `key set` line, in shell: the line format of `src/log.ts` · `LOG_VERSION` therefore has two writers, and a change to it has to touch both or the month's file will hold two shapes.
 
-Off the map as well: `commands/`, the three markdown files behind `/ccsaver:setup`, `/ccsaver:plug` and `/ccsaver:doctor`. They are prompts for Claude, not code: they call the subcommands a shell would call and hold no logic of their own.
+Off the map as well: `commands/`, the four markdown files behind `/ccsaver:setup`, `/ccsaver:plug`, `/ccsaver:doctor` and `/ccsaver:saved`. They are prompts for Claude, not code: they call the subcommands a shell would call and hold no logic of their own.
+
+There is one per flow that needs judgement, **never one per command**. `key set`, `worker set` and `fallback` live inside `setup.md` because they need the warnings standing around them, and pulling `key set` out on its own would be worse than leaving it there; `unplug` and `list` are a line each and `plug.md` already shows them; `price` lives inside `saved.md`, because a price with no report to read is meaningless; `bulk-read` and `code-write` are the skills' own, and a second front door would only make it unclear which one grants what. A new one earns its place by carrying a caveat that a summary would drop first, which is why `saved` has one: a session that reports its band as a single number undoes the command. It pays for that place in a description every session loads, so 4.5 wants the per-session cost measured before a fifth lands, the way `docs/measurements.md` measured the two skill descriptions at ~188 tokens.
+
+Guard: `test/skills.test.ts` pins that every `ccsaver …` a prompt of ours names is a command the CLI answers, reading the list out of `USAGE` in `src/cli.ts`, and that each file carries the description the plugin menu shows.
 
 **2.2 ALWAYS import from the file that owns the symbol**, by relative path with the real extension. No barrel, no `export *`, no default export.
 Guard: Biome `useImportExtensions`, `allowImportingTsExtensions`; barrels are *convention*.

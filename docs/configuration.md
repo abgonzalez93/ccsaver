@@ -133,7 +133,7 @@ While the [event log](events.md) is on, `doctor` also prints a `denied:` line: h
 
 ## saved
 
-`ccsaver saved` adds up [the event log](events.md) and says what the month cost against what it would have cost without the plugin. It is the long form of doctor's one-line `spent:`, and it reads the log only: it never calls a worker and never writes anything but the price you set.
+`ccsaver saved` adds up [the event log](events.md) and says what the month cost against what it would have cost without the plugin. `/ccsaver:saved` runs it from a session and reads the answer back with every caveat the foot of the report carries, which is the part a summary drops first. It is the long form of doctor's one-line `spent:`, and it reads the log only: it never calls a worker and never writes anything but the price you set.
 
 ```
 ccsaver saved            # the month in course

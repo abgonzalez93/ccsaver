@@ -4,6 +4,16 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.12.0 - 2026-09-20
+
+feat: /ccsaver:saved reads the report back with the caveats a summary drops
+
+- `saved` shipped without a slash command, and it is the one whose output cannot be read casually: a session that turns its 1.9-2.8x band into a single number, or gives `denied` without `instead`, undoes the whole design of the command
+- the prompt makes both compulsory, carries every footnote back (nothing replaced those reads, calls counted at chars/4, the gate seeing the Read tool only), reports a negative saving as a real answer, and refuses to invent a price because an invented one makes every figure under it fiction
+- `commands/` had no test at all: the skills have been tied to their subcommands for a while and the prompts never were, so a renamed command could break one in silence
+- two guards now, over `commands/` and `skills/` alike: every `ccsaver …` a prompt names is a command `USAGE` answers, and every file carries the description the plugin menu shows
+- CONTRIBUTING 2.1 writes down why there are four files and not fourteen, command by command, and asks 4.5 for a per-session number before a fifth lands
+
 ## 0.11.0 - 2026-09-20
 
 feat: ccsaver saved says what the log cost, and what it would have cost without
