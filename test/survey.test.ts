@@ -171,6 +171,14 @@ test("on a terminal doctor offers the fix, writes it on yes and leaves it on no"
   const long = await ask("yes               no\n")
   assert.match(long.stdout, /skipped/)
   assert.equal(existsSync(join(home, "adapters", "offered.json")), false)
+  const dumb = await run(
+    "script",
+    ["-qec", `env TERM=dumb CCSAVER_HOME=${home} "${LAUNCHER}" doctor`, "/dev/null"],
+    {},
+    "n\n",
+  )
+  assert.match(dumb.stdout, /^warn shape: /m)
+  assert.equal(dumb.stdout.includes("\u001b"), false)
   const did = await ask("y\n")
   assert.match(did.stdout, /adapter offered written to /)
   assert.deepEqual(jsonOf(join(home, "adapters", "offered.json")), { maxLines: 900 })
