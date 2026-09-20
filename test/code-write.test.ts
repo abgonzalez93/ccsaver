@@ -76,6 +76,10 @@ before(async () => {
     join(HOME, "adapters", "nofmt.json"),
     JSON.stringify({ format: ["tools/missing.sh"] }),
   )
+  writeFileSync(
+    join(HOME, "adapters", "escapes.json"),
+    JSON.stringify({ format: ["../outside-fmt.sh"] }),
+  )
   writeHome(HOME, {
     plugged: PLUGGED,
     worker: { url: server.url, model: "cheap-1" },
@@ -138,6 +142,26 @@ test("says so when the formatter exits with an error, and quotes a target that n
   assert.equal(out.code, 0)
   assert.match(out.stderr, /the formatter exited 3/)
   assert.ok(out.stdout.includes(`next: check '${target}'\n`), out.stdout)
+})
+
+test("a formatter that climbs out of the project is not run", async () => {
+  const project = join(WORK, "escapes")
+  mkdirSync(project, { recursive: true })
+  writeFileSync(join(project, "source.ts"), "export const a = 1\n")
+  const ran = join(WORK, "formatter-ran")
+  writeFileSync(join(WORK, "outside-fmt.sh"), `#!/bin/sh\nprintf ran > ${ran}\n`)
+  chmodSync(join(WORK, "outside-fmt.sh"), 0o755)
+  await cli(["plug", project, "escapes"])
+  server.reply.content = "export const i = 9\n"
+  const target = join(project, "made.ts")
+  const out = await codeWrite(project, target)
+  assert.equal(out.code, 0)
+  assert.match(
+    out.stderr,
+    /the formatter \.\.\/outside-fmt\.sh is outside .*escapes, .*made\.ts is unformatted/,
+  )
+  assert.equal(readFileSync(target, "utf8"), "export const i = 9\n")
+  assert.equal(existsSync(ran), false)
 })
 
 test("fails instead of reporting a file the formatter took away", async () => {

@@ -82,12 +82,17 @@ const blocksOf = (files: string[], numbered: boolean, root: string): Sent[] => {
 const format = (adapter: Adapter, root: string, target: string): void => {
   const [command, ...args] = adapter.format ?? []
   if (command === undefined) return
+  const bin = command.includes("/") ? resolve(root, command) : command
+  if (bin !== command && !isUnder(bin, root)) {
+    delegation.format = "outside"
+    note(`the formatter ${command} is outside ${root}, ${target} is unformatted`)
+    return
+  }
   const left = BASH_BUDGET_MS - Math.round(performance.now())
-  const run = spawnSync(
-    command.includes("/") ? resolve(root, command) : command,
-    [...args, target],
-    { cwd: root, timeout: Math.max(FORMAT_FLOOR_MS, Math.min(FORMAT_TIMEOUT_MS, left)) },
-  )
+  const run = spawnSync(bin, [...args, target], {
+    cwd: root,
+    timeout: Math.max(FORMAT_FLOOR_MS, Math.min(FORMAT_TIMEOUT_MS, left)),
+  })
   delegation.format = run.error
     ? "error"
     : run.status === 0
