@@ -43,6 +43,12 @@ So the rules reach the worker and change what it writes. They do not make it mat
 
 The line this note replaces credited the rules with that import instead, 4 of 4 against 0 of 4. It was written with the first commit, its conditions were never recorded, and it does not reproduce against this worker.
 
+## The cost of the node version check
+
+14 ms per command, mean of 20 runs, three rounds: `ccsaver list` ran in 32.3 ms on its own and 46.7 ms behind the `node -e` that reads `process.versions.node`, which is a second process start.
+
+That is why the check guards `setup`, `doctor` and `plug` and not every command. Those three are what a person types before anything works, and each already costs more than 14 ms; `bulk-read` and `code-write` are typed by a skill after setup has run, and the hook never sees the launcher at all. A node too old to strip types shows itself there as a parse error rather than as a sentence, which is the price of not paying 14 ms on a path that runs on every delegation.
+
 ## The fixed cost of the skill descriptions
 
 The two skill descriptions cost about 188 tokens per session, in every project, plugged or not: ≈ 0.006 $ on a frontier model.

@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.13.2 - 2026-09-20
+
+fix: the launcher stops an old node before plug, not only before setup and doctor
+
+- a node under 24.2 cannot strip the types of src/, so every command that skipped the check answered with a parse error instead of a sentence
+- plug joins setup and doctor because those three are what a person types before anything works
+- bulk-read and code-write stay unchecked on purpose: the check is a second process start and costs 14 ms, measured at 32.3 ms against 46.7 ms for ccsaver list, mean of 20 runs over three rounds, which every delegation would pay
+
 ## 0.13.1 - 2026-09-20
 
 fix: an adapter limit takes a ceiling of a million
