@@ -4,6 +4,13 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.13.1 - 2026-09-20
+
+fix: an adapter limit takes a ceiling of a million
+
+- maxLines and maxTokens were any positive integer, so a typed extra zero made doctor write a maxLines+1-line throwaway file on every run and raised what the hook reads whole on every Read to maxTokens times four bytes
+- the ceiling is checked where the number is typed as well as where it is read, so the command that writes an adapter can never write one the next command calls malformed
+
 ## 0.13.0 - 2026-09-20
 
 feat: doctor checks prices.json and the adapters folder

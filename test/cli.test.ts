@@ -185,13 +185,19 @@ test("adapter writes the limits, merges into an existing adapter and refuses jun
   const merged = jsonOf(join(home, "adapters", "strict-ts.json"))
   assert.deepEqual([merged["maxLines"], typeof merged["rules"]], [500, "string"])
   assert.equal(statSync(join(home, "adapters", "strict-ts.json")).mode & 0o777, 0o600)
-  for (const junk of [["maxLines=abc"], ["bogus=3"], ["maxLines=0"], ["maxLines=400=oops"]]) {
+  for (const junk of [
+    ["maxLines=abc"],
+    ["bogus=3"],
+    ["maxLines=0"],
+    ["maxLines=400=oops"],
+    ["maxTokens=1000001"],
+  ]) {
     const out = await ccs(["adapter", "fresh", ...junk])
     const where = junk.join(" ")
     assert.deepEqual([out.code, out.stdout], [1, ""], where)
     assert.match(
       out.stderr,
-      /^Error: maxLines=<n> and maxTokens=<n>, n a positive integer; not: /,
+      /^Error: maxLines=<n> and maxTokens=<n>, n a positive integer up to 1000000; not: /,
       where,
     )
     assert.ok(out.stderr.trimEnd().endsWith(where), where)

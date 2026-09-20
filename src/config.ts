@@ -58,6 +58,8 @@ export const DEFAULT_LIMITS = { maxLines: 350, maxTokens: 8000 } as const
 
 export const BYTES_PER_TOKEN = 4
 
+export const LIMIT_CEILING = 1_000_000
+
 const LINE_BREAK = 10
 const NUL = 0
 
@@ -91,7 +93,7 @@ const isStrings = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every((item) => typeof item === "string")
 
 const isCount = (value: unknown): value is number =>
-  typeof value === "number" && Number.isInteger(value) && value > 0
+  typeof value === "number" && Number.isInteger(value) && value > 0 && value <= LIMIT_CEILING
 
 export const readPlugged = (): Plugged[] =>
   (attempt(() => readFileSync(pluggedFile(), "utf8")) ?? "")

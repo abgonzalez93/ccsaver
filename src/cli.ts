@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import {
+  LIMIT_CEILING,
   type Limits,
   limitsFor,
   plug,
@@ -53,13 +54,14 @@ const limitsGiven = (pairs: string[]): Partial<Limits> => {
     ([key, value, extra]) =>
       !LIMIT_KEYS.some((known) => known === key) ||
       extra !== undefined ||
-      !/^[1-9][0-9]*$/.test(value ?? ""),
+      !/^[1-9][0-9]*$/.test(value ?? "") ||
+      Number(value) > LIMIT_CEILING,
   )
   if (given.length === 0)
     throw new Refusal(`ccsaver adapter <name> needs ${LIMIT_KEYS.join("=<n> or ")}=<n>`)
   if (wrong.length > 0)
     throw new Refusal(
-      `${LIMIT_KEYS.join("=<n> and ")}=<n>, n a positive integer; not: ${wrong.map((parts) => parts.join("=")).join(" ")}`,
+      `${LIMIT_KEYS.join("=<n> and ")}=<n>, n a positive integer up to ${LIMIT_CEILING}; not: ${wrong.map((parts) => parts.join("=")).join(" ")}`,
     )
   return Object.fromEntries(given.map(([key, value]) => [key, Number(value)]))
 }
