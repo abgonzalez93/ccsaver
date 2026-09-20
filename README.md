@@ -19,7 +19,7 @@ Needs Claude Code, Node.js 24.2 or newer, and a POSIX `sh`. Linux and macOS only
 
 ## What it does
 
-- **Denies whole-file reads of big files.** A `PreToolUse` hook denies a `Read` of a whole file over 350 lines or 32 KB and points the model at Grep, at a ranged read, or at the `bulk-reader` skill. It asks the file system for the size first, so a huge file is never opened. Those two numbers are this repository's house style, not a measured optimum: `plug` measures your project and proposes the limit it asks for, and `doctor` says when it has drifted ([Limits](docs/configuration.md#limits)).
+- **Denies whole-file reads of big files.** A `PreToolUse` hook denies a `Read` of a whole file over 350 lines or 32 KB and points the model at Grep, at a ranged read, or at the `bulk-reader` skill. It asks the file system for the size first, so a huge file is never opened. Those two numbers are this repository's house style, not a measured optimum: `plug` measures your project and proposes the limits it asks for, and `doctor` says when it has drifted. Three repositories measured this way asked for limits [10× apart](docs/measurements.md#what-a-repository-asks-for) ([Limits](docs/configuration.md#limits)).
 - **Delegates boilerplate.** The `code-writer` skill hands tests, fixtures and stubs to the same worker and lets your project's own checks review the result.
 
 Both skills call one command, `ccsaver`, which makes **one tool-less, one-shot call** to a cheap model: an OpenAI-compatible endpoint of your choice, with Claude Haiku (through your own Claude Code) as the fallback. The expensive model sees the short answer, never the file.

@@ -4,6 +4,28 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.7.1 - 2026-09-20
+
+fix: the survey counts the heavy files it was dropping, and weighs both limits
+
+- a file past the byte limit was left out of the count, on the grounds that
+  maxTokens denied it whatever its lines were; that silently dropped the large
+  source files the measurement exists to find, among them a 2,477-line
+  stylesheet and a 1,058-line test file
+- one monorepo's 19-in-20 length read 344 lines with those out and 396 with
+  them in, so the verdict flipped from "the limits already fit" to asking for
+  maxLines 400: the filter was deciding the answer
+- the ceiling is now 1 MB, which nothing read whole reaches, and a binary file
+  is told by its first 8 KB rather than by its size
+- maxTokens is measured and proposed beside maxLines, because both deny and one
+  file can need both raised: that 1,058-line test file is 41 KB, so moving the
+  line limit alone leaves it denied by the token limit
+- only the limit that fell short is named in the proposal
+- reading the head before the whole file holds the 933-file monorepo at
+  10.9-24.8 ms, where reading every file whole ran 13-46 ms and swung with the
+  cache
+- measurements.md carries the three corpora and the 10x spread between them
+
 ## 0.7.0 - 2026-09-20
 
 feat: plug and doctor measure the project and propose a limit

@@ -97,16 +97,24 @@ Two numbers decide what the hook denies: `maxLines`, and `maxTokens`, which coun
 
 The two ways of being wrong do not cost the same. **Too high is inert**: the hook stops firing and you have what you had without the plugin. **Too low degrades the session**: the model pays for the denial, then pages through ranges it picked from Grep, and ends up reasoning over fragments. That is the [3.6× row](../README.md#honest-limits). Err high.
 
-The right number belongs to the repository, so `ccsaver plug` measures it. It walks the project, skipping `node_modules`, `.git`, `dist`, `build`, `target`, `vendor`, `.venv`, `venv`, `__pycache__`, `coverage`, `.next`, `.turbo` and `out`, never following a symlinked directory, counts the lines of every text file under the byte limit, and reports the length 19 files in 20 stay under:
+The right numbers belong to the repository, so `ccsaver plug` measures them. It walks the project, skipping `node_modules`, `.git`, `dist`, `build`, `target`, `vendor`, `.venv`, `venv`, `__pycache__`, `coverage`, `.next`, `.turbo` and `out`, never following a symlinked directory, reads the first 8 KB of each file to leave the binary ones out, skips anything past 1 MB, and reports the length and weight 19 files in 20 stay under:
 
 ```
 plugged /home/you/project · adapter none
-measured: 322 of 933 files, 19 in 20 under 344 lines, which the 350-line limit already fits
+measured: 67 of 67 files, 19 in 20 under 285 lines and 3237 tokens, which the 350-line, 8000-token limits already fit
 ```
 
-When that length is over the limit in force, it names the `maxLines` that would clear it, rounded up to fifty. It never proposes below the default, because a repository of ten short files would otherwise argue for a limit far worse than 350. Under twenty countable files it refuses to judge at all: one file in twenty is not a number. Files past the byte limit are left out, because `maxLines` does not decide their fate — `maxTokens` already did.
+When either one is over the limit in force, it names the replacement, rounded up to fifty lines or a thousand tokens, and names only the one that fell short:
 
-`doctor` measures it again on every run and adds one `warn shape:` line per project that has outgrown its limit, which is the moment the hook starts denying files the model should read whole. It is never a `FAIL`: nothing is broken, the limit is simply no longer the right one. Growth the other way needs no warning, because a limit nothing reaches is merely inert.
+```
+measured: 334 of 933 files, 19 in 20 under 396 lines and 4907 tokens: the limits in force deny normal files here, and an adapter with { "maxLines": 400 } would not
+```
+
+Both limits are measured because both deny, and a file can need both raised: a 1,058-line test file of 41 KB is over the line limit *and* over the token limit, so moving one alone leaves it denied by the other.
+
+The proposal never falls below the defaults, because a repository of ten short files would otherwise argue for a limit far worse than 350. Under twenty countable files it refuses to judge at all: one file in twenty is not a number.
+
+`doctor` measures again on every run and adds one `warn shape:` line per project that has outgrown its limits, which is the moment the hook starts denying files the model should read whole. It is never a `FAIL`: nothing is broken, the limits are simply no longer the right ones. Growth the other way needs no warning, because a limit nothing reaches is merely inert.
 
 To move it, name it in an adapter:
 

@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync } from "node:fs"
+import { closeSync, openSync, readdirSync, readFileSync, readSync, statSync } from "node:fs"
 import { join } from "node:path"
 import { BYTES_PER_TOKEN, DEFAULT_LIMITS, type Limits } from "./config.ts"
 import { attempt } from "./state.ts"
@@ -19,17 +19,20 @@ const PRUNED = [
   "out",
 ]
 const READ_CAP = 4000
+const CEILING_BYTES = 1_000_000
+const HEAD_BYTES = 8192
 const NUL = 0
 const LINE_BREAK = 10
 const SHARE = 0.95
 const IN_TWENTY = 20
-const ROUNDING = 50
+const LINE_STEP = 50
+const TOKEN_STEP = 1000
 
 export interface Survey {
   walked: number
   counted: number
-  typical: number
-  suggested: number
+  typical: Limits
+  suggested: Limits
 }
 
 const filesUnder = (dir: string, found: string[]): string[] => {
@@ -49,11 +52,22 @@ const linesIn = (bytes: Buffer): number => {
   return lines
 }
 
-const linesOf = (path: string, maxBytes: number): number | undefined => {
+const isText = (path: string): boolean => {
+  const fd = attempt(() => openSync(path, "r"))
+  if (fd === undefined) return false
+  const head = Buffer.alloc(HEAD_BYTES)
+  const read = attempt(() => readSync(fd, head, 0, HEAD_BYTES, 0))
+  attempt(() => closeSync(fd))
+  return read !== undefined && !head.subarray(0, read).includes(NUL)
+}
+
+const measure = (path: string): Limits | undefined => {
   const size = attempt(() => statSync(path).size)
-  if (size === undefined || size > maxBytes) return undefined
+  if (size === undefined || size > CEILING_BYTES || !isText(path)) return undefined
   const bytes = attempt(() => readFileSync(path))
-  return bytes === undefined || bytes.includes(NUL) ? undefined : linesIn(bytes)
+  return bytes === undefined
+    ? undefined
+    : { maxLines: linesIn(bytes), maxTokens: Math.round(bytes.length / BYTES_PER_TOKEN) }
 }
 
 const strided = (files: string[]): string[] => {
@@ -61,32 +75,47 @@ const strided = (files: string[]): string[] => {
   return step > 1 ? files.filter((_, at) => at % step === 0) : files
 }
 
-const percentile = (sorted: number[], share: number): number =>
-  sorted[Math.max(0, Math.ceil(share * sorted.length) - 1)] ?? 0
+const percentile = (values: number[]): number => {
+  const sorted = [...values].sort((first, second) => first - second)
+  return sorted[Math.max(0, Math.ceil(SHARE * sorted.length) - 1)] ?? 0
+}
 
-export const surveyFor = (root: string, limits: Limits): Survey => {
+const raisedTo = (value: number, step: number, floor: number): number =>
+  Math.max(floor, Math.ceil(value / step) * step)
+
+export const surveyFor = (root: string): Survey => {
   const walked = filesUnder(root, [])
-  const counted = strided(walked)
-    .flatMap((path) => linesOf(path, limits.maxTokens * BYTES_PER_TOKEN) ?? [])
-    .sort((first, second) => first - second)
-  const typical = percentile(counted, SHARE)
+  const measured = strided(walked).flatMap((path) => measure(path) ?? [])
+  const typical = {
+    maxLines: percentile(measured.map(({ maxLines }) => maxLines)),
+    maxTokens: percentile(measured.map(({ maxTokens }) => maxTokens)),
+  }
   return {
     walked: walked.length,
-    counted: counted.length,
+    counted: measured.length,
     typical,
-    suggested: Math.max(DEFAULT_LIMITS.maxLines, Math.ceil(typical / ROUNDING) * ROUNDING),
+    suggested: {
+      maxLines: raisedTo(typical.maxLines, LINE_STEP, DEFAULT_LIMITS.maxLines),
+      maxTokens: raisedTo(typical.maxTokens, TOKEN_STEP, DEFAULT_LIMITS.maxTokens),
+    },
   }
 }
 
-export const overshoots = ({ counted, typical }: Survey, inForce: number): boolean =>
-  counted >= IN_TWENTY && typical > inForce
+const tooSmall = ({ typical, suggested }: Survey, inForce: Limits): string[] => [
+  ...(typical.maxLines > inForce.maxLines ? [`"maxLines": ${suggested.maxLines}`] : []),
+  ...(typical.maxTokens > inForce.maxTokens ? [`"maxTokens": ${suggested.maxTokens}`] : []),
+]
 
-export const proposalOf = (survey: Survey, inForce: number): string => {
-  const { walked, counted, typical, suggested } = survey
+export const overshoots = (survey: Survey, inForce: Limits): boolean =>
+  survey.counted >= IN_TWENTY && tooSmall(survey, inForce).length > 0
+
+export const proposalOf = (survey: Survey, inForce: Limits): string => {
+  const { walked, counted, typical } = survey
   if (counted < IN_TWENTY)
-    return `measured: ${counted} countable of ${walked} files, too few to judge the ${inForce}-line limit`
-  const measured = `measured: ${counted} of ${walked} files, ${IN_TWENTY - 1} in ${IN_TWENTY} under ${typical} lines`
-  return overshoots(survey, inForce)
-    ? `${measured}: the ${inForce}-line limit denies normal files here, and an adapter with {"maxLines": ${suggested}} would not (docs/configuration.md#limits)`
-    : `${measured}, which the ${inForce}-line limit already fits`
+    return `measured: ${counted} countable of ${walked} files, too few to judge the limits in force`
+  const measured = `measured: ${counted} of ${walked} files, ${IN_TWENTY - 1} in ${IN_TWENTY} under ${typical.maxLines} lines and ${typical.maxTokens} tokens`
+  const raise = tooSmall(survey, inForce)
+  return raise.length === 0
+    ? `${measured}, which the ${inForce.maxLines}-line, ${inForce.maxTokens}-token limits already fit`
+    : `${measured}: the limits in force deny normal files here, and an adapter with { ${raise.join(", ")} } would not (docs/configuration.md#limits)`
 }

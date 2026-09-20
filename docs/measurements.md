@@ -12,21 +12,15 @@ No saving and 3.6× slower, 230 s against 64 s. The model pages through ranges a
 
 ## What a repository asks for
 
-Line counts of the text files under the byte limit, build folders pruned, one walk each. ccsaver: 63 countable of 64 files, 19 in 20 under 239 lines. One TypeScript application monorepo with no line rule of its own: 322 of 933, under 344. The sources of the npm packages in one `node_modules`: 557 files, under 1,476, with 19.6 % over 350 lines. Three corpora, a 4× spread, and only the third one asks for a limit above the default — which is why the number is measured per project rather than chosen once.
+What `ccsaver plug` reports, one walk each. This repository: 67 of 67 files, 19 in 20 under 285 lines and 3,237 tokens, which the defaults already fit. One TypeScript application monorepo with no line rule of its own: 334 of 933 files, under 396 lines and 4,907 tokens, which asks for `maxLines` 400. The published sources of `@types/node` and `undici-types`, as a stand-in for library code: 75 files, under 2,835 lines and 33,595 tokens, which asks for 2,850 and 34,000.
+
+Three corpora, a 10× spread in what they ask for, and the defaults are right for exactly one of them. That is why the number is measured per project instead of chosen once.
 
 ## The cost of measuring a repository
 
-9.6–18.9 ms on the 933-file monorepo and 0.9–3.1 ms on this repository, five runs each, warm cache. It runs in `plug` and in `doctor`, never in the hook.
+10.9–24.8 ms on the 933-file monorepo and 1.1–1.6 ms on this repository, five runs each, warm cache. It runs in `plug` and in `doctor`, never in the hook.
 
-Two things carry that cost. `readdirSync` with `recursive: true` took 1,420–1,536 ms on the same tree for 189,295 entries, because it cannot prune and it descends into symlinked directories, which in a pnpm workspace walks the linked packages again; the manual walk visits 933 files in 0.8 ms. And asking `statSync` for the size before opening anything cut 216–419 ms down to those 9.6–18.9 ms, because a file past the byte limit is denied by `maxTokens` whatever its lines are and never needs reading.
-
-## Delegated writing of a test file
-
-A ~110-line test file came out break-even: 0.80–1.02 $ delegated against 0.85 $ written directly. The cost is the review, not the writing.
-
-## Where delegation starts to pay
-
-Roughly 2,000–3,000 lines and up.
+Two things keep it there. `readdirSync` with `recursive: true` took 1,480 ms on the same tree for 189,295 entries, because it cannot prune and it descends into symlinked directories, which in a pnpm workspace walks the linked packages again; the manual walk reaches the same 933 files in 0.8 ms. And reading only the first 8 KB to tell a binary file from a text one, before reading the whole of it, held the monorepo at 9–10 ms where reading every file whole ran 13–46 ms and swung with the cache.
 
 ## The fixed cost of the skill descriptions
 

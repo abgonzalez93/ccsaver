@@ -125,9 +125,9 @@ const gate = (root: string, lines: number): Finding => {
 }
 
 const shape = (root: string, limits: Limits): Finding[] => {
-  const survey = surveyFor(root, limits)
-  return overshoots(survey, limits.maxLines)
-    ? [{ level: "warn", text: `shape: ${root} · ${proposalOf(survey, limits.maxLines)}` }]
+  const survey = surveyFor(root)
+  return overshoots(survey, limits)
+    ? [{ level: "warn", text: `shape: ${root} · ${proposalOf(survey, limits)}` }]
     : []
 }
 

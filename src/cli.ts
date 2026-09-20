@@ -60,7 +60,7 @@ const COMMANDS: Record<string, Command> = {
     const { root, adapter } = plug(first ?? process.cwd(), second)
     const limits = limitsFor(adapter)
     process.stdout.write(
-      `plugged ${root} · adapter ${adapter ?? "none"}\n${proposalOf(surveyFor(root, limits), limits.maxLines)}\n`,
+      `plugged ${root} · adapter ${adapter ?? "none"}\n${proposalOf(surveyFor(root), limits)}\n`,
     )
     return 0
   },
