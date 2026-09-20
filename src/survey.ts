@@ -101,25 +101,24 @@ export const surveyFor = (root: string): Survey => {
   }
 }
 
-interface Raise {
-  key: string
-  value: number
-}
-
-const tooSmall = ({ typical, suggested }: Survey, inForce: Limits): Raise[] => [
-  ...(typical.maxLines > inForce.maxLines ? [{ key: "maxLines", value: suggested.maxLines }] : []),
-  ...(typical.maxTokens > inForce.maxTokens
-    ? [{ key: "maxTokens", value: suggested.maxTokens }]
-    : []),
-]
+export const raiseOf = ({ typical, suggested }: Survey, inForce: Limits): Partial<Limits> => ({
+  ...(typical.maxLines > inForce.maxLines ? { maxLines: suggested.maxLines } : {}),
+  ...(typical.maxTokens > inForce.maxTokens ? { maxTokens: suggested.maxTokens } : {}),
+})
 
 export const overshoots = (survey: Survey, inForce: Limits): boolean =>
-  survey.counted >= IN_TWENTY && tooSmall(survey, inForce).length > 0
+  survey.counted >= IN_TWENTY && Object.keys(raiseOf(survey, inForce)).length > 0
 
-const fixOf = (survey: Survey, inForce: Limits, root: string, adapter?: string): string => {
-  const name = adapter ?? basename(root)
-  const pairs = tooSmall(survey, inForce)
-    .map(({ key, value }) => `${key}=${value}`)
+export const adapterNameOf = (root: string): string =>
+  basename(root)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "project"
+
+export const fixOf = (survey: Survey, inForce: Limits, root: string, adapter?: string): string => {
+  const name = adapter ?? adapterNameOf(root)
+  const pairs = Object.entries(raiseOf(survey, inForce))
+    .map(([key, value]) => `${key}=${value}`)
     .join(" ")
   const set = `ccsaver adapter ${name} ${pairs}`
   return adapter === undefined ? `${set} && ccsaver plug ${root} ${name}` : set

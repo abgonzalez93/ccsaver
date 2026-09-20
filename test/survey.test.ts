@@ -1,10 +1,22 @@
 import assert from "node:assert/strict"
-import { mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
+import { spawnSync } from "node:child_process"
+import { existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { after, test } from "node:test"
 import { DEFAULT_LIMITS } from "../src/config.ts"
-import { overshoots, proposalOf, surveyFor } from "../src/survey.ts"
-import { LAUNCHER, run, tempDir } from "./helpers.ts"
+import { isRecord } from "../src/state.ts"
+import { adapterNameOf, overshoots, proposalOf, surveyFor } from "../src/survey.ts"
+import { LAUNCHER, type Ran, run, tempDir } from "./helpers.ts"
+
+const HAS_PTY = process.platform === "linux" && spawnSync("script", ["--version"]).status === 0
+const YELLOW = "\u001b[33m"
+const PLAIN = "\u001b[0m"
+
+const jsonOf = (path: string): Record<PropertyKey, unknown> => {
+  const raw: unknown = JSON.parse(readFileSync(path, "utf8"))
+  assert.ok(isRecord(raw))
+  return raw
+}
 
 const WORK = tempDir("survey-work")
 const WIDE = 40
@@ -122,6 +134,13 @@ test("a symlinked directory is never walked, so a loop cannot hang the measureme
   assert.equal(overshoots(survey, DEFAULT_LIMITS), false)
 })
 
+test("an adapter name is made from the folder, lowercased and stripped to what is valid", () => {
+  assert.deepEqual(
+    ["/tmp/tmp.XZ2O5UgAAp", "/home/a/My_App", "/home/a/app.v2", "/home/a/___"].map(adapterNameOf),
+    ["tmp-xz2o5ugaap", "my-app", "app-v2", "project"],
+  )
+})
+
 test("doctor warns about a project that outgrew its limits and never fails for it", async () => {
   const home = tempDir("survey-home")
   const root = sourcesOf("outgrown", 40, (at) => 500 + at * 10)
@@ -130,5 +149,28 @@ test("doctor warns about a project that outgrew its limits and never fails for i
   assert.match(out.stdout, new RegExp(`^warn shape: ${root} · measured: 40 of \\d+ files`, "m"))
   assert.match(out.stdout, /To fit them, run: ccsaver adapter \S+ maxLines=\d+/)
   assert.equal(out.stdout.includes(`FAIL shape: ${root}`), false)
+  assert.equal(out.stdout.includes(YELLOW), false)
+  assert.equal(out.stdout.includes("run it?"), false)
+  rmSync(home, { recursive: true, force: true })
+})
+
+test("on a terminal doctor offers the fix, writes it on yes and leaves it on no", {
+  skip: !HAS_PTY,
+  timeout: 30_000,
+}, async () => {
+  const home = tempDir("survey-tty")
+  const root = sourcesOf("offered", 40, (at) => 500 + at * 10)
+  assert.equal((await run(LAUNCHER, ["plug", root], { CCSAVER_HOME: home })).code, 0)
+  const ask = (typed: string): Promise<Ran> =>
+    run("script", ["-qec", `env CCSAVER_HOME=${home} "${LAUNCHER}" doctor`, "/dev/null"], {}, typed)
+  const said = await ask("n\n")
+  assert.match(said.stdout, /run it\? \[y\/N\]/)
+  assert.ok(said.stdout.includes(`${YELLOW}warn${PLAIN}`))
+  assert.match(said.stdout, /skipped/)
+  assert.equal(existsSync(join(home, "adapters", "offered.json")), false)
+  const did = await ask("y\n")
+  assert.match(did.stdout, /adapter offered written to /)
+  assert.deepEqual(jsonOf(join(home, "adapters", "offered.json")), { maxLines: 900 })
+  assert.match(readFileSync(join(home, "plugged"), "utf8"), /\toffered\n/)
   rmSync(home, { recursive: true, force: true })
 })

@@ -4,6 +4,23 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.9.0 - 2026-09-20
+
+feat: doctor colours its levels and offers to run the fix it found
+
+- a warn told the user a command and left them to copy it; on a terminal
+  doctor now prints it and asks, and anything but y/yes/s/si/si leaves it
+- the level of every line is coloured, green, yellow and red, so one warn
+  among fifteen oks is seen instead of read for
+- both need a real terminal: from a pipe, from CI or from /ccsaver:doctor
+  the output is the plain text it always was and no question is asked, so
+  nothing is ever applied without a person typing it, and NO_COLOR is obeyed
+- the fix for a project with no adapter writes the adapter and plugs the
+  project at it in one step, because either half alone changes nothing
+- an adapter name proposed from a folder is lowercased and stripped to what
+  an adapter name may hold: /tmp/tmp.XZ2O5UgAAp asked for an invalid name
+  and the fix failed on it, and My_App now proposes my-app
+
 ## 0.8.0 - 2026-09-20
 
 feat: ccsaver adapter writes the limits, and doctor counts what it denied

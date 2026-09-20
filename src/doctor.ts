@@ -1,8 +1,24 @@
 import { spawnSync } from "node:child_process"
-import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs"
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  readSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { type Limits, limitsFor, readPlugged, readWorker, type Worker } from "./config.ts"
+import {
+  type Limits,
+  limitsFor,
+  plug,
+  readPlugged,
+  readWorker,
+  type Worker,
+  writeLimits,
+} from "./config.ts"
 import { logDir, logFile, record } from "./log.ts"
 import {
   attempt,
@@ -17,7 +33,7 @@ import {
   stateHome,
   workerFile,
 } from "./state.ts"
-import { overshoots, proposalOf, surveyFor } from "./survey.ts"
+import { adapterNameOf, fixOf, overshoots, proposalOf, raiseOf, surveyFor } from "./survey.ts"
 import { CLAUDE_ON_PATH, claudeBin, fellOf, postJson, requestOf, shown } from "./transport.ts"
 
 const PROBE_TIMEOUT_MS = 30_000
@@ -30,9 +46,49 @@ const WHY = {
 
 type Level = "ok" | "warn" | "FAIL"
 
+interface Fix {
+  shown: string
+  apply: () => string
+}
+
 interface Finding {
   level: Level
   text: string
+  fix?: Fix
+}
+
+const COLOUR = { ok: 32, warn: 33, FAIL: 31 } as const
+const YES = /^\s*(y|yes|s|si|sí)\s*$/i
+const ANSWER_BYTES = 16
+
+const painted = (level: Level): string =>
+  process.stdout.isTTY === true && !process.env["NO_COLOR"]
+    ? `\u001b[${COLOUR[level]}m${level.padEnd(4)}\u001b[0m`
+    : level.padEnd(4)
+
+const answered = (question: string): boolean => {
+  process.stdout.write(question)
+  const buffer = Buffer.alloc(ANSWER_BYTES)
+  const read = attempt(() => readSync(0, buffer, 0, ANSWER_BYTES, null))
+  const typed = read === undefined ? "" : buffer.subarray(0, read).toString("utf8")
+  process.stdout.write(read === undefined ? "\n" : "")
+  return YES.test(typed.replace(/\n$/, ""))
+}
+
+const offer = (fixes: Fix[]): void => {
+  if (fixes.length === 0 || process.stdin.isTTY !== true) return
+  for (const fix of fixes) {
+    process.stdout.write(`\nfix: ${fix.shown}\n`)
+    if (!answered("run it? [y/N] ")) {
+      process.stdout.write("skipped\n")
+      continue
+    }
+    try {
+      process.stdout.write(`${fix.apply()}\n`)
+    } catch (error) {
+      process.stdout.write(`${painted("FAIL")} ${messageOf(error)}\n`)
+    }
+  }
 }
 
 const NOTHING_PLUGGED: Finding = { level: "warn", text: "plugged: nothing" }
@@ -124,11 +180,28 @@ const gate = (root: string, lines: number): Finding => {
   }
 }
 
+const applied = (root: string, name: string, raise: Partial<Limits>, plugged: boolean): string => {
+  const place = writeLimits(name, raise)
+  if (plugged) return `adapter ${name} written to ${place}`
+  plug(root, name)
+  return `adapter ${name} written to ${place}, and ${root} now points at it`
+}
+
 const shape = (root: string, limits: Limits, adapter?: string): Finding[] => {
   const survey = surveyFor(root)
-  return overshoots(survey, limits)
-    ? [{ level: "warn", text: `shape: ${root} · ${proposalOf(survey, limits, root, adapter)}` }]
-    : []
+  if (!overshoots(survey, limits)) return []
+  const name = adapter ?? adapterNameOf(root)
+  const raise = raiseOf(survey, limits)
+  return [
+    {
+      level: "warn",
+      text: `shape: ${root} · ${proposalOf(survey, limits, root, adapter)}`,
+      fix: {
+        shown: fixOf(survey, limits, root, adapter),
+        apply: () => applied(root, name, raise, adapter !== undefined),
+      },
+    },
+  ]
 }
 
 const projects = (): Finding[] =>
@@ -227,8 +300,9 @@ export const doctor = async (): Promise<number> => {
     ...(await workers()),
     ...(plugged.length > 0 ? plugged : [NOTHING_PLUGGED]),
   ]
-  for (const { level, text } of findings) process.stdout.write(`${level.padEnd(4)} ${text}\n`)
+  for (const { level, text } of findings) process.stdout.write(`${painted(level)} ${text}\n`)
   const count = (wanted: Level): number => findings.filter(({ level }) => level === wanted).length
   record("doctor", { ok: count("ok"), warn: count("warn"), fail: count("FAIL") })
+  offer(findings.flatMap(({ fix }) => fix ?? []))
   return count("FAIL") > 0 ? 1 : 0
 }
