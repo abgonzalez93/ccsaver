@@ -13,6 +13,7 @@ import {
   messageOf,
   parsed,
   readKey,
+  scrubbed,
 } from "./state.ts"
 
 const FALLBACK_MODEL = "haiku"
@@ -62,13 +63,13 @@ export const delegation: Delegation = {}
 
 export const fail: (message: string) => never = (message) => {
   record("fail", { text: message })
-  process.stderr.write(`Error: ${message}\n`)
+  process.stderr.write(scrubbed(`Error: ${message}\n`))
   process.exit(1)
 }
 
 export const note = (text: string): void => {
   record("note", { text })
-  process.stderr.write(`[ccsaver: ${text}]\n`)
+  process.stderr.write(scrubbed(`[ccsaver: ${text}]\n`))
 }
 
 export const claudeBin = (worker: Worker | undefined): string =>

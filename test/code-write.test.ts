@@ -214,3 +214,13 @@ test("names the real reason when the target cannot be written", async () => {
   assert.equal(out.code, 1)
   assert.match(out.stderr, /ENOENT/)
 })
+
+test("a control character in the target cannot repaint the terminal", async () => {
+  server.reply.content = "export const wiped = 1\n"
+  const target = join(PROJECT, "made\u001b[2J.ts")
+  const out = await codeWrite(PROJECT, target)
+  assert.equal(out.code, 0)
+  assert.equal(`${out.stdout}${out.stderr}`.includes("\u001b"), false)
+  assert.match(out.stdout, /^wrote .*made\\x1b\[2J\.ts \(1 lines\)\n$/)
+  assert.equal(readFileSync(target, "utf8"), "export const wiped = 1\n")
+})

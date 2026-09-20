@@ -4,6 +4,16 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.10.3 - 2026-09-20
+
+fix: what the worker answers cannot repaint the terminal either
+
+- `scrubbed` guarded the funnels of `src/cli.ts` and doctor's finding loop, but the worker path has its own funnels and never got them: `fail` and `note` in `src/transport.ts` wrote straight to stderr
+- so `ccsaver bulk-read --paths $'x\e[2J'` cleared the screen, and worse, `fail` prints the fallback's raw stdout when it returns no result, which is text from the worker outside its `<<<worker-output ID>>>` markers, the fourth line of SECURITY.md's What counts
+- `fail`, `note`, the `wrote …` line and the answer of a `bulk-read` now go through `scrubbed`, the same funnel rule the cli side already followed
+- the code of a `code-write` without `--target` stays byte for byte: it is a file's contents, and escaping an `\x1b` a source file legitimately holds would corrupt what Claude writes out; README names that one exception and takes it as one more reason to pass `--target`
+- two tests, one with the control character coming from the worker rather than from an argument
+
 ## 0.10.2 - 2026-09-20
 
 ci: the release workflow sweeps for missing releases instead of trusting the tag push

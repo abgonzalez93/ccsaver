@@ -8,7 +8,7 @@ import { checked, risky, unwrapped } from "./answer.ts"
 import { contentRefusal, pathRefusal, targetRefusal } from "./boundary.ts"
 import { type Adapter, loadAdapter, pluggedRootOf, readWorker, type Worker } from "./config.ts"
 import { record } from "./log.ts"
-import { attempt, isRecord, isUnder, messageOf, real, stateHome } from "./state.ts"
+import { attempt, isRecord, isUnder, messageOf, real, scrubbed, stateHome } from "./state.ts"
 import {
   type Delegation,
   delegation,
@@ -193,7 +193,7 @@ const bulkRead = async (
   note(
     `cited lines: ${tally.match} match the files, ${tally.renumbered} renumbered, ${tally.unverified} unverified${tally.bare > 0 ? `; answer lines without a citation: ${tally.bare}` : ""}`,
   )
-  process.stdout.write(marked(`${text}\n`))
+  process.stdout.write(marked(`${scrubbed(text)}\n`))
 }
 
 const codeWrite = async (
@@ -231,17 +231,19 @@ const codeWrite = async (
   const touched = risky(written)
   Object.assign(delegation, { written: lines, risky: touched.length } satisfies Delegation)
   process.stdout.write(
-    [
-      `wrote ${wanted} (${lines} lines)`,
-      ...(touched.length > 0
-        ? [`warn: the code touches ${touched.join(", ")}: open it before you run it`]
-        : []),
-      ...(adapter.after ?? []).map(
-        (line) => `next: ${line.replaceAll("{target}", quoted(target))}`,
-      ),
-    ]
-      .join("\n")
-      .concat("\n"),
+    scrubbed(
+      [
+        `wrote ${wanted} (${lines} lines)`,
+        ...(touched.length > 0
+          ? [`warn: the code touches ${touched.join(", ")}: open it before you run it`]
+          : []),
+        ...(adapter.after ?? []).map(
+          (line) => `next: ${line.replaceAll("{target}", quoted(target))}`,
+        ),
+      ]
+        .join("\n")
+        .concat("\n"),
+    ),
   )
 }
 

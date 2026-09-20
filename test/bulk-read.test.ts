@@ -207,3 +207,11 @@ test("fails loudly on a missing file and on a missing question", async () => {
   assert.equal((await bulkRead(join(PROJECT, "nope.ts"))).code, 1)
   assert.equal((await cli(["bulk-read", "--project", PROJECT, "--paths", SOURCE])).code, 1)
 })
+
+test("a control character in the worker's answer cannot repaint the terminal", async () => {
+  server.reply.content = "- a \u001b[2J wiped @ source.ts:1:export const a = 1"
+  const out = await bulkRead(SOURCE)
+  assert.equal(out.code, 0)
+  assert.equal(`${out.stdout}${out.stderr}`.includes("\u001b"), false)
+  assert.match(between(out.stdout), /\\x1b\[2J/)
+})
