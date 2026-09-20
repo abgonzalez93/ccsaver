@@ -230,3 +230,23 @@ test("a month that cannot be read stops the report, never counts as no events", 
   assert.match(out.stderr, /events-\d{4}-\d{2}\.jsonl cannot be read: check its owner/)
   assert.equal(out.stdout, "")
 })
+
+test("the tokens the session read back because of ccsaver are counted, and left out", async () => {
+  const home = homeWith("read-back", [
+    [
+      ...twentyDenials(),
+      { kind: "delegate", answered: "external", chars: 40_000, answerChars: 400_000 },
+      { kind: "delegate", answered: "fallback", chars: 1_000, answerChars: 4_000, cost: 0.01 },
+    ],
+  ])
+  await priced(home, [OPUS, "5"])
+  await priced(home, ["worker", "0"])
+  const out = await saved(home)
+  assert.equal(out.code, 0)
+  assert.match(
+    out.stdout,
+    /neither column holds what the session read back because of ccsaver: 0\.10 M tokens\n {2}of denial messages \(~94 each\) and worker answers, all of it against ccsaver/,
+  )
+  const quiet = await saved(homeWith("read-back-quiet", [[]]))
+  assert.equal(quiet.stdout.includes("read back because of ccsaver"), false)
+})

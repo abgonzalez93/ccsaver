@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.19.6 - 2026-09-20
+
+fix: saved counts the denials and the answers the session read back
+
+- the with column held the worker's input tokens, the fallback's dollars and the ranged reads, and nothing the session itself paid because of ccsaver
+- a denial message is ~94 tokens and every delegation ends with an answer the session reads, which the log has recorded as answerChars all along
+- both are added up at the foot and left out of the columns, because no line of the log says which model was running when the answer came home; all four blind spots lean towards flattering ccsaver, so all four are printed
+
 ## 0.19.5 - 2026-09-20
 
 fix: a key no HTTP header can carry is named, never a host that cannot be reached

@@ -6,6 +6,7 @@ import { attempt, inColour } from "./state.ts"
 
 const REAL_LOW = 1.9
 const REAL_HIGH = 2.8
+const DENIAL_TOKENS = 94
 const MONTH_FILE = /^events-(\d{4}-\d{2})\.jsonl$/
 const BAR = 22
 const PER_MILLION = 1_000_000
@@ -31,6 +32,7 @@ interface Spend {
   external: number
   externalTokens: number
   estimated: number
+  answerTokens: number
 }
 
 interface Band {
@@ -56,6 +58,7 @@ export const NOTHING_SPENT: Spend = {
   external: 0,
   externalTokens: 0,
   estimated: 0,
+  answerTokens: 0,
 }
 
 const partOf = (lines: number, offset: number, limit: number): number => {
@@ -117,13 +120,21 @@ const gateInto = (sum: Spend, row: Row): Spend => {
 
 const delegateInto = (sum: Spend, row: Row): Spend => {
   const calls = sum.calls + 1
+  const answerTokens = sum.answerTokens + tokensIn(numberAt(row, "answerChars"))
   if (row["answered"] === "fallback")
-    return { ...sum, calls, paid: sum.paid + 1, paidUsd: sum.paidUsd + numberAt(row, "cost") }
-  if (row["answered"] !== "external") return { ...sum, calls }
+    return {
+      ...sum,
+      calls,
+      answerTokens,
+      paid: sum.paid + 1,
+      paidUsd: sum.paidUsd + numberAt(row, "cost"),
+    }
+  if (row["answered"] !== "external") return { ...sum, calls, answerTokens }
   const reported = numberAt(row, "inTokens")
   return {
     ...sum,
     calls,
+    answerTokens,
     external: sum.external + 1,
     externalTokens: sum.externalTokens + (reported || tokensIn(numberAt(row, "chars"))),
     estimated: sum.estimated + (reported > 0 ? 0 : 1),
@@ -272,9 +283,17 @@ const rateIn = (tally: Spend, prices: Prices): string => {
 const orphaned = (tally: Spend): boolean =>
   tally.denied > 0 && tally.ranged === 0 && tally.calls === 0
 
+const readBack = (tally: Spend): number => tally.denied * DENIAL_TOKENS + tally.answerTokens
+
 const footnotes = (tally: Spend, prices: Prices, priced: boolean): string[] => [
   ...(priced ? [rateIn(tally, prices)] : []),
   `  a real Read measured ${REAL_LOW}-${REAL_HIGH}x the bytes/4 estimate, and that band is the whole spread here`,
+  ...(readBack(tally) > 0
+    ? [
+        `  neither column holds what the session read back because of ccsaver: ${millions(readBack(tally))} tokens`,
+        `  of denial messages (~${DENIAL_TOKENS} each) and worker answers, all of it against ccsaver`,
+      ]
+    : []),
   ...(tally.estimated > 0
     ? [
         `  ${tally.estimated} of ${tally.external} external calls reported no usage and were counted at chars/4`,
