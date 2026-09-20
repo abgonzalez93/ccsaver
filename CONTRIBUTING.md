@@ -206,7 +206,7 @@ Guard: *convention*.
 ## 5. Maintainability
 
 **5.1 ALWAYS change the specification in the same commit as the behaviour.** The README and the pages it links under `docs/` are the specification, one page per subject, and `CLAUDE.md` has the map: when the specification and the code disagree, one of them is a bug. A reason written there is known, not inferred. Documents that outlive a commit cite a file and a symbol, never a line number.
-Guard: `test/skills.test.ts` ties the skills to the commands, and both manifests and the top of `CHANGELOG.md` to one version; `test/conventions.test.ts` ties this file's examples to the code; the rest is *convention*.
+Guard: `test/skills.test.ts` ties the skills to the commands, and both manifests and the top of `CHANGELOG.md` to one version; `test/conventions.test.ts` ties this file's examples to the code and every link between the pages to the file and the heading it names; the rest is *convention*.
 
 **5.2 ALWAYS bring the test with the behaviour; a fix starts with the test that fails.** Tests run on `node --test` with no network: a fake server on `127.0.0.1`, a fake `claude` binary, and a throwaway `CCSAVER_HOME` per test file. A test's name is a sentence that states the behaviour. A flaky test is chased under load, three suites in parallel for six rounds, before anyone calls it fixed.
 Guard: `pnpm test` starts from a state folder that does not exist, so a test that forgets its own `CCSAVER_HOME` cannot touch a real key.

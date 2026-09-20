@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
-import { readdirSync, readFileSync } from "node:fs"
-import { join, relative } from "node:path"
+import { existsSync, readdirSync, readFileSync } from "node:fs"
+import { dirname, join, relative } from "node:path"
 import { test } from "node:test"
 import { DEFAULT_LIMITS } from "../src/config.ts"
 import { isRecord, parsed } from "../src/state.ts"
@@ -91,6 +91,38 @@ test("every file is readable whole under the default gate, the two append-only o
     return fits ? [] : [`${named(path)}: ${lines} lines, ${bytes.length} bytes`]
   })
   assert.deepEqual(over, [])
+})
+
+const LINK = /\[([^\]]*)\]\(([^)\s]+)\)/g
+const HEADING = /^#{1,6} .+$/gm
+const ELSEWHERE = /^(https?|mailto):/
+
+const slugOf = (heading: string): string =>
+  heading
+    .replace(/^#+ /, "")
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+
+const anchorsOf = (path: string): Set<string> =>
+  new Set((readFileSync(path, "utf8").match(HEADING) ?? []).map(slugOf))
+
+test("every link between the documents resolves, the file and the heading", () => {
+  const pages = filesUnder(REPO).filter((path) => path.endsWith(".md"))
+  const anchors = new Map(pages.map((page) => [page, anchorsOf(page)]))
+  const broken = pages.flatMap((page) =>
+    [...readFileSync(page, "utf8").matchAll(LINK)].flatMap(([, label = "", target = ""]) => {
+      if (ELSEWHERE.test(target)) return []
+      const [path = "", anchor] = target.split("#")
+      const full = path === "" ? page : join(dirname(page), path)
+      const where = `${named(page)}: [${label}](${target})`
+      if (!existsSync(full)) return [`${where} names no file`]
+      if (anchor === undefined || !full.endsWith(".md")) return []
+      return anchors.get(full)?.has(anchor) === true ? [] : [`${where} names no heading`]
+    }),
+  )
+  assert.deepEqual(broken, [])
 })
 
 test("every symbol CONTRIBUTING cites lives in the file it names", () => {

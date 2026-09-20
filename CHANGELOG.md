@@ -4,6 +4,15 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.9.15 - 2026-09-20
+
+docs: every number in the pages has its note, and a test keeps every link resolving
+
+- the rules of an adapter get the note rule 4.5 asks for, measured again because the old claim was written with the first commit and its conditions were never recorded: gemini-flash-lite-latest, four code-write runs per arm, a return type on the test callback in 3 of 4 with the rules against 0 of 4 without
+- the import those rules were credited with, 4 of 4 against 0 of 4, does not reproduce: it came out right in both arms, because a model that copies the reference gets it right without being told
+- Delegated writing of a test file and Where delegation starts to pay come back: 5695cab dropped them this morning and the two rows of the README table have pointed at nothing since
+- test/conventions.test.ts now checks every markdown link in the repository, the file and the heading, which is what would have caught that
+
 ## 0.9.14 - 2026-09-20
 
 docs: the pages say what the commands actually print, and the table names them all

@@ -24,6 +24,25 @@ Three things keep it there. `readdirSync` with `recursive: true` took 1,480 ms o
 
 The third is that those 8 KB are now what a file that ends inside them is counted from, instead of being read and then read again: `/usr/include`, 2,385 files, 42.9–46.5 ms against 51.6–56.9 ms, three rounds of seven runs per arm, with the same lengths reported. Dropping the probe instead of reusing it is the trap: on 200 binaries of 900 KB beside 200 text files it costs 28.4 ms against 12.1, because 180 MB that the probe leaves unread get read whole. Reusing it does not move that tree, 12.7 and 15.8 ms against 12.4 and 15.0.
 
+## Delegated writing of a test file
+
+A ~110-line test file came out break-even: 0.80–1.02 $ delegated against 0.85 $ written directly. The cost is the review, not the writing.
+
+## Where delegation starts to pay
+
+Roughly 2,000–3,000 lines and up.
+
+## The rules of an adapter
+
+`gemini-flash-lite-latest` through an OpenAI-compatible endpoint, ccsaver 0.9.14, four `code-write` runs per arm with the same spec and the same two reference files: `src/state.ts`, which exports the function asked for, and a test file that imports from a different module with the real extension. The only difference between the arms is whether the plugged project points at an adapter carrying the `rules` of [`adapters/strict-ts.json`](../adapters/strict-ts.json).
+
+- A return type on the `test` callback: **3 of 4 with the rules, 0 of 4 without**, where the four without copied the reference.
+- Importing the function from the module that exports it, with the real extension: **4 of 4 in both arms**, with the spec not naming the module and the reference importing from another one.
+
+So the rules reach the worker and change what it writes. They do not make it match this repository better: the rule says *every function is an arrow const with an explicit return type*, a `test` callback is neither, and this repository's own tests write `() =>` there with the lint green.
+
+The line this note replaces credited the rules with that import instead, 4 of 4 against 0 of 4. It was written with the first commit, its conditions were never recorded, and it does not reproduce against this worker.
+
 ## The fixed cost of the skill descriptions
 
 The two skill descriptions cost about 188 tokens per session, in every project, plugged or not: ≈ 0.006 $ on a frontier model.
