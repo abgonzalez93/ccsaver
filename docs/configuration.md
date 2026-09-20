@@ -66,7 +66,7 @@ Claude Code's documentation says `--bare` will become the default for `-p`, and 
 `doctor` stops at a `node` older than 24.2, and then checks, in order:
 
 - The permissions of the state folder and of every file it keeps there: the key, `plugged` and `worker.json`, all 600.
-- Whether the [event log](events.md) is on and how many bytes this month's file holds, and while it is on, how many of the month's whole-file reads the hook denied and the median length of the ones it did (`denied:`), and how many of the month's delegations went to paid Claude Haiku, what they cost and why (`spent:`).
+- Whether the [event log](events.md) is on and how many bytes this month's file holds, a file it cannot read being a `FAIL` of its own rather than the end of the report, and while it is on, how many of the month's whole-file reads the hook denied and the median length of the ones it did (`denied:`), and how many of the month's delegations went to paid Claude Haiku, what they cost and why (`spent:`).
 - The worker, with a probe shaped like a real call: same temperature, same `max_tokens`, a system message, so a provider that would refuse the real thing fails here. 200 = the key works, 401/403 = rejected, and a timeout is told from a host that cannot be reached. A `worker.json` it cannot trust fails the line.
 - The fallback binary, with `--version`, unless the fallback is off.
 - Every plugged project, with its adapter and limits. For each one it feeds the hook a throwaway file one line over the limit, and the `gate:` line fails unless that read is denied.
@@ -148,7 +148,7 @@ ccsaver price main 3.00      # the model the session runs on
 ccsaver price worker 0.10    # the cheap worker
 ```
 
-They live in `~/.config/ccsaver/prices.json` (600), apart from `worker.json` so that the file holding the `fallback` switch gains no surface. No price is shipped: one would go stale, and a number without a source is what this project refuses to print. Without `price main` the report counts tokens and stops there. A `prices.json` that is there but malformed or unreadable stops the command, the same way `worker.json` does.
+They live in `~/.config/ccsaver/prices.json` (600), apart from `worker.json` so that the file holding the `fallback` switch gains no surface. No price is shipped: one would go stale, and a number without a source is what this project refuses to print. Without `price main` the report counts tokens and stops there. A `prices.json` that is there but malformed or unreadable stops the command, the same way `worker.json` does, and so does a month's log file that is there but cannot be read: a report that counted it as an empty month would be the one lie this command cannot afford.
 
 **The numbers are a band, never a point.** A real `Read` measured [1.9–2.8× the bytes/4 estimate](measurements.md#the-hooks-token-estimate-vs-a-real-read), so both columns carry that multiplier. It is the same unknown on both sides, so the two arms pair low with low: the dollars swing by half, and the percentage barely moves. Read the percentage.
 

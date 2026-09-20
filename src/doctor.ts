@@ -228,7 +228,7 @@ const log = (): Finding => {
   if (mode === undefined)
     return { level: "ok", text: "log: off (ccsaver log on records events, on this machine only)" }
   const file = logFile()
-  const bytes = existsSync(file) ? statSync(file).size : 0
+  const bytes = attempt(() => statSync(file).size) ?? 0
   return mode === 0o700 && (modeOf(file) ?? 0o600) === 0o600
     ? { level: "ok", text: `log: on · ${logDir()} (700) · ${bytes} bytes this month` }
     : { level: "FAIL", text: `log: ${logDir()} must be 700 and its files 600` }
@@ -274,6 +274,14 @@ const spent = (rows: Rows): Finding[] => {
   ]
 }
 
+const events = (): [Rows, Finding[]] => {
+  try {
+    return [readEvents(), []]
+  } catch (error) {
+    return [[], [{ level: "FAIL", text: `log: ${messageOf(error)}` }]]
+  }
+}
+
 const workers = async (): Promise<Finding[]> => {
   try {
     const worker = readWorker()
@@ -285,12 +293,13 @@ const workers = async (): Promise<Finding[]> => {
 
 export const doctor = async (): Promise<number> => {
   const plugged = projects()
-  const rows = readEvents()
+  const [rows, unread] = events()
   const findings = [
     permissions("state", stateHome(), 0o700),
     permissions("plugged file", pluggedFile(), 0o600),
     permissions("worker file", workerFile(), 0o600),
     log(),
+    ...unread,
     ...denied(rows),
     ...spent(rows),
     ...(await workers()),

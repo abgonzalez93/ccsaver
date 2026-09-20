@@ -7,6 +7,7 @@ export type Rows = Record<PropertyKey, unknown>[]
 const LOG_VERSION = 1
 const LOG_LINE_BYTES = 4000
 const SCRUB_FROM = 8
+const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/
 
 export const logDir = (): string => join(stateHome(), "log")
 
@@ -44,10 +45,19 @@ const rowsIn = (text: string): Rows =>
     return isRecord(row) ? [row] : []
   })
 
-export const readEvents = (): Rows => rowsIn(attempt(() => readFileSync(logFile(), "utf8")) ?? "")
+const rowsAt = (place: string): Rows => {
+  const text = attempt(() => readFileSync(place, "utf8"))
+  if (text === undefined && existsSync(place))
+    throw new Refusal(`${place} cannot be read: check its owner, its mode and its size`)
+  return rowsIn(text ?? "")
+}
 
-export const readMonth = (month: string): Rows =>
-  rowsIn(attempt(() => readFileSync(join(logDir(), `events-${month}.jsonl`), "utf8")) ?? "")
+export const readEvents = (): Rows => rowsAt(logFile())
+
+export const readMonth = (month: string): Rows => {
+  if (!MONTH.test(month)) throw new Refusal(`a month is YYYY-MM, this one is not: ${month}`)
+  return rowsAt(join(logDir(), `events-${month}.jsonl`))
+}
 
 export const crashed = (where: string, error: unknown): void => {
   record(

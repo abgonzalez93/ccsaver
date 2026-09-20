@@ -2,6 +2,7 @@ import assert from "node:assert/strict"
 import { chmodSync, mkdirSync, rmSync, statSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { after, test } from "node:test"
+import { readMonth } from "../src/log.ts"
 import { moneyOf, NOTHING, type Prices, seen, tallied } from "../src/roi.ts"
 import { CLI, type Ran, run, tempDir } from "./helpers.ts"
 
@@ -210,6 +211,24 @@ test("a prices.json that cannot be read stops the command, never reads as no pri
   chmodSync(file, 0o600)
   assert.equal(out.code, 1)
   assert.match(out.stderr, /prices\.json cannot be read: check its owner and its mode/)
+})
+
+test("a month that cannot be read stops the report, never counts as no events", {
+  skip: AS_ROOT,
+}, async () => {
+  const home = homeWith("unreadable-log", [twenty()])
+  const file = join(home, "log", `events-${monthBack(0)}.jsonl`)
+  chmodSync(file, 0o000)
+  const out = await saved(home)
+  chmodSync(file, 0o600)
+  assert.equal(out.code, 1)
+  assert.match(out.stderr, /events-\d{4}-\d{2}\.jsonl cannot be read: check its owner/)
+  assert.equal(out.stdout, "")
+})
+
+test("a month is YYYY-MM, so no reader of the log can be steered out of its folder", () => {
+  for (const wrong of ["2026-13", "../../etc/passwd", "2026-01/../../.ssh/id_rsa"])
+    assert.throws(() => readMonth(wrong), /a month is YYYY-MM, this one is not/)
 })
 
 test("a malformed prices.json stops the command instead of being ignored", async () => {

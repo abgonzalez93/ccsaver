@@ -1,5 +1,13 @@
 import assert from "node:assert/strict"
-import { chmodSync, existsSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs"
 import { join } from "node:path"
 import { after, before, beforeEach, test } from "node:test"
 import {
@@ -161,6 +169,23 @@ test("doctor checks the mode of every file it keeps, not only the key", async ()
     assert.match(loose.stdout, new RegExp(`^FAIL ${label}: .* is 644, expected 600$`, "m"))
   }
 })
+test("a log doctor cannot read is one FAIL line, not the end of the report", {
+  skip: process.getuid?.() === 0,
+}, async () => {
+  assert.equal((await ccsaver(["log", "on"])).code, 0)
+  const dir = join(HOME, "log")
+  const [name = ""] = readdirSync(dir)
+  chmodSync(join(dir, name), 0o000)
+  const out = await ccsaver(["doctor"])
+  chmodSync(join(dir, name), 0o600)
+  assert.equal((await ccsaver(["log", "off"])).code, 0)
+  rmSync(`${dir}.off`, { recursive: true, force: true })
+  assert.equal(out.code, 1)
+  assert.match(out.stdout, new RegExp(`^FAIL log: .*${name} cannot be read`, "m"))
+  assert.match(out.stdout, /^ok {3}state: /m)
+  assert.match(out.stdout, /^(ok|warn|FAIL) +plugged: /m)
+})
+
 test("doctor only warns about a missing fallback from a shell outside Claude Code", async () => {
   const bin = join(WORK, "bin")
   mkdirSync(bin)
