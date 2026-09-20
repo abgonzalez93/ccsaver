@@ -1,5 +1,6 @@
 // Portions of this file are adapted from a third-party Apache-2.0 work and were modified; see NOTICE.
 import { spawnSync } from "node:child_process"
+import { writeSync } from "node:fs"
 import { tmpdir } from "node:os"
 import type { Tally } from "./answer.ts"
 import type { Worker } from "./config.ts"
@@ -61,15 +62,19 @@ export interface Delegation {
 
 export const delegation: Delegation = {}
 
+export const said = (text: string): void => {
+  if (attempt(() => writeSync(2, text)) === undefined) process.stderr.write(text)
+}
+
 export const fail: (message: string) => never = (message) => {
   record("fail", { text: message })
-  process.stderr.write(scrubbed(`Error: ${message}\n`))
+  said(scrubbed(`Error: ${message}\n`))
   process.exit(1)
 }
 
 export const note = (text: string): void => {
   record("note", { text })
-  process.stderr.write(scrubbed(`[ccsaver: ${text}]\n`))
+  said(scrubbed(`[ccsaver: ${text}]\n`))
 }
 
 export const claudeBin = (worker: Worker | undefined): string =>

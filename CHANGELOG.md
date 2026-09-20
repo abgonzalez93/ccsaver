@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.12.6 - 2026-09-20
+
+fix: the line a stop prints reaches stderr before the process goes
+
+- fail wrote through process.stderr and then called process.exit, which drops whatever the stream has queued; Node queues writes to a pipe on macOS, so the one Error line that is the whole contract of a stop could be lost there, and every note that said why a call was falling back with it
+- said writes with writeSync and only falls back to the stream when the sync write is refused
+- not reproducible on Linux, where a pipe is written synchronously: the existing suite covers that the line still arrives, and the macOS arm needs measuring on a Mac
+
 ## 0.12.5 - 2026-09-20
 
 fix: a state folder that cannot be made private stops the command with its cause

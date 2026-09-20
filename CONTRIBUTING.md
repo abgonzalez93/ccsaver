@@ -123,7 +123,7 @@ Guard: *convention*.
 
 ## 3. Robustness
 
-**3.1 ALWAYS end a stop the user can fix the same way:** one `Error: …` line on stderr, one `fail` event, exit code 1, nothing sent. Two doors lead there. State code throws a `Refusal`, caught once at the bottom of `src/cli.ts`; the worker path calls `fail`, which returns `never` (`src/transport.ts` · `fail`). Anything else that throws is a bug and is recorded as a `crash`.
+**3.1 ALWAYS end a stop the user can fix the same way:** one `Error: …` line on stderr, one `fail` event, exit code 1, nothing sent. That line leaves through `writeSync` and not through the stream (`src/transport.ts` · `said`), because `process.exit` drops what a stream has queued and Node queues a pipe on macOS, which is where the whole message would have gone missing. Two doors lead there. State code throws a `Refusal`, caught once at the bottom of `src/cli.ts`; the worker path calls `fail`, which returns `never` (`src/transport.ts` · `fail`). Anything else that throws is a bug and is recorded as a `crash`.
 Guard: every `throw new` in `src/` throws a `Refusal`, by `test/conventions.test.ts`; `test/log.test.ts` pins that a mistake on the command line is a `fail`, never a `crash`.
 
 ```ts
