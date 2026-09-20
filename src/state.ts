@@ -88,10 +88,15 @@ export const isEncrypted = (url: string): boolean => {
 }
 
 export const writePrivate = (path: string, text: string): void => {
-  mkdirSync(stateHome(), { recursive: true, mode: 0o700 })
-  chmodSync(stateHome(), 0o700)
+  const home = stateHome()
   const fresh = `${path}.${process.pid}.new`
-  writeFileSync(fresh, text, { mode: 0o600 })
-  chmodSync(fresh, 0o600)
-  renameSync(fresh, path)
+  try {
+    mkdirSync(home, { recursive: true, mode: 0o700 })
+    chmodSync(home, 0o700)
+    writeFileSync(fresh, text, { mode: 0o600 })
+    chmodSync(fresh, 0o600)
+    renameSync(fresh, path)
+  } catch (error) {
+    throw new Refusal(`${path} cannot be written: ${messageOf(error)}`)
+  }
 }

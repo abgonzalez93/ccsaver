@@ -21,7 +21,7 @@ import {
   unplug,
   writeWorker,
 } from "../src/config.ts"
-import { isEncrypted } from "../src/state.ts"
+import { isEncrypted, messageOf, Refusal } from "../src/state.ts"
 import { tempDir } from "./helpers.ts"
 
 const AS_ROOT = process.getuid?.() === 0
@@ -136,6 +136,22 @@ test("the deepest plugged root wins and a sibling prefix never matches", () => {
   assert.equal(pluggedRootOf(join(WORK, "project-three")), undefined)
   unplug(NESTED)
   unplug(PROJECT)
+})
+
+test("a state folder that cannot be made private is a refusal, not a crash", {
+  skip: AS_ROOT,
+}, () => {
+  const shut = join(WORK, "shut")
+  mkdirSync(shut, { recursive: true })
+  chmodSync(shut, 0o500)
+  process.env["CCSAVER_HOME"] = join(shut, "state")
+  assert.throws(
+    () => plug(SIBLING),
+    (error: unknown): boolean =>
+      error instanceof Refusal && /cannot be written: EACCES/.test(messageOf(error)),
+  )
+  process.env["CCSAVER_HOME"] = HOME
+  chmodSync(shut, 0o700)
 })
 
 test("the worker url must be encrypted and the pinned fallback survives a new worker", () => {

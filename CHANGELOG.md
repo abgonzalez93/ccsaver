@@ -4,6 +4,13 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.12.5 - 2026-09-20
+
+fix: a state folder that cannot be made private stops the command with its cause
+
+- mkdirSync and chmodSync threw a bare Error, so cli.ts filed a read-only state folder as a crash, which is the channel reserved for a bug in ccsaver
+- writePrivate names the file and carries the errno through, so the user reads EACCES and not a stack
+
 ## 0.12.4 - 2026-09-20
 
 fix: a worker url is https, or http to a local host, and no other scheme
