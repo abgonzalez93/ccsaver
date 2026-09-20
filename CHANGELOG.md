@@ -4,6 +4,16 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.9.2 - 2026-09-20
+
+fix: the release backfill says what it needs instead of failing once per tag
+
+- without the GitHub CLI the loop ran gh nine times and printed the same
+  "command not found" nine times, having created nothing
+- it now checks for gh and for a logged-in session first and says so once
+- its notes go to a temporary file rather than notes.md beside the sources,
+  so a run that stops halfway leaves the working tree as it found it
+
 ## 0.9.1 - 2026-09-20
 
 docs: plug points at doctor for later, and versions.md fills the missing releases

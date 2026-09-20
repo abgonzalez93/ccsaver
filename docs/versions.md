@@ -14,16 +14,21 @@ git config core.hooksPath .githooks
 A minor tag older than the workflow never fired it, and nothing fires it later: `v0.1.0` through `v0.6.0` predate `.github/workflows/release.yml`, so those releases are missing and will stay missing until someone makes them. The same is true of any tag whose run failed. One loop fills every gap, skipping what is already there and taking its notes from the same section of `CHANGELOG.md` the workflow would, which holds every version back to the first commit:
 
 ```bash
-for tag in $(git tag --list 'v*.*.0' | sort -V); do
-  gh release view "$tag" >/dev/null 2>&1 && continue
-  awk -v v="${tag#v}" 'index($0, "## " v " ") == 1 || $0 == "## " v {f = 1; next} /^## /{f = 0} f' \
-    CHANGELOG.md | sed '/./,$!d' > notes.md
-  gh release create "$tag" --title "$tag" --notes-file notes.md
-done
-rm -f notes.md
+if ! command -v gh >/dev/null || ! gh auth status >/dev/null 2>&1; then
+  echo "needs gh, logged in: sudo apt install gh && gh auth login"
+else
+  notes=$(mktemp)
+  for tag in $(git tag --list 'v*.*.0' | sort -V); do
+    gh release view "$tag" >/dev/null 2>&1 && continue
+    awk -v v="${tag#v}" 'index($0, "## " v " ") == 1 || $0 == "## " v {f = 1; next} /^## /{f = 0} f' \
+      CHANGELOG.md | sed '/./,$!d' > "$notes"
+    [ -s "$notes" ] && gh release create "$tag" --title "$tag" --notes-file "$notes"
+  done
+  rm -f "$notes"
+fi
 ```
 
-It is safe to run again: a tag that already has a release is skipped. Missing releases cost nothing but tidiness, because the plugin installs by reading the repository through the marketplace, never from a release asset.
+It needs the GitHub CLI logged in, and says so once instead of failing per tag when it is missing; it keeps its notes in a temporary file, so a run that stops halfway leaves nothing behind in the working tree. It is safe to run again: a tag that already has a release is skipped. Missing releases cost nothing but tidiness, because the plugin installs by reading the repository through the marketplace, never from a release asset.
 - The number is computed from the parent commit, so `git commit --amend` never moves it twice, and rewording `fix` into `feat` moves it again. A version file with changes that are not part of the commit is never swept in: the hook says so and waits for the next `--amend`.
 - `git am` of patches made with the hook on lands them untouched, tree for tree; a lone patch without a version gets one.
 - Git refuses an amend in the middle of a `cherry-pick` or a `rebase`, and a `git am` of several patches would write its stale index over one, so there the hook stays out, says so and leaves the tree clean. `git rebase --exec 'node scripts/version.ts' HEAD~<commits>` versions those commits afterwards, one by one.
