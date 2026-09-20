@@ -4,6 +4,16 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.19.3 - 2026-09-20
+
+test: three test files split by responsibility before they hit the gate
+
+- cli.test.ts was at 350 of 350 lines, transport.test.ts at 347 and saved.test.ts at 338: the next test in any of them broke the whole-file gate
+- launcher.test.ts takes what only the sh launcher does: key set, setup, the symlink and a relative CCSAVER_HOME
+- fallback.test.ts takes the paid Claude worker, transport.test.ts keeps the external one, which is the split src/transport.ts already has
+- report.test.ts takes what ccsaver saved prints, saved.test.ts keeps the tally it prints from
+- saved.test.ts carried its own copies of gateRow, denialRow, twentyDenials, monthBack and logHome: they come from test/helpers.ts now, the way prices.test.ts already read them
+
 ## 0.19.2 - 2026-09-20
 
 fix: the saved report reaches the terminal painted, and never draws half a comparison
