@@ -14,7 +14,7 @@ import {
 } from "./config.ts"
 import { doctor } from "./doctor.ts"
 import { crashed, record, setLog } from "./log.ts"
-import { report, writePrice } from "./roi.ts"
+import { report, writePrice } from "./saved.ts"
 import { attempt, isRecord, messageOf, parsed, Refusal, scrubbed } from "./state.ts"
 import { proposalOf, surveyFor } from "./survey.ts"
 import { shown } from "./transport.ts"

@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.13.6 - 2026-09-20
+
+refactor: saved.ts replaces roi.ts, and a Spend is not a Tally
+
+- the file was named roi while the command it serves is saved, in a repository whose README fixes that everything doing something is a verb
+- its Tally and the citation Tally of answer.ts shared a name and nothing else, one counting money and the other counting quoted lines; the money one is a Spend, and its zero is NOTHING_SPENT
+- Band, monthsOf, tallyOver and readPrices were exported and imported by nobody, in src or in test: the file now exports only what another file reads
+
 ## 0.13.5 - 2026-09-20
 
 refactor: log.ts owns how a number is read out of one of its rows

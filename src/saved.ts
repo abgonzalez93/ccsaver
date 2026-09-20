@@ -15,7 +15,7 @@ const LABEL = 11
 const WIDTH = 18
 const SMALL = 1
 
-export interface Tally {
+interface Spend {
   denied: number
   deniedTokens: number
   ranged: number
@@ -28,7 +28,7 @@ export interface Tally {
   estimated: number
 }
 
-export interface Band {
+interface Band {
   low: number
   high: number
 }
@@ -44,7 +44,7 @@ interface Money {
   saved: Band
 }
 
-export const NOTHING: Tally = {
+export const NOTHING_SPENT: Spend = {
   denied: 0,
   deniedTokens: 0,
   ranged: 0,
@@ -64,7 +64,7 @@ const partOf = (lines: number, offset: number, limit: number): number => {
   return Math.max(0, took) / lines
 }
 
-const gateInto = (sum: Tally, row: Row): Tally => {
+const gateInto = (sum: Spend, row: Row): Spend => {
   const tokens = tokensIn(numberAt(row, "bytes"))
   if (row["decision"] === "deny")
     return { ...sum, denied: sum.denied + 1, deniedTokens: sum.deniedTokens + tokens }
@@ -77,7 +77,7 @@ const gateInto = (sum: Tally, row: Row): Tally => {
   }
 }
 
-const delegateInto = (sum: Tally, row: Row): Tally => {
+const delegateInto = (sum: Spend, row: Row): Spend => {
   const calls = sum.calls + 1
   if (row["answered"] === "fallback")
     return { ...sum, calls, paid: sum.paid + 1, paidUsd: sum.paidUsd + numberAt(row, "cost") }
@@ -92,26 +92,26 @@ const delegateInto = (sum: Tally, row: Row): Tally => {
   }
 }
 
-export const tallied = (rows: Rows, from: Tally = NOTHING): Tally =>
+export const tallied = (rows: Rows, from: Spend = NOTHING_SPENT): Spend =>
   rows.reduce((sum, row) => {
     if (row["kind"] === "gate" && row["tool_use_id"] !== "doctor") return gateInto(sum, row)
     return row["kind"] === "delegate" ? delegateInto(sum, row) : sum
   }, from)
 
-export const monthsOf = (): string[] =>
+const monthsOf = (): string[] =>
   (attempt(() => readdirSync(logDir())) ?? [])
     .flatMap((name) => MONTH_FILE.exec(name)?.[1] ?? [])
     .sort()
 
-export const tallyOver = (months: string[]): Tally =>
-  months.reduce((sum, month) => tallied(readMonth(month), sum), NOTHING)
+const tallyOver = (months: string[]): Spend =>
+  months.reduce((sum, month) => tallied(readMonth(month), sum), NOTHING_SPENT)
 
-export const seen = (tally: Tally): number => tally.denied + tally.calls
+export const seen = (tally: Spend): number => tally.denied + tally.calls
 
 const isPrice = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value) && value > 0
 
-export const readPrices = (): Prices => {
+const readPrices = (): Prices => {
   const text = attempt(() => readFileSync(pricesFile(), "utf8"))
   if (text === undefined) {
     if (!existsSync(pricesFile())) return {}
@@ -131,7 +131,7 @@ export const writePrice = (which: "main" | "worker", usd: number): Prices => {
   return after
 }
 
-export const moneyOf = (tally: Tally, prices: Prices): Money | undefined => {
+export const moneyOf = (tally: Spend, prices: Prices): Money | undefined => {
   const main = prices.main
   if (main === undefined) return undefined
   const worker = prices.worker ?? 0
@@ -173,7 +173,7 @@ const rowOf = (label: string, band: string, after: string, colour?: number): str
 const percentOf = (saved: number, without: number): number =>
   without > 0 ? Math.round((100 * saved) / without) : 0
 
-const countedIn = (tally: Tally): string[] => [
+const countedIn = (tally: Spend): string[] => [
   `  ${"denied".padEnd(LABEL)}${many(tally.denied, "whole-file read")}, ${millions(tally.deniedTokens)} tokens by bytes/4`,
   `  ${"instead".padEnd(LABEL)}${many(tally.ranged, "ranged read")} while plugged, ${millions(tally.rangedTokens)} tokens`,
   `  ${"delegated".padEnd(LABEL)}${many(tally.calls, "call")} · ${tally.external} external (${millions(tally.externalTokens)} tokens) · ${tally.paid} paid Haiku (${usd(tally.paidUsd, 4)})`,
@@ -205,7 +205,7 @@ const moneyIn = (money: Money): string[] => {
   ]
 }
 
-const thinIn = (tally: Tally): string[] =>
+const thinIn = (tally: Spend): string[] =>
   seen(tally) < ENOUGH
     ? [`  ${seen(tally)} events here, and ${ENOUGH} is where this starts to say anything`]
     : ["  no price is set, so this is tokens only: ccsaver price main <usd per million>"]
@@ -217,10 +217,10 @@ const pricedIn = (prices: Prices): string[] =>
       ]
     : [`  at $${prices.main}/M for the session model and $${prices.worker}/M for the worker`]
 
-const orphaned = (tally: Tally): boolean =>
+const orphaned = (tally: Spend): boolean =>
   tally.denied > 0 && tally.ranged === 0 && tally.calls === 0
 
-const footnotes = (tally: Tally, prices: Prices, priced: boolean): string[] => [
+const footnotes = (tally: Spend, prices: Prices, priced: boolean): string[] => [
   ...(priced ? pricedIn(prices) : []),
   `  a real Read measured ${REAL_LOW}-${REAL_HIGH}x the bytes/4 estimate, and that band is the whole spread here`,
   ...(tally.estimated > 0

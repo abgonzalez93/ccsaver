@@ -3,11 +3,11 @@ import { chmodSync, mkdirSync, rmSync, statSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { after, test } from "node:test"
 import { readMonth } from "../src/log.ts"
-import { moneyOf, NOTHING, type Prices, seen, tallied } from "../src/roi.ts"
+import { moneyOf, NOTHING_SPENT, type Prices, seen, tallied } from "../src/saved.ts"
 import { CLI, type Ran, run, tempDir } from "./helpers.ts"
 
 const AS_ROOT = process.getuid?.() === 0
-const WORK = tempDir("roi-work")
+const WORK = tempDir("saved-work")
 
 const gate = (fields: Record<string, unknown>): Record<PropertyKey, unknown> => ({
   kind: "gate",
@@ -91,7 +91,7 @@ test("an external call that reports its usage is counted from that, not from cha
 })
 
 test("the band pairs low with low, so the percentage barely moves while the dollars swing", () => {
-  const tally = { ...NOTHING, deniedTokens: 1_000_000, rangedTokens: 100_000 }
+  const tally = { ...NOTHING_SPENT, deniedTokens: 1_000_000, rangedTokens: 100_000 }
   const money = moneyOf(tally, { main: 3 })
   assert.ok(money !== undefined)
   assert.deepEqual([money.without.low.toFixed(2), money.without.high.toFixed(2)], ["5.70", "8.40"])
@@ -101,7 +101,7 @@ test("the band pairs low with low, so the percentage barely moves while the doll
 })
 
 test("no price for the session model means no money at all, not money at zero", () => {
-  const tally = { ...NOTHING, deniedTokens: 1_000_000 }
+  const tally = { ...NOTHING_SPENT, deniedTokens: 1_000_000 }
   assert.equal(moneyOf(tally, {}), undefined)
   assert.equal(moneyOf(tally, { worker: 0.1 }), undefined)
   const priced: Prices = { main: 3 }
@@ -109,7 +109,7 @@ test("no price for the session model means no money at all, not money at zero", 
 })
 
 test("an unpriced worker costs nothing rather than stopping the sum", () => {
-  const tally = { ...NOTHING, externalTokens: 1_000_000, deniedTokens: 1_000_000 }
+  const tally = { ...NOTHING_SPENT, externalTokens: 1_000_000, deniedTokens: 1_000_000 }
   const free = moneyOf(tally, { main: 3 })
   const paid = moneyOf(tally, { main: 3, worker: 0.5 })
   assert.ok(free !== undefined && paid !== undefined)
@@ -123,7 +123,7 @@ test("twenty events is where it starts to judge, and under it says how many ther
   assert.equal(out.code, 0)
   assert.match(out.stdout, /2 events here, and 20 is where this starts to say anything/)
   assert.doesNotMatch(out.stdout, /^ {2}without {4}\$/m)
-  assert.equal(seen({ ...NOTHING, denied: 19, calls: 1 }), 20)
+  assert.equal(seen({ ...NOTHING_SPENT, denied: 19, calls: 1 }), 20)
 })
 
 test("without a price it counts tokens and names the command that adds one", async () => {
