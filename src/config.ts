@@ -203,10 +203,8 @@ export const writeWorker = (url: string, model: string): string | undefined => {
 
 export const setFallback = (on: boolean): void => {
   const worker = readWorker()
-  if (worker === undefined) {
-    if (on) return
+  if (worker === undefined)
     throw new Refusal("set a worker first: without one the fallback is the only worker")
-  }
   storeWorker({ ...worker, fallback: on })
   record("config", { action: "fallback", on })
 }

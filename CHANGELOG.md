@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.9.4 - 2026-09-20
+
+fix: fallback on without a worker says so instead of confirming nothing
+
+- it used to return quietly while the command printed "fallback on" and exited 0, so a setting that was never stored looked stored
+- nothing reached the event log either, so the line the user was shown had no trace behind it
+- fallback off already refused the same way: the switch lives in worker.json and needs one
+
 ## 0.9.3 - 2026-09-20
 
 fix: the adapters folder is put back to 700 on every write

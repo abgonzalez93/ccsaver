@@ -158,7 +158,7 @@ test("the worker url must be encrypted and the pinned fallback survives a new wo
   assert.equal(statSync(join(HOME, "worker.json")).mode & 0o777, 0o600)
 })
 
-test("the fallback switch is stored, survives a new worker and needs a worker to go off", () => {
+test("the fallback switch is stored, survives a new worker and needs a worker either way", () => {
   setFallback(false)
   assert.deepEqual(readWorker(), {
     url: "https://b.invalid/v1",
@@ -171,9 +171,9 @@ test("the fallback switch is stored, survives a new worker and needs a worker to
   setFallback(true)
   assert.equal(readWorker()?.fallback, true)
   rmSync(join(HOME, "worker.json"))
-  setFallback(true)
-  assert.equal(readWorker(), undefined)
+  assert.throws(() => setFallback(true), /set a worker first/)
   assert.throws(() => setFallback(false), /set a worker first/)
+  assert.equal(readWorker(), undefined)
 })
 
 test("a worker.json that is there but wrong is an error, never the same as no worker", () => {

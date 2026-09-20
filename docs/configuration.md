@@ -56,7 +56,7 @@ It is bounded as well:
 - 0.50 $ a call (`--max-budget-usd`), which stops the retries Claude Code makes on its own when an answer hits an output limit (4 turns measured against a 200-token limit).
 - 400,000 characters of files per call: Haiku's context window is 200,000 tokens and the chars/4 estimate has measured about half of a real count, so a bigger call fails with a one-line error before anything is spent. The external worker has no such cap; its limit is your provider's.
 
-`ccsaver fallback off` turns it off once a worker is set: a call the worker cannot answer then fails with a one-line error and Claude reads by ranges instead, and a call that names a file outside the plugged root sends nothing anywhere. `ccsaver fallback on` brings it back.
+`ccsaver fallback off` turns it off once a worker is set: a call the worker cannot answer then fails with a one-line error and Claude reads by ranges instead, and a call that names a file outside the plugged root sends nothing anywhere. `ccsaver fallback on` brings it back. Both refuse until there is a worker, because the switch lives in `worker.json` and without one the fallback is the only worker there is: a confirmation for a setting that was never stored would be a lie.
 
 Claude Code's documentation says `--bare` will become the default for `-p`, and bare mode does not use a subscription login: on a future version the fallback may need an `ANTHROPIC_API_KEY`.
 
