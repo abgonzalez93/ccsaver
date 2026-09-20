@@ -59,15 +59,22 @@ export const readPrices = (): Prices => {
   return { models: modelPrices(models), ...(isRate(worker) ? { worker } : {}) }
 }
 
-export const writePrice = (which: string, usd: number): Prices => {
+export interface Priced {
+  prices: Prices
+  was: number | undefined
+}
+
+export const writePrice = (which: string, usd: number): Priced => {
   const before = readPrices()
+  const was = which === WORKER ? before.worker : before.models[which]
+  if (was === usd) return { prices: before, was }
   const after: Prices =
     which === WORKER
       ? { ...before, worker: usd }
       : { ...before, models: { ...before.models, [which]: usd } }
   writePrivate(pricesFile(), `${JSON.stringify(after, null, 2)}\n`)
   record("config", { action: "price", which, usd })
-  return after
+  return { prices: after, was }
 }
 
 export const workerNamed = (): string => {

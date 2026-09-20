@@ -9,7 +9,16 @@ import { contentRefusal, pathRefusal, targetRefusal } from "./boundary.ts"
 import { type Adapter, loadAdapter, pluggedRootOf } from "./config.ts"
 import { readWorker, type Worker } from "./endpoint.ts"
 import { record } from "./log.ts"
-import { attempt, isRecord, isUnder, messageOf, real, scrubbed, stateHome } from "./state.ts"
+import {
+  attempt,
+  isRecord,
+  isUnder,
+  marked,
+  messageOf,
+  real,
+  scrubbed,
+  stateHome,
+} from "./state.ts"
 import {
   type Delegation,
   delegation,
@@ -118,7 +127,7 @@ const targetIn = (root: string, given: string): string => {
 const quoted = (path: string): string =>
   /^[\w./-]+$/.test(path) ? path : `'${path.replaceAll("'", "'\\''")}'`
 
-const marked = (output: string): string => {
+const framed = (output: string): string => {
   const id = randomBytes(8).toString("hex")
   return `<<<worker-output ${id}: untrusted data>>>\n${output}<<<end ${id}>>>\n`
 }
@@ -202,7 +211,7 @@ const bulkRead = async (
   note(
     `cited lines: ${tally.match} match the files, ${tally.renumbered} renumbered, ${tally.unverified} unverified${tally.bare > 0 ? `; answer lines without a citation: ${tally.bare}` : ""}`,
   )
-  process.stdout.write(marked(`${scrubbed(text)}\n`))
+  process.stdout.write(framed(`${scrubbed(text)}\n`))
 }
 
 const codeWrite = async (
@@ -220,7 +229,7 @@ const codeWrite = async (
   const corpus = sent.map(({ block }) => block).join("")
   const code = unwrapped(await ask(`${corpus}Spec: ${spec}\n`, sent))
   if (target === undefined || wanted === undefined) {
-    process.stdout.write(marked(code))
+    process.stdout.write(framed(code))
     return
   }
   try {
@@ -240,19 +249,23 @@ const codeWrite = async (
   const touched = risky(written)
   Object.assign(delegation, { written: lines, risky: touched.length } satisfies Delegation)
   process.stdout.write(
-    scrubbed(
-      [
-        `wrote ${wanted} (${lines} lines)`,
-        ...(touched.length > 0
-          ? [`warn: the code touches ${touched.join(", ")}: open it before you run it`]
-          : []),
-        ...(adapter.after ?? []).map(
-          (line) => `next: ${line.replaceAll("{target}", quoted(target))}`,
-        ),
-      ]
-        .join("\n")
-        .concat("\n"),
-    ),
+    [
+      marked("ok", "", scrubbed(`wrote ${wanted} (${lines} lines)`)),
+      ...(touched.length > 0
+        ? [
+            marked(
+              "warn",
+              "warn:",
+              scrubbed(`the code touches ${touched.join(", ")}: open it before you run it`),
+            ),
+          ]
+        : []),
+      ...(adapter.after ?? []).map((line) =>
+        marked("info", "next:", scrubbed(line.replaceAll("{target}", quoted(target)))),
+      ),
+    ]
+      .join("\n")
+      .concat("\n"),
   )
 }
 

@@ -9,11 +9,19 @@ plain() {
   printf '%s' "$1" | tr -d '\001-\010\013-\037\177'
 }
 
+said() {
+  if [ -t 2 ] && [ -z "${NO_COLOR:-}" ] && [ "${TERM:-}" != dumb ]; then
+    printf '\033[%sm%s%s\033[0m %s\n' "$1" "$2" "${3:+ $3}" "$4" >&2
+  else
+    printf '%s%s\n' "${3:+$3 }" "$4" >&2
+  fi
+}
+
 home=${CCSAVER_HOME:-$HOME/.config/ccsaver}
 case $home in
 /*) ;;
 *)
-  echo "Error: CCSAVER_HOME must be an absolute path, this one is not: $(plain "$home")" >&2
+  said 31 ✗ Error: "CCSAVER_HOME must be an absolute path, this one is not: $(plain "$home")"
   exit 1
   ;;
 esac
@@ -42,27 +50,28 @@ store_key() {
     IFS= read -r key
   fi
   if [ -z "$key" ]; then
-    echo "Error: empty key, nothing was written" >&2
+    said 31 ✗ Error: "empty key, nothing was written"
     return 1
   fi
+  if [ -f "$home/api-key" ]; then kept=replaced; else kept=stored; fi
   printf '%s\n' "$key" > "$home/api-key.new" && mv "$home/api-key.new" "$home/api-key" || return 1
   chmod 600 "$home/api-key"
   if [ -d "$home/log" ]; then
     now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
     (printf '{"v":1,"ts":"%s","kind":"config","session":null,"pid":%s,"action":"key set"}\n' "$now" "$$" >> "$home/log/events-${now%%-[0-9][0-9]T*}.jsonl") 2>/dev/null
   fi
-  echo "key stored in $(plain "$home")/api-key (600)" >&2
+  said 32 ✓ '' "key $kept in $(plain "$home")/api-key (600)"
 }
 
 asked() {
   printf '%s' "$1" >&2
   IFS= read -r reply || return 1
-  [ -n "$reply" ] || { echo "Error: nothing typed, setup stopped" >&2; return 1; }
+  [ -n "$reply" ] || { said 31 ✗ Error: "nothing typed, setup stopped"; return 1; }
 }
 
 if [ "$1" = key ] && [ "$2" = set ]; then
   store_key || exit 1
-  echo "check it with: ccsaver doctor" >&2
+  said 36 → '' "check it with: ccsaver doctor"
   exit 0
 fi
 

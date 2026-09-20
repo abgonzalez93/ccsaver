@@ -74,11 +74,30 @@ export const pricesFile = (): string => join(stateHome(), "prices.json")
 
 export const adaptersDir = (): string => join(stateHome(), "adapters")
 
-const inColour = (): boolean =>
-  process.stdout.isTTY === true && !process.env["NO_COLOR"] && process.env["TERM"] !== "dumb"
+export type Tone = "ok" | "warn" | "fail" | "info"
 
-export const tinted = (text: string, colour: number): string =>
-  inColour() ? `\u001b[${colour}m${text}\u001b[0m` : text
+const MARK = { ok: ["✓", 32], warn: ["!", 33], fail: ["✗", 31], info: ["→", 36] } as const
+
+const onTerminal = (stream: NodeJS.WriteStream): boolean =>
+  stream.isTTY === true && !process.env["NO_COLOR"] && process.env["TERM"] !== "dumb"
+
+export const tinted = (
+  text: string,
+  colour: number,
+  stream: NodeJS.WriteStream = process.stdout,
+): string => (onTerminal(stream) ? `\u001b[${colour}m${text}\u001b[0m` : text)
+
+export const marked = (
+  tone: Tone,
+  label: string,
+  text: string,
+  stream: NodeJS.WriteStream = process.stdout,
+): string => {
+  const [glyph, colour] = MARK[tone]
+  if (onTerminal(stream))
+    return `${tinted(label === "" ? glyph : `${glyph} ${label}`, colour, stream)} ${text}`
+  return label === "" ? text : `${label} ${text}`
+}
 
 export const real = (path: string): string =>
   attempt(() => realpathSync.native(path)) ?? resolve(path)

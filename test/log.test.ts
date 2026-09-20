@@ -90,13 +90,16 @@ test("records nothing and creates nothing until the log is turned on", async () 
 })
 
 test("log on makes a private folder, log off sets it aside with its data", async () => {
-  assert.equal((await ccsaver(["log", "on"])).stdout, "log on\n")
+  assert.equal((await ccsaver(["log", "on"])).stdout, `log on: recording metadata only in ${LOG}\n`)
   assert.equal(statSync(LOG).mode & 0o777, 0o700)
   await hook(WHOLE)
   const [file = ""] = readdirSync(LOG)
   assert.match(file, /^events-\d{4}-\d{2}\.jsonl$/)
   assert.equal(statSync(join(LOG, file)).mode & 0o777, 0o600)
-  assert.equal((await ccsaver(["log", "off"])).stdout, "log off\n")
+  assert.equal(
+    (await ccsaver(["log", "off"])).stdout,
+    `log off: the events so far are kept in ${LOG}.off\n`,
+  )
   await hook(WHOLE)
   assert.equal(existsSync(LOG), false)
   const kept = readFileSync(join(`${LOG}.off`, file), "utf8")
@@ -135,6 +138,7 @@ test("key set leaves the bare fact, never the key, in the format of every other 
 })
 
 test("a command that never reads the key still keeps it out of the log", async () => {
+  assert.equal((await ccsaver(["worker", "set", server.url, "cheap-1"])).code, 0)
   assert.equal((await ccsaver(["worker", "set", server.url, KEY])).code, 0)
   const last = events(HOME).at(-1) ?? NONE
   assert.deepEqual([last["action"], last["model"]], ["worker set", "[key]"])

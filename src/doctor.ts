@@ -12,13 +12,13 @@ import {
   keyFile,
   keyIsCarriable,
   keyIsStored,
+  marked,
   messageOf,
   pluggedFile,
   pricesFile,
   readKey,
   scrubbed,
   stateHome,
-  tinted,
   workerFile,
 } from "./state.ts"
 import { adapterNameOf, fixOf, overshoots, proposalOf, raiseOf, surveyFor } from "./survey.ts"
@@ -45,12 +45,12 @@ interface Finding {
   fix?: Fix
 }
 
-const COLOUR = { ok: 32, warn: 33, FAIL: 31 } as const
+const TONE = { ok: "ok", warn: "warn", FAIL: "fail" } as const
 const YES = /^\s*(y|yes|s|si|sí)\s*$/i
 const ANSWER_BYTES = 64
 const ANSWER_CAP = 4096
 
-const painted = (level: Level): string => tinted(level.padEnd(4), COLOUR[level])
+const painted = (level: Level, text: string): string => marked(TONE[level], level.padEnd(4), text)
 
 const lineFrom = (fd: number): string | undefined => {
   const buffer = Buffer.alloc(ANSWER_BYTES)
@@ -82,7 +82,7 @@ const offer = (fixes: Fix[]): void => {
     try {
       process.stdout.write(scrubbed(`${fix.apply()}\n`))
     } catch (error) {
-      process.stdout.write(`${painted("FAIL")} ${scrubbed(messageOf(error))}\n`)
+      process.stdout.write(`${painted("FAIL", scrubbed(messageOf(error)))}\n`)
     }
   }
 }
@@ -185,7 +185,7 @@ const gate = (root: string, lines: number): Finding => {
 }
 
 const applied = (root: string, name: string, raise: Partial<Limits>, plugged: boolean): string => {
-  const place = writeLimits(name, raise)
+  const { place } = writeLimits(name, raise)
   if (plugged) return `adapter ${name} written to ${place}`
   plug(root, name)
   return `adapter ${name} written to ${place}, and ${root} now points at it`
@@ -315,8 +315,11 @@ export const doctor = async (): Promise<number> => {
     ...(plugged.length > 0 ? plugged : [NOTHING_PLUGGED]),
   ]
   for (const { level, text } of findings)
-    process.stdout.write(`${painted(level)} ${scrubbed(text)}\n`)
+    process.stdout.write(`${painted(level, scrubbed(text))}\n`)
   const count = (wanted: Level): number => findings.filter(({ level }) => level === wanted).length
+  const worst: Level = count("FAIL") > 0 ? "FAIL" : count("warn") > 0 ? "warn" : "ok"
+  const tally = `${findings.length} checks: ${count("ok")} ok, ${count("warn")} warn, ${count("FAIL")} FAIL`
+  process.stdout.write(`\n${marked(TONE[worst], "", tally)}\n`)
   record("doctor", { ok: count("ok"), warn: count("warn"), fail: count("FAIL") })
   offer(findings.flatMap(({ fix }) => fix ?? []))
   return count("FAIL") > 0 ? 1 : 0

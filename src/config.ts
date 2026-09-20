@@ -177,15 +177,21 @@ export const loadAdapter = (name: string): Adapter => {
   return adapter
 }
 
-export const writeLimits = (name: string, limits: Partial<Limits>): string => {
+export interface Written {
+  place: string
+  changed: boolean
+}
+
+export const writeLimits = (name: string, limits: Partial<Limits>): Written => {
   const before = findAdapter(name, adapterPlaces(name)) ?? {}
   const after: Adapter = { ...before, ...limits }
   const place = adapterPlace(name)
+  if (JSON.stringify(after) === JSON.stringify(before)) return { place, changed: false }
   mkdirSync(adaptersDir(), { recursive: true, mode: 0o700 })
   chmodSync(adaptersDir(), 0o700)
   writePrivate(place, `${JSON.stringify(after, null, 2)}\n`)
   record("config", { action: "adapter limits", adapter: name, ...limits })
-  return place
+  return { place, changed: true }
 }
 
 export const limitsFrom = ({ maxLines, maxTokens }: Adapter): Limits => ({
@@ -196,7 +202,12 @@ export const limitsFrom = ({ maxLines, maxTokens }: Adapter): Limits => ({
 export const limitsFor = (adapter: string | undefined): Limits =>
   limitsFrom(adapter === undefined ? {} : loadAdapter(adapter))
 
-export const plug = (dir: string, adapter?: string): Plugged => {
+export interface Plugging {
+  entry: Plugged
+  was: Plugged | undefined
+}
+
+export const plug = (dir: string, adapter?: string): Plugging => {
   const root = attempt(() => realpathSync.native(dir))
   if (root === undefined || attempt(() => statSync(root).isDirectory()) !== true)
     throw new Refusal(`not a directory: ${dir}`)
@@ -208,9 +219,12 @@ export const plug = (dir: string, adapter?: string): Plugged => {
     throw new Refusal(`refusing to plug ${root}: it is a place where credentials live`)
   if (adapter !== undefined) loadAdapter(adapter)
   const entry: Plugged = adapter === undefined ? { root } : { root, adapter }
-  writePlugged([...readPlugged().filter((other) => other.root !== root), entry])
+  const before = readPlugged()
+  const was = before.find((other) => other.root === root)
+  if (was !== undefined && was.adapter === adapter) return { entry, was }
+  writePlugged([...before.filter((other) => other.root !== root), entry])
   record("config", { action: "plug", root, adapter: adapter ?? null })
-  return entry
+  return { entry, was }
 }
 
 export const unplug = (dir: string): boolean => {

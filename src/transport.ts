@@ -12,6 +12,7 @@ import {
   keyFile,
   keyIsCarriable,
   keyIsStored,
+  marked,
   messageOf,
   parsed,
   readKey,
@@ -69,13 +70,13 @@ const said = (text: string): void => {
 
 export const fail: (message: string) => never = (message) => {
   record("fail", { text: message })
-  said(scrubbed(`Error: ${message}\n`))
+  said(`${marked("fail", "Error:", scrubbed(message), process.stderr)}\n`)
   process.exit(1)
 }
 
 export const note = (text: string): void => {
   record("note", { text })
-  said(scrubbed(`[ccsaver: ${text}]\n`))
+  said(`${marked("info", "", scrubbed(`[ccsaver: ${text}]`), process.stderr)}\n`)
 }
 
 export const claudeBin = (worker: Worker | undefined): string =>

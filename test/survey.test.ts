@@ -165,7 +165,7 @@ test("on a terminal doctor offers the fix, writes it on yes and leaves it on no"
     run("script", ["-qec", `env CCSAVER_HOME=${home} "${LAUNCHER}" doctor`, "/dev/null"], {}, typed)
   const said = await ask("n\n")
   assert.match(said.stdout, /run it\? \[y\/N\]/)
-  assert.ok(said.stdout.includes(`${YELLOW}warn${PLAIN}`))
+  assert.ok(said.stdout.includes(`${YELLOW}! warn${PLAIN}`), said.stdout)
   assert.match(said.stdout, /skipped/)
   assert.equal(existsSync(join(home, "adapters", "offered.json")), false)
   const long = await ask("yes               no\n")

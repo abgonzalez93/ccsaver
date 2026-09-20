@@ -11,17 +11,24 @@ import {
 } from "./config.ts"
 import { doctor } from "./doctor.ts"
 import { setClaude, setFallback, writeWorker } from "./endpoint.ts"
-import { crashed, MONTH, record, setLog } from "./log.ts"
+import { crashed, logDir, MONTH, record, setLog } from "./log.ts"
 import { listedPrices, MODEL_NAME, readPrices, shownPrices, WORKER, writePrice } from "./prices.ts"
 import { report } from "./report.ts"
-import { attempt, isRecord, messageOf, parsed, Refusal, scrubbed } from "./state.ts"
+import {
+  attempt,
+  isRecord,
+  marked,
+  messageOf,
+  parsed,
+  Refusal,
+  scrubbed,
+  type Tone,
+} from "./state.ts"
 import { proposalOf, surveyFor } from "./survey.ts"
 import { shown } from "./transport.ts"
 import { isMode, runWorker } from "./worker.ts"
 
-const HEAD = "usage: ccsaver <command>"
-
-const USAGE = `${HEAD}
+const USAGE = `usage: ccsaver <command>
 
   setup                      ask for worker, key and fallback, then run doctor
   plug [dir] [adapter]       turn ccsaver on for one project (default: this folder)
@@ -45,6 +52,8 @@ const USAGE = `${HEAD}
 const PACKAGE = join(import.meta.dirname, "..", "package.json")
 const HELP = ["help", "--help", "-h"]
 const LIMIT_KEYS = ["maxLines", "maxTokens"] as const
+const OWN_CLAUDE = "the session's own claude runs the fallback"
+const HAIKU = "a call the worker cannot take"
 
 const limitsGiven = (pairs: string[]): Partial<Limits> => {
   const given = pairs.map((pair) => pair.split("="))
@@ -69,109 +78,177 @@ const version = (): string => {
   return isRecord(raw) && typeof raw["version"] === "string" ? raw["version"] : "unknown"
 }
 
-const say = (text: string): void => {
-  process.stdout.write(scrubbed(text))
+const say = (tone: Tone, text: string): void => {
+  process.stdout.write(`${marked(tone, "", scrubbed(text))}\n`)
 }
 
-type Outcome = number | undefined
-
-type Command = (rest: string[]) => Outcome
-
-const atMost =
-  (most: number, run: Command): Command =>
-  (rest: string[]): Outcome =>
-    rest.length > most ? undefined : run(rest)
-
-const printVersion: Command = (): Outcome => {
-  say(`${version()}\n`)
+const done = (tone: Tone, text: string): number => {
+  say(tone, text)
   return 0
 }
 
-const COMMANDS: Record<string, Command> = {
-  plug: atMost(2, ([first, second]) => {
-    const { root, adapter } = plug(first ?? process.cwd(), second)
-    const limits = limitsFor(adapter)
-    say(
-      `plugged ${root} · adapter ${adapter ?? "none"}\n${proposalOf(surveyFor(root), limits, root, adapter)}\n`,
+const warn = (text: string): void => {
+  process.stderr.write(`${marked("warn", "warn:", scrubbed(text), process.stderr)}\n`)
+}
+
+type Outcome = number | string
+
+type Command = (rest: string[]) => Outcome
+
+const tooMany = (name: string, most: number, rest: string[]): string | undefined => {
+  if (rest.length <= most) return undefined
+  const takes = most === 0 ? "no arguments" : `at most ${most} argument${most === 1 ? "" : "s"}`
+  return `${name} takes ${takes}, not ${rest.length}: ${rest.join(" ")}`
+}
+
+const atMost =
+  (name: string, most: number, run: Command): Command =>
+  (rest: string[]): Outcome =>
+    tooMany(name, most, rest) ?? run(rest)
+
+const onOff = (name: string, first: string | undefined): string =>
+  first === undefined ? `${name} needs on or off` : `${name} takes on or off, not: ${first}`
+
+const printVersion: Command = (): Outcome => done("info", version())
+
+const pinned = (given: string): number => {
+  const { pinned, was } = setClaude(given === "auto" ? undefined : given)
+  if (pinned === was)
+    return done(
+      "info",
+      pinned === undefined
+        ? `the fallback binary was not pinned: ${OWN_CLAUDE}`
+        : `the fallback binary is already pinned: ${pinned}`,
     )
-    return 0
+  const before = was === undefined ? "" : ` (was ${was})`
+  return pinned === undefined
+    ? done("ok", `fallback binary unpinned${before}: ${OWN_CLAUDE}`)
+    : done("ok", `fallback binary pinned: ${pinned}${before}`)
+}
+
+const COMMANDS: Record<string, Command> = {
+  plug: atMost("plug", 2, ([first, second]) => {
+    const { entry, was } = plug(first ?? process.cwd(), second)
+    const { root, adapter } = entry
+    const measured = proposalOf(surveyFor(root), limitsFor(adapter), root, adapter)
+    const named = `adapter ${adapter ?? "none"}`
+    if (was !== undefined && was.adapter === adapter)
+      return done("info", `${root} is already plugged in · ${named}\n${measured}`)
+    const before = was === undefined ? "" : ` (was ${was.adapter ?? "none"})`
+    return done("ok", `plugged ${root} · ${named}${before}\n${measured}`)
   }),
   adapter: ([first, ...pairs]) => {
-    if (first === undefined) return undefined
-    const place = writeLimits(first, limitsGiven(pairs))
-    say(`adapter ${first} written to ${place}\n`)
-    return 0
+    if (first === undefined) return "adapter needs a name, then maxLines=<n> or maxTokens=<n>"
+    const limits = limitsGiven(pairs)
+    const { place, changed } = writeLimits(first, limits)
+    if (changed) return done("ok", `adapter ${first} written to ${place}`)
+    const held = Object.entries(limits)
+      .map(([key, value]) => `${key}=${value}`)
+      .join(" ")
+    return done("info", `adapter ${first} already holds ${held}, nothing changed`)
   },
-  unplug: atMost(1, ([first]) => {
-    if (!first) return undefined
-    say(unplug(first) ? `unplugged ${first}\n` : `${first} was not plugged\n`)
-    return 0
+  unplug: atMost("unplug", 1, ([first]) => {
+    if (!first) return "unplug needs the directory to unplug"
+    return unplug(first)
+      ? done("ok", `unplugged ${first}`)
+      : done("info", `${first} is not plugged in, nothing changed`)
   }),
-  list: atMost(0, () => {
+  list: atMost("list", 0, () => {
     const entries = readPlugged()
-    say(
-      entries.length === 0
-        ? "nothing is plugged in\n"
-        : entries.map(({ root, adapter }) => `${root}\t${adapter ?? ""}\n`).join(""),
-    )
+    if (entries.length === 0) return done("info", "nothing is plugged in")
+    const rows = entries.map(({ root, adapter }) => `${root}\t${adapter ?? ""}\n`).join("")
+    process.stdout.write(scrubbed(rows))
     return 0
   }),
-  worker: atMost(3, ([first, second, third]) => {
-    if (first === "claude" && second !== undefined) {
-      const pinned = setClaude(second === "auto" ? undefined : second)
-      say(`fallback binary: ${pinned ?? "the session's own claude"}\n`)
-      return 0
-    }
-    if (first !== "set" || second === undefined || third === undefined) return undefined
-    const advice = writeWorker(second, third)
-    say(`worker set to ${shown(second)} · ${third}\n`)
-    if (advice !== undefined) process.stderr.write(scrubbed(`warn: ${advice}\n`))
+  worker: atMost("worker", 3, ([first, second, third]) => {
+    if (first === "claude")
+      return second === undefined ? "worker claude needs a path, or auto" : pinned(second)
+    if (first !== "set")
+      return first === undefined
+        ? "worker needs set or claude"
+        : `worker takes set or claude, not: ${first}`
+    if (second === undefined || third === undefined) return "worker set needs <url> <model>"
+    const { changed, advice } = writeWorker(second, third)
+    const named = `${shown(second)} · ${third}`
+    if (!changed) return done("info", `the worker is already ${named}, nothing changed`)
+    say("ok", `worker set to ${named}`)
+    if (advice !== undefined) warn(advice)
     return 0
   }),
-  fallback: atMost(1, ([first]) => {
-    if (first !== "on" && first !== "off") return undefined
-    setFallback(first === "on")
-    say(`fallback ${first}\n`)
-    return 0
+  fallback: atMost("fallback", 1, ([first]) => {
+    if (first !== "on" && first !== "off") return onOff("fallback", first)
+    const on = first === "on"
+    const means = on
+      ? `${HAIKU} goes to paid Claude Haiku`
+      : `${HAIKU} fails instead of going to paid Claude Haiku`
+    return setFallback(on)
+      ? done("ok", `fallback ${first}: ${means}`)
+      : done("info", `the fallback is already ${first}: ${means}`)
   }),
-  log: atMost(1, ([first]) => {
-    if (first !== "on" && first !== "off") return undefined
-    setLog(first === "on")
-    say(`log ${first}\n`)
-    return 0
+  log: atMost("log", 1, ([first]) => {
+    if (first !== "on" && first !== "off") return onOff("log", first)
+    const on = first === "on"
+    const where = on
+      ? `recording metadata only in ${logDir()}`
+      : `the events so far are kept in ${logDir()}.off`
+    return setLog(on)
+      ? done("ok", `log ${first}: ${where}`)
+      : done("info", `the log is already ${first}`)
   }),
-  saved: atMost(1, ([first]) => {
-    if (first !== undefined && first !== "all" && !MONTH.test(first)) return undefined
+  saved: atMost("saved", 1, ([first]) => {
+    if (first !== undefined && first !== "all" && !MONTH.test(first))
+      return `saved takes a month, YYYY-MM, or all; not: ${first}`
     process.stdout.write(report(first))
     return 0
   }),
-  price: atMost(2, ([first, second]) => {
+  price: atMost("price", 2, ([first, second]) => {
     if (first === undefined) {
-      say(listedPrices(readPrices()))
+      process.stdout.write(scrubbed(listedPrices(readPrices())))
       return 0
     }
-    if (second === undefined) return undefined
-    if (first !== WORKER && !MODEL_NAME.test(first)) return undefined
+    if (first !== WORKER && !MODEL_NAME.test(first))
+      return `a model name takes lowercase letters, digits, dots, dashes and underscores; not: ${first}`
+    if (second === undefined)
+      return `price needs the dollars per million after ${first}: ccsaver price ${first} <usd>`
     const dollars = Number(second)
     const free = first === WORKER && dollars === 0
     if (!Number.isFinite(dollars) || (dollars <= 0 && !free))
       throw new Refusal(
         `a price is dollars per million input tokens, a positive number, and 0 only for a worker that is free; not: ${second}`,
       )
-    say(`price ${first} $${dollars}/M · ${shownPrices(writePrice(first, dollars))}\n`)
-    return 0
+    const { prices, was } = writePrice(first, dollars)
+    const all = shownPrices(prices)
+    if (was === dollars) return done("info", `${first} is already $${dollars}/M · ${all}`)
+    const before = was === undefined ? "" : ` (was $${was}/M)`
+    return done("ok", `price ${first} $${dollars}/M${before} · ${all}`)
   }),
-  version: atMost(0, printVersion),
-  "--version": atMost(0, printVersion),
+  key: ([first]) => {
+    if (first === "set")
+      return "key set belongs to the launcher: run ccsaver key set, not node src/cli.ts"
+    return first === undefined ? "key needs set: ccsaver key set" : `key takes set, not: ${first}`
+  },
+  version: atMost("version", 0, printVersion),
+  "--version": atMost("--version", 0, printVersion),
 }
 
-const commandOf = (command: string | undefined): Command | undefined =>
-  command !== undefined && Object.hasOwn(COMMANDS, command) ? COMMANDS[command] : undefined
+const commandOf = (command: string): Command | undefined =>
+  Object.hasOwn(COMMANDS, command) ? COMMANDS[command] : undefined
 
 const usageFor = (command: string): string[] =>
   USAGE.split("\n").filter(
     (line) => line.startsWith(`  ${command} `) || line.trimEnd() === `  ${command}`,
   )
+
+const mistake = (command: string, complaint: string): number => {
+  const lines = usageFor(command.replace(/^-+/, ""))
+  const usage =
+    lines.length === 0
+      ? USAGE
+      : `${lines.map((line, at) => `${at === 0 ? "usage:" : "      "} ccsaver ${line.trimStart()}`).join("\n")}\n`
+  process.stderr.write(`${marked("fail", "Error:", scrubbed(complaint), process.stderr)}\n${usage}`)
+  record("fail", { text: complaint })
+  return 1
+}
 
 const main = async (): Promise<number> => {
   const [command, ...rest] = process.argv.slice(2)
@@ -179,21 +256,17 @@ const main = async (): Promise<number> => {
     await runWorker(command, rest)
     return 0
   }
-  if (command === "doctor" && rest.length === 0) return doctor()
-  const code = commandOf(command)?.(rest)
-  if (code !== undefined) return code
   if (command === undefined || HELP.includes(command)) {
     process.stdout.write(USAGE)
     return 0
   }
-  const only = usageFor(command)
-  const known = command === "doctor" || commandOf(command) !== undefined
-  const wrong = known || only.length > 0 ? "wrong arguments" : "unknown command"
-  const said =
-    only.length === 0 ? `${wrong}: ${command}\n${USAGE}` : `${HEAD}\n\n${only.join("\n")}\n`
-  process.stderr.write(scrubbed(said))
-  record("fail", { text: `${wrong}: ${command}` })
-  return 1
+  if (command === "doctor") {
+    const wrong = tooMany(command, 0, rest)
+    return wrong === undefined ? doctor() : mistake(command, wrong)
+  }
+  const outcome = commandOf(command)?.(rest)
+  if (typeof outcome === "number") return outcome
+  return mistake(command, outcome ?? `unknown command: ${command}`)
 }
 
 try {
@@ -201,6 +274,6 @@ try {
 } catch (error) {
   if (error instanceof Refusal) record("fail", { text: error.message })
   else crashed("cli", error)
-  process.stderr.write(scrubbed(`Error: ${messageOf(error)}\n`))
+  process.stderr.write(`${marked("fail", "Error:", scrubbed(messageOf(error)), process.stderr)}\n`)
   process.exitCode = 1
 }

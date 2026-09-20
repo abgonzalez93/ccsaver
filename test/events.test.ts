@@ -286,7 +286,7 @@ test("a command line that goes nowhere leaves a fail, and says which kind", asyn
       .map(({ kind, text }) => [kind, text]),
     [
       ["fail", "unknown command: frobnicate"],
-      ["fail", "wrong arguments: worker"],
+      ["fail", "worker claude needs a path, or auto"],
     ],
   )
 })
@@ -304,7 +304,9 @@ test("doctor says whether the log is on, records its tally and marks its own pro
   assert.match(out.stdout, /ok {3}log: on · \S+log \(700\) · \d+ bytes this month/)
   const seen = events(HOME)
   const { ok, warn, fail } = seen.findLast(({ kind }) => kind === "doctor") ?? NONE
-  assert.deepEqual([ok, warn, fail], [out.stdout.split("\n").length - 1, 0, 0])
+  const lines = out.stdout.split("\n").filter((line) => /^(ok|warn|FAIL) /.test(line))
+  assert.deepEqual([ok, warn, fail], [lines.length, 0, 0])
+  assert.ok(out.stdout.endsWith(`\n\n${lines.length} checks: ${lines.length} ok, 0 warn, 0 FAIL\n`))
   assert.equal(seen.at(-2)?.["tool_use_id"], "doctor")
   chmodSync(LOG, 0o755)
   assert.match((await ccsaver(["doctor"])).stdout, /FAIL log: /)

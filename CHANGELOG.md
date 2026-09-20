@@ -4,6 +4,20 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.20.0 - 2026-09-20
+
+feat: a setting typed again says it already is, a mistake says what was wrong, and a terminal sees marks in colour
+
+- a setting typed with the value it already has answers `already` and writes nothing, on disk or in the event log: `log on|off`, `fallback on|off`, `worker set`, `worker claude`, `price`, `adapter`, `plug` on a plugged project and `unplug` on one that is not; every one of them exits 0, because nothing is wrong
+- `fallback on` on a worker.json without the switch counts as already on, since on is the default, and leaves the file as it was
+- a change that replaced a value names the old one: `plugged <root> · adapter strict-ts (was none)`, `price claude-opus-5 $6/M (was $5/M)`, `fallback binary pinned: <path> (was <path>)`, and `fallback` and `log` say what the switch means beside the word
+- a command given arguments it cannot take says what was wrong as the `Error:` line, with its own row of the usage table under it (`usage: ccsaver fallback on|off …`); the exit code stays 1 and the fail event carries the reason; a word that is no command gets `Error: unknown command: <word>` and the whole table
+- on a terminal every line opens with a mark in colour, ✓ for a change, → for something already so, ! for a warning, ✗ for an error, and doctor paints its level labels the same way; a pipe, `NO_COLOR` or `TERM=dumb` see plain words, each stream judged on its own; the launcher paints `key set` by the same rule and tells `key stored` from `key replaced`
+- doctor ends with its tally after a blank line, `12 checks: 10 ok, 1 warn, 1 FAIL`, which commands/doctor.md now names so it is not read as a check
+- `src/state.ts` · `marked` is the one painter, and untrusted text is scrubbed first and painted second, because scrubbed would escape the paint
+- the hook imports no new module: 21.8 / 20.2 / 20.2 ms per Read before against 21.7 / 21.4 / 21.6 ms after, three rounds of 30 runs each on the same machine, inside each other's spread
+- tests: `test/twice.test.ts` types every setting twice and counts the config events, `test/mistakes.test.ts` holds 25 wrong command lines with the reason and the row each one gets, `test/terminal.test.ts` sees the marks under a pty and none under `NO_COLOR` or `TERM=dumb`
+
 ## 0.19.21 - 2026-09-20
 
 test: the edges of the gate, the target and the worker's answer are pinned

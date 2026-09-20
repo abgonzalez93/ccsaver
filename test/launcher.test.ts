@@ -47,9 +47,15 @@ test("key set stores the piped key privately and never echoes it", async () => {
   const out = await ccsaver(["key", "set"], `${OLD_KEY}\n`)
   assert.equal(out.code, 0)
   assert.equal(everything(out).includes(OLD_KEY), false)
+  assert.equal(
+    out.stderr,
+    `key stored in ${join(HOME, "api-key")} (600)\ncheck it with: ccsaver doctor\n`,
+  )
   assert.equal(readFileSync(join(HOME, "api-key"), "utf8"), `${OLD_KEY}\n`)
   assert.equal(statSync(join(HOME, "api-key")).mode & 0o777, 0o600)
   assert.equal(statSync(HOME).mode & 0o777, 0o700)
+  const again = await ccsaver(["key", "set"], `${OLD_KEY}\n`)
+  assert.match(again.stderr, /^key replaced in \S+api-key \(600\)\n/)
 })
 
 const HAS_PTY = process.platform === "linux" && spawnSync("script", ["--version"]).status === 0
@@ -78,6 +84,7 @@ test("key set on a real terminal turns the echo off before it asks", {
   })
   assert.match(shown, /input hidden/)
   assert.equal(shown.includes(typed), false)
+  assert.ok(shown.includes("\u001b[32m✓\u001b[0m key stored in "), shown)
   assert.equal(readFileSync(join(home, "api-key"), "utf8"), `${typed}\n`)
   assert.equal(statSync(join(home, "api-key")).mode & 0o777, 0o600)
 })

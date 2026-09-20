@@ -202,11 +202,14 @@ test("all sums every month in the log, and a month names only that one", async (
   assert.match(missing.stdout, /denied {5}0 whole-file reads/)
 })
 
-test("a month that is not a month gets the usage line of its own command", async () => {
+test("a month that is not a month is named back, over the usage line of its own command", async () => {
   const home = homeWith("bad-month", [twentyDenials()])
   const out = await saved(home, ["2026-13"])
   assert.equal(out.code, 1)
-  assert.match(out.stderr, /^usage: ccsaver <command>\n\n {2}saved \[month\|all\]/)
+  assert.match(
+    out.stderr,
+    /^Error: saved takes a month, YYYY-MM, or all; not: 2026-13\nusage: ccsaver saved \[month\|all\]/,
+  )
   assert.equal(out.stdout, "")
 })
 

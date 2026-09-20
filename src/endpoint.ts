@@ -48,7 +48,12 @@ const storeWorker = (worker: Worker): void => {
   writePrivate(workerFile(), `${JSON.stringify(worker, null, 2)}\n`)
 }
 
-export const writeWorker = (url: string, model: string): string | undefined => {
+export interface WorkerSet {
+  changed: boolean
+  advice?: string
+}
+
+export const writeWorker = (url: string, model: string): WorkerSet => {
   if (!isEncrypted(url))
     throw new Refusal(
       `the worker url must be https (localhost excepted), this one is ${attempt(() => new URL(url).protocol) ?? "not a url"}`,
@@ -60,33 +65,46 @@ export const writeWorker = (url: string, model: string): string | undefined => {
       "the worker url must carry no user name or password: fetch refuses one, and the key belongs in ccsaver key set",
     )
   const before = readWorker()
+  if (before?.url === url && before.model === model) return { changed: false }
   const host = parts.host
   storeWorker({ ...before, url, model })
   record("config", { action: "worker set", host, model })
-  if (before === undefined || readKey() === undefined) return undefined
+  if (before === undefined || readKey() === undefined) return { changed: true }
   const old = attempt(() => new URL(before.url).host)
   return old === host
-    ? undefined
-    : `the worker moved from ${old ?? "another host"} to ${host} and the stored key stays: run ccsaver key set unless the key belongs to ${host}`
+    ? { changed: true }
+    : {
+        changed: true,
+        advice: `the worker moved from ${old ?? "another host"} to ${host} and the stored key stays: run ccsaver key set unless the key belongs to ${host}`,
+      }
 }
 
-export const setFallback = (on: boolean): void => {
+export const setFallback = (on: boolean): boolean => {
   const worker = readWorker()
   if (worker === undefined)
     throw new Refusal(
       "the fallback is the only worker until you set one, run: ccsaver worker set <url> <model>",
     )
+  if ((worker.fallback ?? true) === on) return false
   storeWorker({ ...worker, fallback: on })
   record("config", { action: "fallback", on })
+  return true
 }
 
-export const setClaude = (path: string | undefined): string | undefined => {
+export interface Pin {
+  pinned: string | undefined
+  was: string | undefined
+}
+
+export const setClaude = (path: string | undefined): Pin => {
   const worker = readWorker()
   if (worker === undefined)
     throw new Refusal("worker.json is not there yet, run: ccsaver worker set <url> <model>")
   const claude = path === undefined ? undefined : resolve(path)
   if (claude !== undefined && attempt(() => statSync(claude).isFile()) !== true)
     throw new Refusal(`not a file: ${path}`)
+  const was = worker.claude
+  if (claude === was) return { pinned: claude, was }
   storeWorker({
     url: worker.url,
     model: worker.model,
@@ -94,5 +112,5 @@ export const setClaude = (path: string | undefined): string | undefined => {
     ...(worker.fallback === undefined ? {} : { fallback: worker.fallback }),
   })
   record("config", { action: "worker claude", pinned: claude !== undefined })
-  return claude
+  return { pinned: claude, was }
 }

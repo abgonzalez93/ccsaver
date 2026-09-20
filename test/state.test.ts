@@ -46,9 +46,17 @@ after(() => {
 test("plug stores the real path, list shows it, unplug removes it", () => {
   const link = join(WORK, "link-to-project")
   symlinkSync(PROJECT, link)
-  assert.deepEqual(plug(link, "strict-ts"), { root: PROJECT, adapter: "strict-ts" })
-  assert.deepEqual(plug(SIBLING), { root: SIBLING })
-  assert.deepEqual(plug(PROJECT), { root: PROJECT })
+  assert.deepEqual(plug(link, "strict-ts"), {
+    entry: { root: PROJECT, adapter: "strict-ts" },
+    was: undefined,
+  })
+  assert.deepEqual(plug(SIBLING).entry, { root: SIBLING })
+  assert.deepEqual(plug(PROJECT), {
+    entry: { root: PROJECT },
+    was: { root: PROJECT, adapter: "strict-ts" },
+  })
+  assert.deepEqual(readPlugged(), [{ root: SIBLING }, { root: PROJECT }])
+  assert.deepEqual(plug(PROJECT), { entry: { root: PROJECT }, was: { root: PROJECT } })
   assert.deepEqual(readPlugged(), [{ root: SIBLING }, { root: PROJECT }])
   assert.equal(statSync(join(HOME, "plugged")).mode & 0o777, 0o600)
   assert.equal(statSync(HOME).mode & 0o777, 0o700)
@@ -83,7 +91,7 @@ test("plug refuses a root that is itself a store of credentials", () => {
   }
   const inside = join(WORK, "secrets", "project")
   mkdirSync(inside, { recursive: true })
-  assert.deepEqual(plug(inside), { root: inside })
+  assert.deepEqual(plug(inside).entry, { root: inside })
   unplug(inside)
 })
 test("plug refuses what is not a folder and a path that would break the state file", () => {

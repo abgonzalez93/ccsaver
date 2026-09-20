@@ -76,7 +76,7 @@ Guard: `test/conventions.test.ts`.
 
 | File | Owns | Imports |
 | --- | --- | --- |
-| `src/state.ts` | the state folder, the key, the guards, what a terminal may be shown (`scrubbed`, `tinted`), `Refusal` | `node:` only |
+| `src/state.ts` | the state folder, the key, the guards, what a terminal may be shown (`scrubbed`, `tinted`, `marked`), `Refusal` | `node:` only |
 | `src/log.ts` | the event log, its switch and its reader | `state` |
 | `src/config.ts` | what the user configured: the plugged roots, the adapters, and how a file is weighed against a limit | `log`, `state` |
 | `src/endpoint.ts` | `worker.json`: the url, the model, the pinned binary and the fallback switch | `log`, `state` |
@@ -126,7 +126,9 @@ Guard: *convention*.
 
 ## 3. Robustness
 
-**3.1 ALWAYS end a stop the user can fix the same way:** one `Error: …` line on stderr, one `fail` event, exit code 1, nothing sent. That line leaves through `writeSync` and not through the stream (`src/transport.ts` · `said`), because `process.exit` drops what a stream has queued and Node queues a pipe on macOS, which is where the whole message would have gone missing. Two doors lead there. State code throws a `Refusal`, caught once at the bottom of `src/cli.ts`; the worker path calls `fail`, which returns `never` (`src/transport.ts` · `fail`). Anything else that throws is a bug and is recorded as a `crash`.
+**3.1 ALWAYS end a stop the user can fix the same way:** one `Error: …` line on stderr, one `fail` event, exit code 1, nothing sent. That line leaves through `writeSync` and not through the stream (`src/transport.ts` · `said`), because `process.exit` drops what a stream has queued and Node queues a pipe on macOS, which is where the whole message would have gone missing. Three doors lead there. State code throws a `Refusal`, caught once at the bottom of `src/cli.ts`; the worker path calls `fail`, which returns `never` (`src/transport.ts` · `fail`); a command handed arguments it cannot take returns the complaint as a string instead of an exit code, and `src/cli.ts` · `mistake` prints it as the `Error:` line with the command's own row of the usage table under it, so the reason and the remedy arrive together. Anything else that throws is a bug and is recorded as a `crash`.
+
+Every line a person reads goes through `src/state.ts` · `marked`, which puts a mark and a colour in front of it on a terminal and nothing at all on a pipe, `NO_COLOR` or `TERM=dumb`: the words carry the meaning, the paint only repeats it. Untrusted text is `scrubbed` first and painted second, because `scrubbed` would escape the paint. A command that finds its setting already so says `already` and returns 0 without writing or recording anything: `src/log.ts` · `setLog`, `src/endpoint.ts` · `setFallback`, `src/config.ts` · `plug` and their siblings answer whether anything changed, and the wording lives in `src/cli.ts`.
 Guard: every `throw new` in `src/` throws a `Refusal`, by `test/conventions.test.ts`; `test/log.test.ts` pins that a mistake on the command line is a `fail`, never a `crash`.
 
 ```ts

@@ -95,15 +95,17 @@ export const crashed = (where: string, error: unknown): void => {
   )
 }
 
-export const setLog = (on: boolean): void => {
+export const setLog = (on: boolean): boolean => {
   const dir = logDir()
   const aside = `${dir}.off`
+  if (on === existsSync(dir)) return false
   if (on) {
-    if (!existsSync(dir) && existsSync(aside)) renameSync(aside, dir)
+    if (existsSync(aside)) renameSync(aside, dir)
     mkdirSync(dir, { recursive: true, mode: 0o700 })
     chmodSync(dir, 0o700)
-  } else if (existsSync(dir) && existsSync(aside))
+  } else if (existsSync(aside))
     throw new Refusal(`${aside} already exists: move it away, then run ccsaver log off again`)
   record("config", { action: "log", on })
-  if (!on && existsSync(dir)) renameSync(dir, aside)
+  if (!on) renameSync(dir, aside)
+  return true
 }

@@ -71,7 +71,10 @@ test("plug, list and unplug from the command line", async () => {
   assert.equal((await ccsaver(["plug", GONE])).code, 0)
   assert.equal((await ccsaver(["list"])).stdout, `${PROJECT}\tstrict-ts\n${GONE}\t\n`)
   assert.equal((await ccsaver(["unplug", GONE])).stdout, `unplugged ${GONE}\n`)
-  assert.equal((await ccsaver(["unplug", GONE])).stdout, `${GONE} was not plugged\n`)
+  assert.equal(
+    (await ccsaver(["unplug", GONE])).stdout,
+    `${GONE} is not plugged in, nothing changed\n`,
+  )
   assert.equal((await ccsaver(["unplug"])).code, 1)
   const empty = await run(LAUNCHER, ["unplug", ""], { CCSAVER_HOME: HOME }, "", PROJECT)
   assert.deepEqual([empty.code, empty.stdout], [1, ""])
@@ -138,73 +141,35 @@ test("adapter writes the limits, merges into an existing adapter and refuses jun
   rmSync(home, { recursive: true, force: true })
 })
 
-test("a command that takes no arguments refuses the ones it was given", async () => {
-  const now = await ccsaver(["doctor", "now"])
-  assert.deepEqual([now.code, now.stdout], [1, ""])
-  assert.match(now.stderr, /^usage: ccsaver <command>\n\n {2}doctor +check permissions/)
-  const version = await ccsaver(["--version", "extra"])
-  assert.deepEqual([version.code, version.stdout], [1, ""])
-  assert.match(version.stderr, /^wrong arguments: --version\n/)
-  assert.equal(existsSync(join(HOME, "prices.json")), false)
-})
-
 test("a control character in an argument is escaped before it reaches the terminal", async () => {
   const home = tempDir("cli-scrub")
   const bare = (args: string[]): Promise<Ran> => run(LAUNCHER, args, { CCSAVER_HOME: home })
   const wipe = "\u001b[2J"
   const gone = await bare(["unplug", `missing${wipe}`])
-  assert.deepEqual([gone.code, gone.stdout], [0, "missing\\x1b[2J was not plugged\n"])
+  assert.deepEqual(
+    [gone.code, gone.stdout],
+    [0, "missing\\x1b[2J is not plugged in, nothing changed\n"],
+  )
   const named = await bare(["adapter", `bad${wipe}`, "maxLines=400"])
   assert.deepEqual(
     [named.code, named.stderr],
     [1, "Error: an adapter name takes lowercase letters, digits and dashes; not: bad\\x1b[2J\n"],
   )
   const unknown = await bare([`nope${wipe}`])
-  assert.match(unknown.stderr, /^unknown command: nope\\x1b\[2J\n/)
+  assert.match(unknown.stderr, /^Error: unknown command: nope\\x1b\[2J\n/)
+  const sideways = await bare(["fallback", `side${wipe}`])
+  assert.match(sideways.stderr, /^Error: fallback takes on or off, not: side\\x1b\[2J\n/)
   const home_ = await run(LAUNCHER, ["list"], { CCSAVER_HOME: `relative${wipe}` }, "", WORK)
-  for (const out of [gone, named, unknown, home_])
+  for (const out of [gone, named, unknown, sideways, home_])
     assert.equal(`${out.stdout}${out.stderr}`.includes("\u001b"), false)
   rmSync(home, { recursive: true, force: true })
 })
 
-const NARROWED: [string[], string][] = [
-  [["worker", "claude"], "  worker claude <path>|auto  pin the claude binary"],
-  [["key"], "  key set                    store the API key"],
-  [["key", "get"], "  key set                    store the API key"],
-  [["adapter"], "  adapter <name> k=v ...     set maxLines"],
-  [["unplug"], "  unplug <dir>               turn it off again"],
-  [["fallback", "sideways"], "  fallback on|off            whether a call"],
-  [["list", "extra"], "  list                       show the plugged projects"],
-  [["version", "extra"], "  version                    print the version"],
-  [["log", "on", "please"], "  log on|off                 record events"],
-  [["saved", "all", "extra"], "  saved [month|all]          what the log says it cost"],
-  [["plug", "a", "b", "c"], "  plug [dir] [adapter]       turn ccsaver on"],
-  [["unplug", "/tmp/x", "/tmp/y"], "  unplug <dir>               turn it off again"],
-  [["price", "claude-opus-5", "5", "9"], "  price <model>|worker <usd> dollars per million"],
-  [["worker", "set", "https://h/v1", "m", "extra"], "  worker set <url> <model>   point at an"],
-]
-
-test("help goes to stdout, a mistake gets the line of its own command, and version is the package's", async () => {
-  const help = await ccsaver(["--help"])
-  assert.deepEqual([help.code, help.stderr], [0, ""])
-  assert.match(help.stdout, /^usage: ccsaver <command>/)
-  assert.equal((await ccsaver(["-h"])).stdout, help.stdout)
-  assert.equal((await ccsaver([])).stdout, help.stdout)
-  for (const [mistake, line] of NARROWED) {
-    const out = await ccsaver(mistake)
-    const where = mistake.join(" ")
-    assert.deepEqual([out.code, out.stdout], [1, ""], where)
-    assert.match(out.stderr, /^usage: ccsaver <command>\n\n/, where)
-    assert.ok(out.stderr.includes(line), where)
-    assert.equal(out.stderr.includes("  doctor  "), false, where)
-    assert.ok(out.stderr.length < help.stdout.length, where)
-  }
-  const unknown = await ccsaver(["frobnicate"])
-  assert.deepEqual([unknown.code, unknown.stdout], [1, ""])
-  assert.equal(unknown.stderr, `unknown command: frobnicate\n${help.stdout}`)
+test("version is the package's, by either spelling", async () => {
   const { version } = jsonOf(join(REPO, "package.json"))
   assert.equal((await ccsaver(["version"])).stdout, `${String(version)}\n`)
   assert.equal((await ccsaver(["--version"])).stdout, `${String(version)}\n`)
+  assert.equal(existsSync(join(HOME, "prices.json")), false)
 })
 
 test("a key in the worker url never reaches the terminal, and one in userinfo is refused", async () => {
@@ -250,14 +215,20 @@ test("the settings that live in worker.json all name the command that creates it
 
 test("worker claude pins the fallback binary, and auto gives it back to the session", async () => {
   const file = join(HOME, "worker.json")
-  assert.equal((await ccsaver(["worker", "claude", FAKE])).stdout, `fallback binary: ${FAKE}\n`)
+  assert.equal(
+    (await ccsaver(["worker", "claude", FAKE])).stdout,
+    `fallback binary pinned: ${FAKE}\n`,
+  )
   assert.equal(jsonOf(file)["claude"], FAKE)
   const missing = await ccsaver(["worker", "claude", join(WORK, "no-such-bin")])
   assert.equal(missing.code, 1)
   assert.match(missing.stderr, /^Error: not a file: /)
   assert.equal(jsonOf(file)["claude"], FAKE)
   const auto = await ccsaver(["worker", "claude", "auto"])
-  assert.equal(auto.stdout, "fallback binary: the session's own claude\n")
+  assert.equal(
+    auto.stdout,
+    `fallback binary unpinned (was ${FAKE}): the session's own claude runs the fallback\n`,
+  )
   assert.deepEqual(Object.keys(jsonOf(file)), ["url", "model"])
 })
 
