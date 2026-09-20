@@ -146,12 +146,12 @@ It needs prices, in dollars per million input tokens, because ccsaver cannot see
 ```bash
 ccsaver price claude-opus-5 5.00      # what your session model charges
 ccsaver price claude-fable-5-1 10.00  # and any other you work on
-ccsaver price worker 0.10             # the cheap worker
+ccsaver price worker 0.10             # the cheap worker, or 0 when its tier is free
 ```
 
 The hook records which model was running for every read it sees ([the event log](events.md)), so the report prices each model's reads at that model's own rate and never spreads one number over a month that changed model. A model that turns up in the log with no price of its own is **named, with the command that gives it one, and its tokens are left out of the sum** — a rate borrowed from another model would be a number without a source. Reads the hook could not name a model for are counted apart in the same way.
 
-They live in `~/.config/ccsaver/prices.json` (600), apart from `worker.json` so that the file holding the `fallback` switch gains no surface. No price is shipped: one would go stale, and a number without a source is what this project refuses to print. With no model priced the report counts tokens and stops there. A `prices.json` that is there but malformed or unreadable stops the command, the same way `worker.json` does, and so does a month's log file that is there but cannot be read: a report that counted it as an empty month would be the one lie this command cannot afford. A `prices.json` carrying the single `main` price of 0.13 and earlier is refused rather than read as the rate for every model.
+They live in `~/.config/ccsaver/prices.json` (600), apart from `worker.json` so that the file holding the `fallback` switch gains no surface. A model price must be above zero, and the worker's may be `0`, which is the free tier of a provider said out loud: the report then writes *the worker is free* instead of asking for a number that does not exist. No price is shipped: one would go stale, and a number without a source is what this project refuses to print. With no model priced the report counts tokens and stops there. A `prices.json` that is there but malformed or unreadable stops the command, the same way `worker.json` does, and so does a month's log file that is there but cannot be read: a report that counted it as an empty month would be the one lie this command cannot afford. A `prices.json` carrying the single `main` price of 0.13 and earlier is refused rather than read as the rate for every model.
 
 **The numbers are a band, never a point.** A real `Read` measured [1.9–2.8× the bytes/4 estimate](measurements.md#the-hooks-token-estimate-vs-a-real-read), so both columns carry that multiplier. It is the same unknown on both sides, so the two arms pair low with low: the dollars swing by half, and the percentage barely moves. Read the percentage.
 

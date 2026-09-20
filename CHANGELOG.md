@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.16.0 - 2026-09-20
+
+feat: a worker that costs nothing is set down as free
+
+- a free tier had no way to say so: 0 was refused as a price, and the report kept asking for a number that does not exist while already counting those tokens at zero
+- ccsaver price worker 0 records it, and the report writes that the worker is free instead of naming the command again
+- a model price stays above zero, because a model that charges nothing is a typo
+
 ## 0.15.0 - 2026-09-20
 
 feat!: a price belongs to a model, not to the whole month

@@ -147,9 +147,10 @@ const COMMANDS: Record<string, Command> = {
     if (first === undefined || second === undefined) return undefined
     if (first !== WORKER && !MODEL_NAME.test(first)) return undefined
     const dollars = Number(second)
-    if (!Number.isFinite(dollars) || dollars <= 0)
+    const free = first === WORKER && dollars === 0
+    if (!Number.isFinite(dollars) || (dollars <= 0 && !free))
       throw new Refusal(
-        `a price is dollars per million input tokens, a positive number; not: ${second}`,
+        `a price is dollars per million input tokens, a positive number, and 0 only for a worker that is free; not: ${second}`,
       )
     say(`price ${first} $${dollars}/M · ${shownPrices(writePrice(first, dollars))}\n`)
     return 0

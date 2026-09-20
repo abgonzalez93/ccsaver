@@ -233,6 +233,23 @@ test("a gate line the hook could not name a model for is counted apart, never fo
   assert.doesNotMatch(out.stdout, /^ {2}without/m)
 })
 
+test("a worker that costs nothing is set down as free, not left looking unanswered", async () => {
+  const home = homeWith("free-worker", [
+    [...twenty(), { kind: "delegate", answered: "external", chars: 4_000_000 }],
+  ])
+  await priced(home, [OPUS, "5"])
+  const nagged = await saved(home)
+  assert.match(nagged.stdout, /the worker's own tokens are not priced yet/)
+  const set = await priced(home, ["worker", "0"])
+  assert.equal(set.stdout, `price worker $0/M · ${OPUS} $5/M · worker free\n`)
+  const out = await saved(home)
+  assert.match(out.stdout, /at \$5\/M for claude-opus-5, and the worker is free/)
+  assert.doesNotMatch(out.stdout, /not priced yet/)
+  const wrong = await priced(home, [OPUS, "0"])
+  assert.equal(wrong.code, 1)
+  assert.match(wrong.stderr, /0 only for a worker that is free/)
+})
+
 test("the old single main price is refused, never read as the rate for every model", async () => {
   const home = homeWith("legacy", [twenty()])
   writeFileSync(join(home, "prices.json"), '{"main": 3}')

@@ -14,6 +14,9 @@ export interface Prices {
 const isPrice = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value) && value > 0
 
+const isRate = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value) && value >= 0
+
 const modelPrices = (raw: unknown): Record<string, number> => {
   if (raw === undefined) return {}
   if (!isRecord(raw) || Array.isArray(raw))
@@ -38,9 +41,9 @@ export const readPrices = (): Prices => {
     throw new Refusal(
       `${pricesFile()} carries one main price for every model, which a month that changed model reads wrong: delete it and set one price per model, ccsaver price <model> <usd>`,
     )
-  if (worker !== undefined && !isPrice(worker))
-    throw new Refusal(`${pricesFile()} is malformed: the worker price must be above 0`)
-  return { models: modelPrices(models), ...(isPrice(worker) ? { worker } : {}) }
+  if (worker !== undefined && !isRate(worker))
+    throw new Refusal(`${pricesFile()} is malformed: the worker price must be 0 or above`)
+  return { models: modelPrices(models), ...(isRate(worker) ? { worker } : {}) }
 }
 
 export const writePrice = (which: string, usd: number): Prices => {
@@ -57,5 +60,5 @@ export const writePrice = (which: string, usd: number): Prices => {
 export const shownPrices = ({ models, worker }: Prices): string =>
   [
     ...Object.entries(models).map(([model, each]) => `${model} $${each}/M`),
-    `worker ${worker === undefined ? "unset" : `$${worker}/M`}`,
+    `worker ${worker === undefined ? "unset" : worker === 0 ? "free" : `$${worker}/M`}`,
   ].join(" · ")

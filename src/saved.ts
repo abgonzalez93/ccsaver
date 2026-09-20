@@ -259,8 +259,10 @@ const rateIn = (tally: Spend, prices: Prices): string => {
       return each === undefined ? [] : [`$${each}/M for ${model}`]
     })
     .join(", ")
-  return prices.worker === undefined
-    ? `  at ${named}; the worker's own tokens are not priced yet (ccsaver price worker <usd>)`
+  if (prices.worker === undefined)
+    return `  at ${named}; the worker's own tokens are not priced yet (ccsaver price worker <usd>)`
+  return prices.worker === 0
+    ? `  at ${named}, and the worker is free`
     : `  at ${named} and $${prices.worker}/M for the worker`
 }
 
