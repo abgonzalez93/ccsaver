@@ -4,6 +4,18 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.10.2 - 2026-09-20
+
+ci: the release workflow sweeps for missing releases instead of trusting the tag push
+
+- `v0.10.0` reached GitHub and cut no release: GitHub triggers no workflow for the fourth and later tag of a single push, and here every commit carries a tag, so a six-commit push loses three of them silently
+- release.yml now runs on a push to `main` and sweeps every `v*.*.0` tag that has no release yet, which is the loop docs/versions.md already asked a hand to run
+- so a run that failed, or a tag the three-tag limit swallowed, heals on the next push instead of staying missing; `workflow_dispatch` forces a sweep without one
+- a tag whose version has no section in CHANGELOG.md is named and fails the run at the end, so one bad tag never blocks the others
+- the checkout takes fetch-depth: 0, because the sweep reads the tags
+- docs/versions.md loses the sixteen-line manual loop it no longer needs, and `git config push.followTags true` joins core.hooksPath in the once-per-clone block
+- CONTRIBUTING 5.5 names the new trigger; the job still takes contents: write alone and ci.yml stays read-only
+
 ## 0.10.1 - 2026-09-20
 
 fix: a dumb terminal gets no escape sequences

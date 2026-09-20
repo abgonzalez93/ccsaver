@@ -2,7 +2,8 @@ name: Release
 
 on:
   push:
-    tags: ["v*.*.0"]
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -14,14 +15,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       - shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          version="${GITHUB_REF_NAME#v}"
-          awk -v v="$version" 'index($0, "## " v " ") == 1 || $0 == "## " v {found = 1; next} /^## /{found = 0} found' CHANGELOG.md | sed '/./,$!d' > notes.md
-          if [ ! -s notes.md ]; then
-            echo "CHANGELOG.md has no section for $version" >&2
-            exit 1
-          fi
-          gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file notes.md
+          notes=$(mktemp)
+          missing=""
+          for tag in $(git tag --list 'v*.*.0' | sort -V); do
+            gh release view "$tag" >/dev/null 2>&1 && continue
+            awk -v v="${tag#v}" 'index($0, "## " v " ") == 1 || $0 == "## " v {f = 1; next} /^## /{f = 0} f' \
+              CHANGELOG.md | sed '/./,$!d' > "$notes"
+            if [ -s "$notes" ]; then
+              gh release create "$tag" --title "$tag" --notes-file "$notes"
+            else
+              missing="$missing $tag"
+            fi
+          done
+          rm -f "$notes"
+          [ -z "$missing" ] || { echo "CHANGELOG.md has no section for:$missing" >&2; exit 1; }
