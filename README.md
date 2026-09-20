@@ -49,41 +49,25 @@ Claude Code, Node.js 24.2 or newer (the active LTS line; the sources are TypeScr
 
 ## Install
 
-Clone the repository, add the clone as the marketplace, and link the launcher into a folder on your `PATH`:
-
 ```bash
-git clone https://github.com/abgonzalez93/ccsaver ~/src/ccsaver
-claude plugin marketplace add ~/src/ccsaver
+claude plugin marketplace add abgonzalez93/ccsaver
 claude plugin install ccsaver@abgonzalez93
-mkdir -p ~/bin && ln -s ~/src/ccsaver/bin/ccsaver ~/bin/ccsaver
 ```
 
-A plugin installed from a local folder loads in place, so the path stays stable across updates.
-
-Installing straight from GitHub (`claude plugin marketplace add abgonzalez93/ccsaver`) gives you the hook and both skills, which call the bare `ccsaver` that Claude Code puts on the Bash tool's `PATH`. It gives you no `ccsaver` in your terminal, which is how you plug projects in and type the key: the launcher then lives in Claude Code's plugin cache, in a folder that changes with every update.
+Then open a new session, or run `/reload-plugins`. Nothing else is installed on your machine: the `ccsaver` command travels with the plugin, and Claude Code puts its `bin/` folder on the Bash tool's `PATH`, so you configure it and plug projects in from inside a session.
 
 ## Update
-
-From a clone, pull it:
-
-```bash
-git -C ~/src/ccsaver pull --ff-only
-```
-
-The next Claude Code session, or `/reload-plugins`, runs the new code: a plugin installed from a local folder loads its current files at every session start.
-
-`ccsaver version` follows the pull at once: one new commit took it from 0.2.0 to 0.2.1. `claude plugin list` keeps the number it recorded at install time until `claude plugin update ccsaver@abgonzalez93`, which changes nothing that runs: the 344 KB copy it leaves in Claude Code's plugin cache is never loaded.
-
-Installed straight from GitHub, Claude Code runs a copy and refreshes it only when asked, because a third-party marketplace has auto-update off until you turn it on under `/plugin` → Marketplaces:
 
 ```bash
 claude plugin marketplace update abgonzalez93
 claude plugin update ccsaver@abgonzalez93
 ```
 
-Then open a new session or run `/reload-plugins`. Every commit on `main` carries [its own version](#versions), and that number is what `plugin update` compares: it answered "updated from 0.1.0 to 0.1.1" to one new commit, and "already at the latest version" while the number stood still. `ccsaver version` prints the one you are running, and [CHANGELOG.md](CHANGELOG.md) says what each one changed.
+Then open a new session or run `/reload-plugins`. A third-party marketplace has auto-update off until you turn it on under `/plugin` → Marketplaces. Every commit on `main` carries [its own version](#versions), and that number is what `plugin update` compares: it answered "updated from 0.1.0 to 0.1.1" to one new commit, and "already at the latest version" while the number stood still. `ccsaver version` prints the one you are running, `claude plugin list` the one Claude Code recorded at install time, and [CHANGELOG.md](CHANGELOG.md) says what each one changed.
 
 ## Plug a project in
+
+Ask Claude to run these, or run them yourself in a shell that has the plugin's `bin/` on its `PATH`:
 
 ```bash
 ccsaver plug ~/code/my-project            # hook + skills on, default limits
@@ -109,7 +93,7 @@ log/          the event log, only after `ccsaver log on` (700, one 600 file per 
 
 ```bash
 ccsaver worker set https://your-provider.example/v1/chat/completions some-small-model
-ccsaver key set     # typed on the terminal with echo off; never an argument
+ccsaver key set     # never an argument: typed with the echo off, or read from stdin
 ccsaver doctor
 ccsaver fallback off   # optional: never spend on the Claude Haiku fallback
 ccsaver worker claude ~/.local/bin/claude   # optional: pin the binary the fallback runs
@@ -200,7 +184,6 @@ ccsaver list                                   # what is still plugged
 claude plugin uninstall ccsaver@abgonzalez93
 claude plugin marketplace remove abgonzalez93
 rm -rf ~/.config/ccsaver                       # your API key and the event log live here
-rm ~/bin/ccsaver                               # if you linked the launcher
 ```
 
 Then delete the two `Bash(ccsaver …)` rules from `permissions.allow` in `~/.claude/settings.json`, if you added them. Nothing was ever written inside your projects.

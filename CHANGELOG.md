@@ -2,6 +2,17 @@
 
 Every commit is a version. A git hook writes each section from the commit message, its subject and the bullets of its body ([how](README.md#versions)), and the numbers follow [Semantic Versioning](https://semver.org/). The file keeps the newest versions that fit in 350 lines; `git log` has every one.
 
+## 0.4.15 - 2026-09-20
+
+docs: install from GitHub, in two lines and one copy
+
+- claude plugin marketplace add abgonzalez93/ccsaver and claude plugin install: no git clone, no ~/bin, no symlink, and no second copy of the code to keep in step
+- the two paragraphs that argued against the GitHub source are gone with it: from a GitHub marketplace the copy in Claude Code's cache is the one that runs, so claude plugin list stops disagreeing with ccsaver version
+- Update is claude plugin marketplace update plus claude plugin update; the "pull the clone" route went with the clone
+- Uninstall no longer removes a link nobody made
+- nothing in src/, hooks/ or skills/ assumed an editable clone: every path they use is relative to the plugin root (import.meta.dirname, CLAUDE_PLUGIN_ROOT)
+- what this costs until the next commit: with no launcher on a personal PATH, ccsaver key set has no terminal to turn the echo off on, so the key has to arrive on stdin
+
 ## 0.4.14 - 2026-09-20
 
 ci: dependabot leaves @types/node on the minimum supported Node
