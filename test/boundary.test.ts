@@ -59,6 +59,8 @@ test("refuses a private key, a well-known token and a binary, whatever the file 
     ["github", "pat", "11ABCDEFG0abcdefghijklmnopqrstuvwxyz"].join("_"),
     ["glpat", "ABCDEFGHIJ1234567890abcd"].join("-"),
     ["npm", "0123456789abcdefghijklmnopqrstuvwxyz"].join("_"),
+    ["sk", "live_51H8xQ2eZvKYlo2Cabcdefghij"].join("_"),
+    ["rk", "live_51H8xQ2eZvKYlo2Cabcdefghij"].join("_"),
   ]
   const block = `${["-----BEGIN", "PGP", "PRIVATE KEY BLOCK-----"].join(" ")}\nabc\n`
   for (const header of [armor, block]) assert.match(contentRefusal(header) ?? "", /private key/)

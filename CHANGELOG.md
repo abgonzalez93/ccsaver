@@ -4,6 +4,16 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.10.5 - 2026-09-20
+
+fix: the secrets net catches a Stripe key, not only an OpenAI one
+
+- the token shapes read `sk-`, with a dash, so `sk_live_…` and `rk_live_…` went out inside a file the way any other text would
+- `[sr]k[-_]` covers OpenAI, Anthropic and Stripe with one character more, and the README stops naming `sk-…` as if it were the whole family
+- measured against thirteen common shapes: the four that still pass are an AWS secret key, a JWT, a bare base64 blob and a URI with a password, all of them shapes whose false positives would deny ordinary fixtures
+- the URI pattern was written and dropped: it refuses this repository's own README, which documents `https://user:token@…` as an example
+- SECURITY.md already calls a better net an ordinary change, and the README already calls it a net
+
 ## 0.10.4 - 2026-09-20
 
 fix: a worker.json that cannot be read stops the call instead of paying
