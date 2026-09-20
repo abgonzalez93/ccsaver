@@ -260,3 +260,26 @@ test("a file in the log folder that is no month is skipped, never read as one", 
   assert.match(out.stdout, /^ccsaver saved · \d{4}-\d{2}$/m)
   assert.match(out.stdout, /20 whole-file reads/)
 })
+
+test("a model that denied nothing is not asked for a price that would change nothing", async () => {
+  const home = homeWith("ranged-only", [
+    [
+      ...twentyDenials(),
+      {
+        ...gateRow({ reason: "range", bytes: 40_000, lines: 1_000, offset: 1, limit: 100 }),
+        model: FABLE,
+      },
+    ],
+  ])
+  await priced(home, [OPUS, "5"])
+  const out = await saved(home)
+  assert.equal(out.code, 0)
+  assert.match(
+    out.stdout,
+    new RegExp(
+      `nothing was denied under ${FABLE}, so its 0\\.00 M ranged tokens are left out as well`,
+    ),
+  )
+  assert.doesNotMatch(out.stdout, new RegExp(`${FABLE} denied`))
+  assert.doesNotMatch(out.stdout, new RegExp(`ccsaver price ${FABLE}`))
+})

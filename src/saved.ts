@@ -240,17 +240,24 @@ const moneyIn = (money: Money): string[] => {
   ]
 }
 
+const unpricedLines = (model: string, read: Read): string[] => {
+  const whose = model === UNNAMED ? "the model the log does not name" : model
+  if (read.deniedTokens === 0)
+    return [
+      `  nothing was denied under ${whose}, so its ${millions(read.rangedTokens)} ranged tokens are left out as well`,
+    ]
+  if (model === UNNAMED)
+    return [`  ${millions(read.deniedTokens)} denied tokens are under no model the log names`]
+  return [
+    `  ${model} denied ${millions(read.deniedTokens)} tokens here and has no price, so it is left out:`,
+    `  ccsaver price ${model} <usd per million>`,
+  ]
+}
+
 const unpricedIn = (tally: Spend, prices: Prices): string[] =>
   Object.entries(tally.byModel)
     .filter(([model]) => prices.models[model] === undefined)
-    .flatMap(([model, read]) =>
-      model === UNNAMED
-        ? [`  ${millions(read.deniedTokens)} denied tokens are under no model the log names`]
-        : [
-            `  ${model} denied ${millions(read.deniedTokens)} tokens here and has no price, so it is left out:`,
-            `  ccsaver price ${model} <usd per million>`,
-          ],
-    )
+    .flatMap(([model, read]) => unpricedLines(model, read))
 
 const bodyOf = (tally: Spend, prices: Prices, money: Money | undefined): string[] => {
   const unpriced = unpricedIn(tally, prices)
