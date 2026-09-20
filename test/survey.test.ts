@@ -185,3 +185,18 @@ test("on a terminal doctor offers the fix, writes it on yes and leaves it on no"
   assert.match(readFileSync(join(home, "plugged"), "utf8"), /\toffered\n/)
   rmSync(home, { recursive: true, force: true })
 })
+
+test("past four thousand files the measured line says it sampled", () => {
+  const survey = {
+    walked: 20_000,
+    counted: 4_000,
+    typical: { maxLines: 100, maxTokens: 1_000 },
+    suggested: { maxLines: 350, maxTokens: 8_000 },
+  }
+  const said = proposalOf(survey, DEFAULT_LIMITS, "/work/big")
+  assert.match(said, /measured: 4000 of 20000 files \(1 in 5 sampled\)/)
+  assert.doesNotMatch(
+    proposalOf({ ...survey, walked: 4_000 }, DEFAULT_LIMITS, "/work/x"),
+    /sampled/,
+  )
+})

@@ -98,7 +98,7 @@ Two numbers decide what the hook denies: `maxLines`, and `maxTokens`, which coun
 
 The two ways of being wrong do not cost the same. **Too high is inert**: the hook stops firing and you have what you had without the plugin. **Too low degrades the session**: the model pays for the denial, then pages through ranges it picked from Grep, and ends up reasoning over fragments. That is the [3.6× row](../README.md#honest-limits). Err high.
 
-The right numbers belong to the repository, so `ccsaver plug` measures them. It walks the project, skipping `node_modules`, `.git`, `dist`, `build`, `target`, `vendor`, `.venv`, `venv`, `__pycache__`, `coverage`, `.next`, `.turbo`, `out`, `.cache`, `.gradle` and `Pods`, never following a symlinked directory, reads the first 8 KB of each file to leave the binary ones out and counts a file that ends inside those 8 KB from them rather than reading it twice, skips anything past 1 MB, and reports the length and weight 19 files in 20 stay under:
+The right numbers belong to the repository, so `ccsaver plug` measures them. It walks the project, skipping `node_modules`, `.git`, `dist`, `build`, `target`, `vendor`, `.venv`, `venv`, `__pycache__`, `coverage`, `.next`, `.turbo`, `out`, `.cache`, `.gradle` and `Pods`, never following a symlinked directory, reads the first 8 KB of each file to leave the binary ones out and counts a file that ends inside those 8 KB from them rather than reading it twice, skips anything past 1 MB, measures at most four thousand files and takes one in N when there are more, saying so in the line, and reports the length and weight 19 files in 20 stay under:
 
 ```
 plugged /home/you/project · adapter none

@@ -4,6 +4,15 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.10.8 - 2026-09-20
+
+fix: the measured line says when it had to sample the project
+
+- `strided` measures at most four thousand files and takes one in N past that, which is the right bound, but the line read `measured: 4000 of 20000 files` and that reads as sixteen thousand binaries
+- it now says `(1 in 5 sampled)` when it sampled, and nothing when it walked them all
+- docs/configuration.md described the pruning, the 1 MB ceiling and the binary probe but never the cap, so the page reinforced the wrong reading
+- the test builds the survey by hand instead of four thousand files, because the message is what changed
+
 ## 0.10.7 - 2026-09-20
 
 fix: limitsFor returns the two numbers its type promises and nothing else

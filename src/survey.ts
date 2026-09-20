@@ -103,6 +103,9 @@ export const raiseOf = ({ typical, suggested }: Survey, inForce: Limits): Partia
 export const overshoots = (survey: Survey, inForce: Limits): boolean =>
   survey.counted >= IN_TWENTY && Object.keys(raiseOf(survey, inForce)).length > 0
 
+const sampledIn = (walked: number): string =>
+  walked > READ_CAP ? ` (1 in ${Math.ceil(walked / READ_CAP)} sampled)` : ""
+
 export const adapterNameOf = (root: string): string =>
   basename(root)
     .toLowerCase()
@@ -127,7 +130,7 @@ export const proposalOf = (
   const { walked, counted, typical } = survey
   if (counted < IN_TWENTY)
     return `measured: ${counted} countable of ${walked} files, too few to judge the limits in force`
-  const measured = `measured: ${counted} of ${walked} files, ${IN_TWENTY - 1} in ${IN_TWENTY} under ${typical.maxLines} lines and ${typical.maxTokens} tokens`
+  const measured = `measured: ${counted} of ${walked} files${sampledIn(walked)}, ${IN_TWENTY - 1} in ${IN_TWENTY} under ${typical.maxLines} lines and ${typical.maxTokens} tokens`
   return overshoots(survey, inForce)
     ? `${measured}: the limits in force deny normal files here. To fit them, run: ${fixOf(survey, inForce, root, adapter)}`
     : `${measured}, which the ${inForce.maxLines}-line, ${inForce.maxTokens}-token limits already fit`
