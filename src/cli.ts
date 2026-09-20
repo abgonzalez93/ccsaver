@@ -18,7 +18,9 @@ import { proposalOf, surveyFor } from "./survey.ts"
 import { shown } from "./transport.ts"
 import { isMode, runWorker } from "./worker.ts"
 
-const USAGE = `usage: ccsaver <command>
+const HEAD = "usage: ccsaver <command>"
+
+const USAGE = `${HEAD}
 
   setup                      ask for worker, key and fallback, then run doctor
   plug [dir] [adapter]       turn ccsaver on for one project (default: this folder)
@@ -38,7 +40,7 @@ const USAGE = `usage: ccsaver <command>
 `
 
 const PACKAGE = join(import.meta.dirname, "..", "package.json")
-const HELP = [undefined, "help", "--help", "-h"]
+const HELP = ["help", "--help", "-h"]
 const LIMIT_KEYS = ["maxLines", "maxTokens"] as const
 
 const limitsGiven = (pairs: string[]): Partial<Limits> => {
@@ -128,6 +130,11 @@ const COMMANDS: Record<string, Command> = {
 const commandOf = (command: string | undefined): Command | undefined =>
   command !== undefined && Object.hasOwn(COMMANDS, command) ? COMMANDS[command] : undefined
 
+const usageFor = (command: string): string[] =>
+  USAGE.split("\n").filter(
+    (line) => line.startsWith(`  ${command} `) || line.trimEnd() === `  ${command}`,
+  )
+
 const main = async (): Promise<number> => {
   const [command, ...rest] = process.argv.slice(2)
   if (isMode(command)) {
@@ -137,10 +144,15 @@ const main = async (): Promise<number> => {
   if (command === "doctor") return doctor()
   const code = commandOf(command)?.(rest)
   if (code !== undefined) return code
-  const asked = HELP.includes(command)
-  const stream = asked ? process.stdout : process.stderr
-  stream.write(USAGE)
-  return asked ? 0 : 1
+  if (command === undefined || HELP.includes(command)) {
+    process.stdout.write(USAGE)
+    return 0
+  }
+  const only = usageFor(command)
+  const said =
+    only.length === 0 ? `unknown command: ${command}\n${USAGE}` : `${HEAD}\n\n${only.join("\n")}\n`
+  process.stderr.write(said)
+  return 1
 }
 
 try {

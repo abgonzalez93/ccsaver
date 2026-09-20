@@ -210,15 +210,33 @@ test("a relative CCSAVER_HOME is refused, by the launcher and by the command", a
   assert.equal(existsSync(join(WORK, relative)), false)
 })
 
-test("help goes to stdout, a mistake gets the usage on stderr, and version is the package's", async () => {
+const NARROWED: [string[], string][] = [
+  [["worker", "claude"], "  worker claude <path>|auto  pin the claude binary"],
+  [["key"], "  key set                    store the API key"],
+  [["key", "get"], "  key set                    store the API key"],
+  [["adapter"], "  adapter <name> k=v ...     set maxLines"],
+  [["unplug"], "  unplug <dir>               turn it off again"],
+  [["fallback", "sideways"], "  fallback on|off            whether a call"],
+]
+
+test("help goes to stdout, a mistake gets the line of its own command, and version is the package's", async () => {
   const help = await ccsaver(["--help"])
   assert.deepEqual([help.code, help.stderr], [0, ""])
   assert.match(help.stdout, /^usage: ccsaver <command>/)
   assert.equal((await ccsaver(["-h"])).stdout, help.stdout)
-  for (const mistake of [["frobnicate"], ["key"], ["key", "get"], ["worker", "claude"]]) {
+  assert.equal((await ccsaver([])).stdout, help.stdout)
+  for (const [mistake, line] of NARROWED) {
     const out = await ccsaver(mistake)
-    assert.deepEqual([out.code, out.stdout, out.stderr], [1, "", help.stdout], mistake.join(" "))
+    const where = mistake.join(" ")
+    assert.deepEqual([out.code, out.stdout], [1, ""], where)
+    assert.match(out.stderr, /^usage: ccsaver <command>\n\n/, where)
+    assert.ok(out.stderr.includes(line), where)
+    assert.equal(out.stderr.includes("  doctor  "), false, where)
+    assert.ok(out.stderr.length < help.stdout.length, where)
   }
+  const unknown = await ccsaver(["frobnicate"])
+  assert.deepEqual([unknown.code, unknown.stdout], [1, ""])
+  assert.equal(unknown.stderr, `unknown command: frobnicate\n${help.stdout}`)
   const { version } = jsonOf(join(REPO, "package.json"))
   assert.equal((await ccsaver(["version"])).stdout, `${String(version)}\n`)
   assert.equal((await ccsaver(["--version"])).stdout, `${String(version)}\n`)

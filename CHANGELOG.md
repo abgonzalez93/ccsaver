@@ -4,6 +4,17 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.9.16 - 2026-09-20
+
+fix: a wrong argument gets the usage line of its own command
+
+- a known command given bad arguments prints the header and its own lines of the usage table on stderr, not all fourteen: `ccsaver worker claude` goes from 18 lines to 4
+- a word that is no command at all prints `unknown command: <word>` before the whole table, which it never said before
+- `ccsaver key` and `ccsaver key get` now land on the `key set` line instead of the whole menu
+- `usageFor` filters the same USAGE string the full listing prints, so the two can never drift
+- HELP drops its `undefined` entry: the no-command case is checked where it narrows the type
+- README states the rule the command surface already followed and never wrote down: settings are a noun and a value, actions are verbs, help goes to stdout with 0, a mistake to stderr with 1
+
 ## 0.9.15 - 2026-09-20
 
 docs: every number in the pages has its note, and a test keeps every link resolving
