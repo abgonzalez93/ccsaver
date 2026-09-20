@@ -176,6 +176,21 @@ test("a saving that is not one prints negative, with no percentage beside it", a
   assert.doesNotMatch(out.stdout, /%/)
 })
 
+test("a band reads low to high even when both of its arms are a loss", async () => {
+  const home = homeWith("backwards", [
+    [
+      denial(4_000),
+      ...Array.from({ length: 20 }, () =>
+        gate({ reason: "range", bytes: 400_000, lines: 10_000, offset: 1, limit: 10_000 }),
+      ),
+    ],
+  ])
+  await priced(home, [OPUS, "3"])
+  const out = await saved(home)
+  const line = out.stdout.split("\n").find((row) => row.startsWith("  saved")) ?? ""
+  assert.match(line, /^ {2}saved {6}-\$16\.79\d+ - -\$11\.39\d+ +the delegations cost more/)
+})
+
 test("a band that crosses zero is painted as neither a saving nor a loss", async () => {
   const home = homeWith("crossing", [
     [

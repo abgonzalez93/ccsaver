@@ -4,6 +4,13 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.19.1 - 2026-09-20
+
+fix: a losing band reads low to high, not backwards
+
+- saved paired the 1.9x arm with the left of the band and the 2.8x arm with the right, which reads the right way round only while the saving is positive: a month where the ranged reads cost more than the denied ones printed -$0.0011 - -$0.0016, a range running downhill
+- the two arms are now sorted before they are printed, and the verdict reads the better and the worse arm by name instead of by position
+
 ## 0.19.0 - 2026-09-20
 
 feat: saved draws the bars from the first denied read

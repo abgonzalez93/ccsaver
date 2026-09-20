@@ -201,10 +201,12 @@ const countedIn = (tally: Spend): string[] => [
 ]
 
 const savedIn = (money: Money, places: number): string => {
-  const band = `${usd(money.saved.low, places)} - ${usd(money.saved.high, places)}`
-  if (money.saved.high < 0)
+  const worst = Math.min(money.saved.low, money.saved.high)
+  const best = Math.max(money.saved.low, money.saved.high)
+  const band = `${usd(worst, places)} - ${usd(best, places)}`
+  if (best < 0)
     return rowOf("saved", band, "the delegations cost more than the reads they replaced", RED)
-  if (money.saved.low < 0)
+  if (worst < 0)
     return rowOf(
       "saved",
       band,
