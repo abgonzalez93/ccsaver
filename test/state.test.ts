@@ -11,7 +11,14 @@ import {
 } from "node:fs"
 import { join } from "node:path"
 import { after, test } from "node:test"
-import { loadAdapter, plug, pluggedRootOf, readPlugged, unplug } from "../src/config.ts"
+import {
+  loadAdapter,
+  plug,
+  pluggedRootOf,
+  readPlugged,
+  unplug,
+  writeLimits,
+} from "../src/config.ts"
 import { readWorker, setFallback, writeWorker } from "../src/endpoint.ts"
 import { isEncrypted, messageOf, Refusal } from "../src/state.ts"
 import { tempDir } from "./helpers.ts"
@@ -228,4 +235,21 @@ test("a worker.json that cannot be read stops the call, never reads as no worker
   chmodSync(file, 0o600)
   assert.deepEqual(readWorker(), stored)
   rmSync(file)
+})
+
+test("an adapter that is there but cannot be read is an error, never read as absent or as the bundled one", {
+  skip: AS_ROOT,
+}, () => {
+  const mine = join(HOME, "adapters", "strict-ts.json")
+  const kept = JSON.stringify({ rules: "mine", format: ["tools/fmt"], maxLines: 900 })
+  writeFileSync(mine, kept)
+  chmodSync(mine, 0o000)
+  assert.throws(
+    () => loadAdapter("strict-ts"),
+    /adapter strict-ts cannot be read: .*strict-ts\.json$/,
+  )
+  assert.throws(() => writeLimits("strict-ts", { maxTokens: 9000 }), /cannot be read/)
+  chmodSync(mine, 0o600)
+  assert.equal(readFileSync(mine, "utf8"), kept)
+  rmSync(mine)
 })

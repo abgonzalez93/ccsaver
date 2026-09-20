@@ -1,6 +1,7 @@
 import {
   chmodSync,
   closeSync,
+  existsSync,
   fstatSync,
   mkdirSync,
   openSync,
@@ -155,7 +156,10 @@ const adapterPlaces = (name: string): string[] => {
 const findAdapter = (name: string, places: string[]): Adapter | undefined => {
   for (const place of places) {
     const text = attempt(() => readFileSync(place, "utf8"))
-    if (text === undefined) continue
+    if (text === undefined) {
+      if (existsSync(place)) throw new Refusal(`adapter ${name} cannot be read: ${place}`)
+      continue
+    }
     const adapter = adapterOf(parsed(text))
     if (adapter === undefined) throw new Refusal(`adapter ${name} is malformed: ${place}`)
     return adapter

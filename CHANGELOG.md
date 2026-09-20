@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.19.18 - 2026-09-20
+
+fix: an adapter that cannot be read is an error, never read as absent
+
+- findAdapter skipped a private adapter it could not open and moved on to the bundled one of the same name, or to none: the hook then applied the bundled rules and limits in silence, and ccsaver adapter <name> wrote the bundled adapter plus one limit over the private file, losing its rules and its format
+- it now asks existsSync before moving on, the way readWorker, readPrices and textAt already do, and refuses with the path it could not read; the hook records that refusal as the crash beside its gate line and keeps the default limits
+- hook measured 20.34 → 19.62 ms mean without an adapter and 19.24 → 19.65 ms with the bundled strict-ts, medians 19.97 → 18.99 and 19.44 → 19.42, 30 paired runs each against the parent commit
+
 ## 0.19.17 - 2026-09-20
 
 fix: a path that is no regular file is refused, never waited on
