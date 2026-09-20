@@ -124,7 +124,7 @@ To move them, put them in an adapter. `plug` and `doctor` end their line with th
 ccsaver adapter vellum maxLines=400 maxTokens=8000
 ```
 
-It writes `~/.config/ccsaver/adapters/<name>.json` at 600, in a folder it puts back to 700 on every write because a hand that made it first leaves it readable by everyone, creating the file or merging into what is already there, so an adapter that carries `rules` and `format` keeps them. It takes `maxLines` and `maxTokens` only, both positive integers; every other field is edited by hand. A project with no adapter gets a second command beside the first, `ccsaver plug <root> <name>`, because an adapter nothing points at changes nothing; the name is made from the folder, lowercased with everything an adapter name cannot hold turned into `-`, so `~/code/My_App` proposes `my-app`.
+It writes `~/.config/ccsaver/adapters/<name>.json` at 600, in a folder it puts back to 700 on every write because a hand that made it first leaves it readable by everyone, creating the file or merging into what is already there, so an adapter that carries `rules` and `format` keeps them. It takes `maxLines` and `maxTokens` only, both positive integers; every other field is edited by hand. An adapter that is there but malformed stops the command instead of being written over, the same way `worker.json` does: the file that carries your `rules` and your `format` is never replaced by one that carries a limit and nothing else. A project with no adapter gets a second command beside the first, `ccsaver plug <root> <name>`, because an adapter nothing points at changes nothing; the name is made from the folder, lowercased with everything an adapter name cannot hold turned into `-`, so `~/code/My_App` proposes `my-app`.
 
 On a terminal you do not have to copy it: `doctor` offers to run it, one `warn` at a time.
 
@@ -134,7 +134,7 @@ While the [event log](events.md) is on, `doctor` also prints a `denied:` line: h
 
 | Variable | Read by | What for |
 | --- | --- | --- |
-| `CCSAVER_HOME` | everything | relocates the state folder; the default is `~/.config/ccsaver`, and `XDG_CONFIG_HOME` is not consulted |
+| `CCSAVER_HOME` | everything | relocates the state folder; it must be an absolute path, because a relative one would follow the working directory and give the same machine a different state per folder; the default is `~/.config/ccsaver`, and `XDG_CONFIG_HOME` is not consulted |
 | `CLAUDE_PROJECT_DIR` | the hook | the project the session belongs to; the skills get it already expanded by Claude Code, and the command falls back to the working directory |
 | `CLAUDE_CODE_EXECPATH` | the fallback, `doctor` | the binary of the running session (undocumented, observed in Claude Code 2.1) |
 | `CLAUDE_CODE_SESSION_ID` | the event log | the `session` field of every line |

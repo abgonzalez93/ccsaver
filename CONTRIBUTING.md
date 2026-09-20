@@ -128,7 +128,7 @@ throw new Error(`adapter ${name} not found`)
 throw new Refusal(`adapter ${name} not found in ${places.join(" or ")}`)
 ```
 
-**3.2 ALWAYS turn an expected failure into a value.** A missing file is an answer, and the caller decides what it means.
+**3.2 ALWAYS turn an expected failure into a value, and NEVER a refusal.** A missing file is an answer, and the caller decides what it means; a `Refusal` is a decision already made, so `src/state.ts` · `attempt` lets it through instead of turning it into `undefined`. Swallowing one turns a stop into a default, which is 3.4 by another door.
 
 ```ts
 // ❌ an inline try/catch at every call site, each free to swallow something else
@@ -153,7 +153,7 @@ const first: unknown = raw["choices"][0]
 
 Guard: `test/conventions.test.ts` for `JSON.parse`; `noPropertyAccessFromIndexSignature` forces the bracket on an unchecked key. No schema library: zero runtime dependencies is a promise (5.4). Revisit past 10 untrusted shapes or a shape nested more than 2 levels deep.
 
-**3.4 NEVER read a broken config as an absent one.** Absent means defaults; present and malformed stops the call. `readWorker` once read a stray comma as "no worker", which quietly turned the paid fallback back on.
+**3.4 NEVER read a broken config as an absent one.** Absent means defaults; present and malformed stops the call. `readWorker` once read a stray comma as "no worker", which quietly turned the paid fallback back on, and `writeLimits` once read a malformed adapter as no adapter at all and wrote a file holding one limit over the `rules` and the `format` of a project. `src/config.ts` · `findAdapter` tells absent from broken, and only absent starts from `{}`.
 Guard: `test/state.test.ts`, "a worker.json that is there but wrong is an error, never the same as no worker".
 
 **3.5 NEVER let one failure hide another.** Name the cause. `fellOf` tells a timeout from a body that is not JSON from a dead host. `src/transport.ts` · `troubleOf` reads the `code` of a failed spawn: an `EPIPE` is a child that stopped reading and no error at all, an `ETIMEDOUT` is the 85 s running out and says so rather than showing `spawnSync claude ETIMEDOUT`. `invokeClaude` then reports the reason the child printed, which is all a spent budget leaves behind, before its exit and stderr. A key that is present but unreadable is told from a key that was never stored, in the note and in `doctor`, by `src/state.ts` · `keyIsStored`; reading the first as the second sent the call to the paid worker under a message that said the opposite. A worker's answer cut at an output limit falls as `length`, never as `incomplete`. Every fall to the paid worker says why on stderr first.

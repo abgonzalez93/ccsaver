@@ -135,9 +135,12 @@ const adapterOf = (raw: unknown): Adapter | undefined => {
 
 const adapterPlace = (name: string): string => join(stateHome(), "adapters", `${name}.json`)
 
-export const loadAdapter = (name: string): Adapter => {
+const adapterPlaces = (name: string): string[] => {
   if (!ADAPTER_NAME.test(name)) throw new Refusal(`invalid adapter name: ${name}`)
-  const places = [adapterPlace(name), join(import.meta.dirname, "..", "adapters", `${name}.json`)]
+  return [adapterPlace(name), join(import.meta.dirname, "..", "adapters", `${name}.json`)]
+}
+
+const findAdapter = (name: string, places: string[]): Adapter | undefined => {
   for (const place of places) {
     const text = attempt(() => readFileSync(place, "utf8"))
     if (text === undefined) continue
@@ -145,12 +148,19 @@ export const loadAdapter = (name: string): Adapter => {
     if (adapter === undefined) throw new Refusal(`adapter ${name} is malformed: ${place}`)
     return adapter
   }
-  throw new Refusal(`adapter ${name} not found in ${places.join(" or ")}`)
+  return undefined
+}
+
+export const loadAdapter = (name: string): Adapter => {
+  const places = adapterPlaces(name)
+  const adapter = findAdapter(name, places)
+  if (adapter === undefined)
+    throw new Refusal(`adapter ${name} not found in ${places.join(" or ")}`)
+  return adapter
 }
 
 export const writeLimits = (name: string, limits: Partial<Limits>): string => {
-  if (!ADAPTER_NAME.test(name)) throw new Refusal(`invalid adapter name: ${name}`)
-  const before = attempt(() => loadAdapter(name)) ?? {}
+  const before = findAdapter(name, adapterPlaces(name)) ?? {}
   const after: Adapter = { ...before, ...limits }
   const place = adapterPlace(name)
   mkdirSync(dirname(place), { recursive: true, mode: 0o700 })

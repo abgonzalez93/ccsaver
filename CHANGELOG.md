@@ -4,6 +4,15 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.9.9 - 2026-09-20
+
+fix: a refusal is never swallowed, so a malformed adapter is never written over
+
+- attempt turned every throw into undefined, a Refusal included, so a stop became a default wherever one was wrapped
+- ccsaver adapter <name> maxLines=<n> on an adapter that is there but malformed read it as no adapter and wrote {"maxLines": n} over it: the rules and the format of that project were gone, and doctor's own offer did the same
+- findAdapter tells an adapter that is absent from one that is broken; only the absent one starts from an empty adapter, which is what creating one needs
+- CCSAVER_HOME must now be an absolute path, in the launcher and in the command: a relative one followed the working directory, so the same machine kept a different state per folder and doctor said the state did not exist yet
+
 ## 0.9.8 - 2026-09-20
 
 perf: the survey counts a small file from the 8 KB it already read

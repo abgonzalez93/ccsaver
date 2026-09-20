@@ -6,6 +6,13 @@ while [ -L "$self" ]; do
 done
 root=$(cd "$(dirname "$self")/.." && pwd -P) || exit 1
 home=${CCSAVER_HOME:-$HOME/.config/ccsaver}
+case $home in
+/*) ;;
+*)
+  echo "Error: CCSAVER_HOME must be an absolute path, this one is not: $home" >&2
+  exit 1
+  ;;
+esac
 
 if [ -d "$home" ]; then
   NODE_COMPILE_CACHE="$home/cache"

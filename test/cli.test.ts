@@ -8,11 +8,13 @@ import {
   rmSync,
   statSync,
   symlinkSync,
+  writeFileSync,
 } from "node:fs"
 import { join } from "node:path"
 import { after, before, beforeEach, test } from "node:test"
 import { isRecord } from "../src/state.ts"
 import {
+  CLI,
   type FakeServer,
   fakeClaude,
   LAUNCHER,
@@ -188,7 +190,24 @@ test("adapter writes the limits, merges into an existing adapter and refuses jun
     assert.deepEqual([out.code, out.stdout], [1, ""], junk.join(" "))
   }
   assert.equal((await ccs(["adapter", "Bad Name", "maxLines=400"])).code, 1)
+  const broken = join(home, "adapters", "broken.json")
+  writeFileSync(broken, '{"rules": "mine",}')
+  const kept = await ccs(["adapter", "broken", "maxLines=400"])
+  assert.equal(kept.code, 1)
+  assert.match(kept.stderr, /Error: adapter broken is malformed/)
+  assert.equal(readFileSync(broken, "utf8"), '{"rules": "mine",}')
   rmSync(home, { recursive: true, force: true })
+})
+
+test("a relative CCSAVER_HOME is refused, by the launcher and by the command", async () => {
+  const relative = "state"
+  const shell = await run(LAUNCHER, ["list"], { CCSAVER_HOME: relative }, "", WORK)
+  const node = await run("node", [CLI, "list"], { CCSAVER_HOME: relative }, "", WORK)
+  for (const out of [shell, node]) {
+    assert.equal(out.code, 1)
+    assert.match(out.stderr, /Error: CCSAVER_HOME must be an absolute path, this one is not: state/)
+  }
+  assert.equal(existsSync(join(WORK, relative)), false)
 })
 
 test("help goes to stdout, a mistake gets the usage on stderr, and version is the package's", async () => {

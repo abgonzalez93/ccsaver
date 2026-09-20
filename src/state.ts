@@ -21,7 +21,8 @@ export class Refusal extends Error {}
 export const attempt = <T>(run: () => T): T | undefined => {
   try {
     return run()
-  } catch {
+  } catch (error) {
+    if (error instanceof Refusal) throw error
     return undefined
   }
 }
@@ -34,8 +35,13 @@ export const isRecord = (value: unknown): value is Record<PropertyKey, unknown> 
 
 export const parsed = (text: string): unknown => attempt<unknown>(() => JSON.parse(text))
 
-export const stateHome = (): string =>
-  process.env["CCSAVER_HOME"] || join(homedir(), ".config", "ccsaver")
+export const stateHome = (): string => {
+  const given = process.env["CCSAVER_HOME"]
+  if (!given) return join(homedir(), ".config", "ccsaver")
+  if (!given.startsWith("/"))
+    throw new Refusal(`CCSAVER_HOME must be an absolute path, this one is not: ${given}`)
+  return given
+}
 
 export const keyFile = (): string => join(stateHome(), "api-key")
 
