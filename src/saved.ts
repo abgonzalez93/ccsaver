@@ -2,7 +2,7 @@ import { existsSync, readdirSync } from "node:fs"
 import { tokensIn } from "./config.ts"
 import { logDir, MONTH, monthKey, numberAt, type Row, type Rows, readMonth } from "./log.ts"
 import { MODEL_NAME, type Prices, readPrices, workerNamed } from "./prices.ts"
-import { attempt, inColour } from "./state.ts"
+import { attempt, tinted } from "./state.ts"
 
 const REAL_LOW = 1.9
 const REAL_HIGH = 2.8
@@ -189,9 +189,6 @@ const many = (count: number, one: string): string => `${count} ${one}${count ===
 
 const usd = (value: number, places: number): string =>
   `${value < 0 ? "-" : ""}$${Math.abs(value).toFixed(places)}`
-
-const tinted = (text: string, colour: number): string =>
-  inColour() ? `\u001b[${colour}m${text}\u001b[0m` : text
 
 const barOf = (value: number, top: number): string => {
   const filled = Math.min(BAR, Math.max(0, top > 0 ? Math.round((BAR * value) / top) : 0))

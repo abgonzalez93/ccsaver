@@ -4,6 +4,13 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.19.10 - 2026-09-20
+
+refactor: one painter for doctor and for saved
+
+- painted and tinted were the same two lines of ANSI, written once in doctor.ts and once in saved.ts, beside the inColour they both had to import
+- tinted lives in state.ts now, next to scrubbed, which is the other thing that decides what a terminal is shown, and inColour stops being an export
+
 ## 0.19.9 - 2026-09-20
 
 fix: a model that denied nothing is not asked for a price that changes nothing

@@ -76,7 +76,7 @@ Guard: `test/conventions.test.ts`.
 
 | File | Owns | Imports |
 | --- | --- | --- |
-| `src/state.ts` | the state folder, the key, the guards, `Refusal` | `node:` only |
+| `src/state.ts` | the state folder, the key, the guards, what a terminal may be shown (`scrubbed`, `tinted`), `Refusal` | `node:` only |
 | `src/log.ts` | the event log, its switch and its reader | `state` |
 | `src/config.ts` | what the user configured: the plugged roots, the adapters, the worker, and how a file is weighed against a limit | `log`, `state` |
 | `src/survey.ts` | how long a project's files are, and what limit that asks for | `config`, `state` |

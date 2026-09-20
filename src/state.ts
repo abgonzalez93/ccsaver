@@ -72,8 +72,11 @@ export const pricesFile = (): string => join(stateHome(), "prices.json")
 
 export const adaptersDir = (): string => join(stateHome(), "adapters")
 
-export const inColour = (): boolean =>
+const inColour = (): boolean =>
   process.stdout.isTTY === true && !process.env["NO_COLOR"] && process.env["TERM"] !== "dumb"
+
+export const tinted = (text: string, colour: number): string =>
+  inColour() ? `\u001b[${colour}m${text}\u001b[0m` : text
 
 export const real = (path: string): string =>
   attempt(() => realpathSync.native(path)) ?? resolve(path)

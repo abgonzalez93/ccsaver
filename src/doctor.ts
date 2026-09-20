@@ -15,7 +15,6 @@ import { logDir, logFile, numberAt, type Rows, readEvents, record } from "./log.
 import {
   adaptersDir,
   attempt,
-  inColour,
   isEncrypted,
   keyFile,
   keyIsCarriable,
@@ -26,6 +25,7 @@ import {
   readKey,
   scrubbed,
   stateHome,
+  tinted,
   workerFile,
 } from "./state.ts"
 import { adapterNameOf, fixOf, overshoots, proposalOf, raiseOf, surveyFor } from "./survey.ts"
@@ -57,8 +57,7 @@ const YES = /^\s*(y|yes|s|si|sí)\s*$/i
 const ANSWER_BYTES = 64
 const ANSWER_CAP = 4096
 
-const painted = (level: Level): string =>
-  inColour() ? `\u001b[${COLOUR[level]}m${level.padEnd(4)}\u001b[0m` : level.padEnd(4)
+const painted = (level: Level): string => tinted(level.padEnd(4), COLOUR[level])
 
 const lineFrom = (fd: number): string | undefined => {
   const buffer = Buffer.alloc(ANSWER_BYTES)
