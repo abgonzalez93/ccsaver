@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.9.10 - 2026-09-20
+
+fix: doctor judges the whole answer typed at its offer, not its first 16 bytes
+
+- the prompt read one buffer of 16 bytes: "yes               no" was read as "yes             ", which matches yes, and the fix ran
+- what did not fit stayed in the terminal buffer and was read as the answer to the next offer
+- it now reads to the end of the line, bounded at 4,096 bytes, and answers no to anything it could not read
+
 ## 0.9.9 - 2026-09-20
 
 fix: a refusal is never swallowed, so a malformed adapter is never written over

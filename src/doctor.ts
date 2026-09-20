@@ -49,20 +49,31 @@ interface Finding {
 
 const COLOUR = { ok: 32, warn: 33, FAIL: 31 } as const
 const YES = /^\s*(y|yes|s|si|sí)\s*$/i
-const ANSWER_BYTES = 16
+const ANSWER_BYTES = 64
+const ANSWER_CAP = 4096
 
 const painted = (level: Level): string =>
   process.stdout.isTTY === true && !process.env["NO_COLOR"]
     ? `\u001b[${COLOUR[level]}m${level.padEnd(4)}\u001b[0m`
     : level.padEnd(4)
 
+const lineFrom = (fd: number): string | undefined => {
+  const buffer = Buffer.alloc(ANSWER_BYTES)
+  let typed = ""
+  while (!typed.includes("\n") && typed.length < ANSWER_CAP) {
+    const read = attempt(() => readSync(fd, buffer, 0, ANSWER_BYTES, null))
+    if (read === undefined) return undefined
+    if (read === 0) break
+    typed += buffer.subarray(0, read).toString("utf8")
+  }
+  return typed.split("\n")[0] ?? ""
+}
+
 const answered = (question: string): boolean => {
   process.stdout.write(question)
-  const buffer = Buffer.alloc(ANSWER_BYTES)
-  const read = attempt(() => readSync(0, buffer, 0, ANSWER_BYTES, null))
-  const typed = read === undefined ? "" : buffer.subarray(0, read).toString("utf8")
-  process.stdout.write(read === undefined ? "\n" : "")
-  return YES.test(typed.replace(/\n$/, ""))
+  const typed = lineFrom(0)
+  process.stdout.write(typed === undefined ? "\n" : "")
+  return typed !== undefined && YES.test(typed)
 }
 
 const offer = (fixes: Fix[]): void => {
