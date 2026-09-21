@@ -2,7 +2,7 @@
 
 Everything `/ccsaver:setup` asks for, and the fine print behind it. The [README](../README.md) is the short version.
 
-`/ccsaver:setup` walks a session through all of it and ends with `doctor`. `ccsaver setup` does the same from a shell. These are the subcommands behind them:
+`/ccsaver:setup` walks a session through all of it and ends with `doctor`. `ccsaver setup` does the same from a shell, once [that shell can find it](#your-own-terminal). These are the subcommands behind them:
 
 ```bash
 ccsaver worker set https://your-provider.example/v1/chat/completions some-small-model
@@ -11,6 +11,24 @@ ccsaver doctor
 ccsaver fallback off                        # optional: never spend on the Claude Haiku fallback
 ccsaver worker claude ~/.local/bin/claude   # optional: pin the binary the fallback runs
 ```
+
+## Your own terminal
+
+Claude Code puts a plugin's `bin/` on the `PATH` of the Bash tool of its own sessions and nowhere else (observed in Claude Code 2.1), so after the install a terminal of yours answers `ccsaver: command not found`. The slash commands need nothing more. To type the commands yourself, give your shell a launcher:
+
+```bash
+mkdir -p ~/.local/bin
+cat > ~/.local/bin/ccsaver <<'EOF'
+#!/bin/sh
+root="$HOME/.claude/plugins/cache/abgonzalez93/ccsaver"
+version=$(ls "$root" 2>/dev/null | sort -V | tail -1)
+[ -n "$version" ] || { echo "ccsaver: plugin not installed under $root" >&2; exit 1; }
+exec "$root/$version/bin/ccsaver" "$@"
+EOF
+chmod +x ~/.local/bin/ccsaver
+```
+
+It is a script and not a symlink because the folder Claude Code installs into carries the version in its name: a link would go on pointing at the version it was made for after every `plugin update`, and the script picks the newest on each call. `~/.local/bin` has to be on your `PATH`; the `~/.profile` of Debian and Ubuntu adds it only when the folder was there at login, so the first time open a new terminal or run `. ~/.profile`. The launcher is yours, not the plugin's: nothing installs it, and [Uninstall](../README.md#uninstall) removes it by hand.
 
 ## The worker
 

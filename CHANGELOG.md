@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.20.15 - 2026-09-21
+
+docs: the configuration page says how ccsaver reaches a terminal of your own
+
+- Claude Code puts the plugin's `bin/` on the `PATH` of its own sessions only, so after an install a shell answers `ccsaver: command not found`, while the README had `ccsaver list` typed in one and the configuration page had `ccsaver setup` run "from a shell"
+- docs/configuration.md gains "Your own terminal": the launcher to paste into `~/.local/bin`, why it is a script and not a symlink (the install folder carries the version in its name), and the `~/.profile` that only adds the folder when it was there at login
+- the README quickstart names the symptom and links there, Uninstall removes the launcher, and both maps of the pages list the new section
+
 ## 0.20.14 - 2026-09-20
 
 test: the too-big read is proved by its message, not by a clock

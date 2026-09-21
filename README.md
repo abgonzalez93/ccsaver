@@ -13,7 +13,7 @@ claude plugin marketplace add abgonzalez93/ccsaver
 claude plugin install ccsaver@abgonzalez93
 ```
 
-Open a new session, or run `/reload-plugins`, then type `/ccsaver:setup` to point it at a worker and store its key, and `/ccsaver:plug` to turn it on for the project you are in. `/ccsaver:doctor` checks it all again later. Nothing else is installed on your machine, and ccsaver keeps no state of its own inside your projects.
+Open a new session, or run `/reload-plugins`, then type `/ccsaver:setup` to point it at a worker and store its key, and `/ccsaver:plug` to turn it on for the project you are in. `/ccsaver:doctor` checks it all again later. Nothing else is installed on your machine, and ccsaver keeps no state of its own inside your projects. That includes your shell: Claude Code puts `ccsaver` on the `PATH` of its own sessions only, so a terminal of yours answers `command not found` until you give it [a launcher](docs/configuration.md#your-own-terminal).
 
 Needs Claude Code, Node.js 24.2 or newer, and a POSIX `sh`. Linux and macOS only.
 
@@ -111,7 +111,7 @@ The target of a `code-write` is the one thing ccsaver ever writes inside a proje
 
 | Page | What is in it |
 | --- | --- |
-| [docs/configuration.md](docs/configuration.md) | the worker, the key, the fallback, `doctor`, adapters, environment variables |
+| [docs/configuration.md](docs/configuration.md) | your own terminal, the worker, the key, the fallback, `doctor`, adapters, environment variables |
 | [docs/events.md](docs/events.md) | the event log: every field, and what is never recorded |
 | [docs/measurements.md](docs/measurements.md) | the notes behind every number above |
 | [docs/versions.md](docs/versions.md) | every commit is a version, written by a git hook |
@@ -136,6 +136,7 @@ ccsaver list                                   # what is still plugged
 claude plugin uninstall ccsaver@abgonzalez93
 claude plugin marketplace remove abgonzalez93
 rm -rf ~/.config/ccsaver                       # your API key and the event log live here
+rm -f ~/.local/bin/ccsaver                     # the launcher, if you made one
 ```
 
 Then delete the two `Bash(ccsaver …)` rules from `permissions.allow` in `~/.claude/settings.json`, if you added them.
