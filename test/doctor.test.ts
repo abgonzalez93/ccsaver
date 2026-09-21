@@ -132,21 +132,25 @@ const fakeNode = (label: string, version: string, runs = true): NodeJS.ProcessEn
   chmodSync(join(bin, "node"), 0o755)
   return { PATH: `${bin}:${process.env["PATH"] ?? ""}` }
 }
-test("doctor stops at a node under 24.2, and fails when the hook does not deny", async () => {
+test("doctor stops at a node without import.meta.main, and fails when the hook does not deny", async () => {
   const env = fakeNode("old-node", "20.11.0", false)
   const stopped = await ccsaver(["doctor"], "", env)
   assert.equal(stopped.code, 1)
   assert.equal(
     stopped.stdout,
-    "FAIL node: ccsaver needs Node.js 24.2 or newer, this PATH has v20.11.0\n",
+    "FAIL node: ccsaver needs Node.js 22.18+ or 24.2+, this PATH has v20.11.0\n",
   )
-  const early = await ccsaver(["doctor"], "", fakeNode("early-node", "24.1.0"))
-  assert.deepEqual(
-    [early.code, early.stdout],
-    [1, "FAIL node: ccsaver needs Node.js 24.2 or newer, this PATH has v24.1.0\n"],
-  )
-  const floor = await ccsaver(["doctor"], "", fakeNode("floor-node", "24.2.0"))
-  assert.equal(floor.stdout.includes("FAIL node:"), false, floor.stdout)
+  for (const version of ["22.17.0", "23.9.0", "24.1.0"]) {
+    const early = await ccsaver(["doctor"], "", fakeNode(`early-${version}`, version))
+    assert.deepEqual(
+      [early.code, early.stdout],
+      [1, `FAIL node: ccsaver needs Node.js 22.18+ or 24.2+, this PATH has v${version}\n`],
+    )
+  }
+  for (const version of ["22.18.0", "24.2.0"]) {
+    const floor = await ccsaver(["doctor"], "", fakeNode(`floor-${version}`, version))
+    assert.equal(floor.stdout.includes("FAIL node:"), false, floor.stdout)
+  }
   const open = await run(process.execPath, [CLI, "doctor"], {
     CCSAVER_HOME: HOME,
     CLAUDE_CODE_EXECPATH: FAKE,

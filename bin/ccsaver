@@ -77,8 +77,8 @@ fi
 
 case "$1" in
 doctor | setup | plug)
-  if ! node -e 'const [major, minor] = process.versions.node.split(".").map(Number); process.exit(major > 24 || (major === 24 && minor >= 2) ? 0 : 1)' 2>/dev/null; then
-    echo "FAIL node: ccsaver needs Node.js 24.2 or newer, this PATH has $(node --version 2>/dev/null || echo none)"
+  if ! node -e 'const [major, minor] = process.versions.node.split(".").map(Number); process.exit(major > 24 || (major === 24 && minor >= 2) || (major === 22 && minor >= 18) ? 0 : 1)' 2>/dev/null; then
+    echo "FAIL node: ccsaver needs Node.js 22.18+ or 24.2+, this PATH has $(node --version 2>/dev/null || echo none)"
     exit 1
   fi
   ;;

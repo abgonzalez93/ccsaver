@@ -1,13 +1,13 @@
 {
   "name": "ccsaver",
-  "version": "0.20.15",
+  "version": "0.21.0",
   "private": true,
   "description": "Claude Code plugin that keeps whole-file reads and boilerplate writing out of the expensive model's context by delegating them to a cheap one-shot worker, only in the projects you plug in.",
   "license": "Apache-2.0",
   "type": "module",
   "packageManager": "pnpm@12.4.2",
   "engines": {
-    "node": ">=24.2"
+    "node": ">=22.18 <23 || >=24.2"
   },
   "scripts": {
     "test": "CCSAVER_HOME=/nonexistent/ccsaver node --test \"test/*.test.ts\"",
@@ -20,7 +20,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14",
-    "@types/node": "^24.13.5",
+    "@types/node": "^22.20.4",
     "typescript": "^7.0.2"
   }
 }

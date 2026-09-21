@@ -81,7 +81,7 @@ Claude Code's documentation says `--bare` will become the default for `-p`, and 
 
 ## doctor
 
-`doctor` stops at a `node` older than 24.2, and then checks, in order:
+`doctor` stops at a `node` older than 22.18, and at the 23 line and a 24 under 24.2, and then checks, in order:
 
 - The permissions of the state folder and of every file it keeps there: the key, `plugged` and `worker.json`, all 600, plus `prices.json` at 600 and your own `adapters/` at 700 once either one exists — a folder made by hand is world-readable, and the adapters in it carry your house style. Stricter passes: what the check asks is that you can read them and nobody else can, so a key you set to 400 is `ok` and the line shows the mode it found. The log is the exception, because the hook appends to its files: its folder must be 700 and its files 600.
 - Whether the [event log](events.md) is on and how many bytes this month's file holds, a file it cannot read being a `FAIL` of its own rather than the end of the report, and while it is on, how many of the month's whole-file reads the hook denied and the median length of the ones it did (`denied:`), and how many of the month's delegations went to paid Claude Haiku, what they cost and why (`spent:`).

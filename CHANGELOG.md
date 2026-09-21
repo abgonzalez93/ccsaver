@@ -4,6 +4,16 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.21.0 - 2026-09-21
+
+feat: ccsaver runs on the Node 22 line, from 22.18
+
+- the launcher takes 22.18 and newer next to 24.2 and newer, and its FAIL line names both
+- engines declares >=22.18 <23 || >=24.2: type stripping and import.meta.main both land in 22.18, and the 23 line, 24.0 and 24.1 leave import.meta.main undefined
+- @types/node drops to 22, the major of the oldest Node engines supports
+- CI runs 22 next to 24 and 26
+- doctor's test refuses 22.17, 23.9 and 24.1, and takes 22.18 and 24.2
+
 ## 0.20.15 - 2026-09-21
 
 docs: the configuration page says how ccsaver reaches a terminal of your own

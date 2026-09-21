@@ -15,7 +15,7 @@ claude plugin install ccsaver@abgonzalez93
 
 Open a new session, or run `/reload-plugins`, then type `/ccsaver:setup` to point it at a worker and store its key, and `/ccsaver:plug` to turn it on for the project you are in. `/ccsaver:doctor` checks it all again later. Nothing else is installed on your machine, and ccsaver keeps no state of its own inside your projects. That includes your shell: Claude Code puts `ccsaver` on the `PATH` of its own sessions only, so a terminal of yours answers `command not found` until you give it [a launcher](docs/configuration.md#your-own-terminal).
 
-Needs Claude Code, Node.js 24.2 or newer, and a POSIX `sh`. Linux and macOS only.
+Needs Claude Code, Node.js 22.18+ or 24.2+, and a POSIX `sh`. Linux and macOS only.
 
 ## What it does
 
