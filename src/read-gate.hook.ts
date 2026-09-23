@@ -18,7 +18,7 @@ import { crashed, logDir, record } from "./state/log.store.ts"
 import { attempt, isRecord, isUnder, real } from "./state/state.store.ts"
 
 const IDS = ["tool_use_id", "agent_id", "agent_type", "permission_mode"]
-const TRANSCRIPT_TAIL = 65_536
+const TRANSCRIPT_TAIL = 262_144
 
 interface Measured {
   lines?: number
@@ -125,7 +125,10 @@ const gate = (root: string, adapterName: string | undefined): void => {
     bytes: measured.bytes,
     ...limits,
     adapter: adapterName ?? null,
-    model: lastAssistantOf(call["transcript_path"], TRANSCRIPT_TAIL)?.model ?? null,
+    model:
+      typeof call["agent_id"] === "string"
+        ? null
+        : (lastAssistantOf(call["transcript_path"], TRANSCRIPT_TAIL)?.model ?? null),
     decision: denied ? "deny" : "allow",
     reason,
   })

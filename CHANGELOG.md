@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.24.15 - 2026-09-23
+
+fix: the gate reads the last 256 KB of the transcript for the model, and records none for a subagent
+
+- 49 of the 192 gate lines written since the model was recorded carried null, because a single tool result of 65 to 108 KB pushed the last assistant line out of the 64 KB tail the hook read; 256 KB is what the handoff hook already reads, and the cost is inside the noise of the harness
+- a Read made by a subagent recorded the model of the session, never Sonnet or Haiku, because the transcript Claude Code hands the hook is the session's; the line now says null, so saved leaves those reads unpriced instead of pricing them at the session's rate
+- the tests of what the gate records as the model move to test/gate/model.test.ts, which keeps events.test.ts under the gate
+
 ## 0.24.14 - 2026-09-23
 
 fix: saved leaves a denial of a file outside the plugged project out of the without column
