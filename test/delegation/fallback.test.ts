@@ -70,9 +70,14 @@ test("refuses to send the paid fallback more than its context window holds", asy
   )
 })
 
-test("uses the Claude worker when no external model is configured", async () => {
+test("uses the Claude worker when no external model is configured, and says so first", async () => {
   const before = server.seen.length
-  assert.match((await bulkRead(SOURCE, { CCSAVER_HOME: BARE_HOME })).stdout, /FROM-CLAUDE/)
+  const out = await bulkRead(SOURCE, { CCSAVER_HOME: BARE_HOME })
+  assert.match(out.stdout, /FROM-CLAUDE/)
+  assert.match(
+    out.stderr,
+    /^\[ccsaver: no worker is set \(ccsaver worker set <url> <model>\), falling back\]$/m,
+  )
   assert.equal(server.seen.length, before)
 })
 
@@ -87,6 +92,10 @@ test("with the fallback off, a call the worker cannot take fails and nothing rea
   const refused = await bulkRead(SOURCE, { CCSAVER_HOME: OFF_HOME })
   assert.equal(refused.code, 1)
   assert.equal(refused.stdout, "")
+  assert.match(
+    refused.stderr,
+    /^\[ccsaver: cheap-1 answered 429 without a complete result, and the fallback is off\]$/m,
+  )
   assert.match(
     refused.stderr,
     /^Error: the worker gave no answer \(status\) and the fallback is off/m,

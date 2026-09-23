@@ -335,9 +335,11 @@ test("the input tokens the endpoint reports are recorded, and its silence is not
   assert.equal((await ask(SOURCE)).code, 0)
   server.reset()
   assert.equal((await ask(SOURCE)).code, 0)
-  const [reported, silent] = events(HOME)
+  server.reply.inTokens = -5
+  assert.equal((await ask(SOURCE)).code, 0)
+  const [reported, silent, negative] = events(HOME)
     .slice(before)
     .filter(({ kind }) => kind === "delegate")
     .map(({ inTokens }) => inTokens)
-  assert.deepEqual([reported, silent], [4242, undefined])
+  assert.deepEqual([reported, silent, negative], [4242, undefined, undefined])
 })

@@ -25,7 +25,7 @@ Any OpenAI-compatible chat completions endpoint works.
 - The URL must be `https`, or `http` to `localhost`, `127.0.0.1` or `[::1]`. Any other scheme is refused as you set it, because `fetch` cannot use one: a stored `ftp://localhost/…` would have sent every call to the paid fallback under a message that blamed the host.
 - A url that carries a user name or a password (`https://me:token@…`) is refused as you set it. `fetch` rejects one outright, so every call would have fallen to the paid worker under a report that blamed the host.
 - A query string is kept, because some endpoints need one, and never printed: `worker set`, `doctor` and a failing probe show origin and path only, so a key passed as `?key=…` stays out of the session's context.
-- A redirect from the worker counts as a failure, never followed with your file in hand.
+- A redirect from the worker counts as a failure, never followed with your file in hand, and is named as one.
 - Every request caps the answer with `max_tokens`: 2,048 tokens for `bulk-read`, because an answer in bullets never needs more and a longer one would not fit the ~30 KB the Bash tool shows inline, and 8,192 for `code-write`; a provider's own default never decides, an answer cut at either limit says so before it falls back, and a body past 4 MB counts as no answer.
 - The answer is read whether the endpoint puts it in `choices[0].message.content` as a string or as a list of text parts, which some do for a model that reasons first: an unknown shape used to count as no answer and spend the fallback.
 

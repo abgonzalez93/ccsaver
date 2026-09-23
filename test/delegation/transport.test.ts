@@ -97,7 +97,9 @@ test("never follows a redirect with the file in hand", async () => {
   server.reply.status = 307
   server.reply.location = "/elsewhere"
   const before = server.seen.length
-  assert.match((await bulkRead(SOURCE)).stdout, /FROM-CLAUDE/)
+  const out = await bulkRead(SOURCE)
+  assert.match(out.stdout, /FROM-CLAUDE/)
+  assert.match(out.stderr, /^\[ccsaver: cheap-1 redirect, falling back\]$/m)
   assert.equal(server.seen.length, before + 1)
 })
 
@@ -218,9 +220,10 @@ test("tells a timeout from a dead port and from a body that is not JSON", async 
     })
   })
   const dead: unknown = await fetch(url).catch((error: unknown) => error)
+  const bounced = new TypeError("fetch failed", { cause: new Error("unexpected redirect") })
   assert.deepEqual(
-    [fellOf(slow), fellOf(dead), fellOf(new SyntaxError("Unexpected token"))],
-    ["timeout", "unreachable", "not json"],
+    [fellOf(slow), fellOf(dead), fellOf(new SyntaxError("Unexpected token")), fellOf(bounced)],
+    ["timeout", "unreachable", "not json", "redirect"],
   )
 })
 

@@ -54,6 +54,7 @@ const WHY = {
   timeout: "timed out",
   "not json": "did not answer JSON",
   unreachable: "is unreachable",
+  redirect: "redirects, which is never followed",
 } as const
 
 const NOTHING_PLUGGED: Finding = { level: "warn", text: "plugged: nothing" }

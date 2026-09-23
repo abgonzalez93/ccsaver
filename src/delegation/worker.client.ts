@@ -39,7 +39,7 @@ const MAX_BODY_BYTES = 4 * 1024 * 1024
 const CHARS_PER_TOKEN = 4
 const TEMPERATURE = 0.2
 
-type Fell = "timeout" | "not json" | "unreachable"
+type Fell = "timeout" | "not json" | "unreachable" | "redirect"
 
 export const CLAUDE_ON_PATH = "claude"
 
@@ -206,7 +206,11 @@ export const shown = (url: string): string => {
 
 export const fellOf = (error: unknown): Fell => {
   if (error instanceof Error && error.name === "TimeoutError") return "timeout"
-  return error instanceof SyntaxError ? "not json" : "unreachable"
+  if (error instanceof SyntaxError) return "not json"
+  const cause = isRecord(error) ? error["cause"] : undefined
+  return isRecord(cause) && String(cause["message"]).includes("redirect")
+    ? "redirect"
+    : "unreachable"
 }
 
 const firstChoice = (raw: unknown): Record<PropertyKey, unknown> | undefined => {
@@ -252,16 +256,19 @@ const bodyOf = async (response: Response, most: number): Promise<string | undefi
 const inTokensOf = (raw: unknown): number | undefined => {
   const usage = isRecord(raw) ? raw["usage"] : undefined
   const tokens = isRecord(usage) ? usage["prompt_tokens"] : undefined
-  return typeof tokens === "number" && Number.isFinite(tokens) ? tokens : undefined
+  return typeof tokens === "number" && Number.isFinite(tokens) && tokens >= 0 ? tokens : undefined
 }
 
-const gaveNothing = (model: string, response: Response, raw: unknown): void => {
+const next = (worker: Worker): string =>
+  worker.fallback === false ? "and the fallback is off" : "falling back"
+
+const gaveNothing = (worker: Worker, response: Response, raw: unknown): void => {
   const cut = isCutShort(raw)
   delegation.fell = response.ok ? (cut ? "length" : "incomplete") : "status"
   note(
     cut
-      ? `${model} cut its answer short (finish_reason length), falling back`
-      : `${model} answered ${response.status} without a complete result, falling back`,
+      ? `${worker.model} cut its answer short (finish_reason length), ${next(worker)}`
+      : `${worker.model} answered ${response.status} without a complete result, ${next(worker)}`,
   )
 }
 
@@ -288,18 +295,19 @@ export const invokeExternal = async (
 ): Promise<string | undefined> => {
   if (worker === undefined) {
     delegation.fell = "no worker"
+    note("no worker is set (ccsaver worker set <url> <model>), falling back")
     return undefined
   }
   const key = readKey()
   if (key === undefined || !keyIsCarriable(key)) {
     const { fell, said } = keyTrouble(key)
     delegation.fell = fell
-    note(`${said}, falling back`)
+    note(`${said}, ${next(worker)}`)
     return undefined
   }
   if (!isEncrypted(worker.url)) {
     delegation.fell = "not https"
-    note("the worker url is not https, falling back")
+    note(`the worker url is not https, ${next(worker)}`)
     return undefined
   }
   const started = performance.now()
@@ -315,7 +323,7 @@ export const invokeExternal = async (
     const raw: unknown = JSON.parse(text ?? "null")
     const content = contentOf(raw)
     if (content === undefined) {
-      gaveNothing(worker.model, response, raw)
+      gaveNothing(worker, response, raw)
       return undefined
     }
     const inTokens = inTokensOf(raw)
@@ -332,7 +340,7 @@ export const invokeExternal = async (
   } catch (error) {
     const fell = fellOf(error)
     delegation.fell = fell
-    note(`${worker.model} ${fell}, falling back`)
+    note(`${worker.model} ${fell}, ${next(worker)}`)
     return undefined
   } finally {
     delegation.externalMs = Math.round(performance.now() - started)

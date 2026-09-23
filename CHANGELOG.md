@@ -4,6 +4,15 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.24.8 - 2026-09-23
+
+fix: the notes name a redirect, say when the fallback is off, and say why a call with no worker falls back
+
+- a refused redirect was reported as the host being unreachable; it is now its own reason, redirect, in the note, the log and doctor
+- every note said "falling back" even when the fallback was off and the next line said so; it now says "and the fallback is off"
+- a call with no worker.json went to paid Claude Haiku with no line saying why, against what the events page promises
+- a usage block reporting negative prompt tokens was recorded and summed by saved; it is now ignored like a missing one
+
 ## 0.24.7 - 2026-09-23
 
 fix: bulk-read asks for 2,048 tokens of answer, and a body past 4 MB is no answer
