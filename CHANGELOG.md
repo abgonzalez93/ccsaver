@@ -4,6 +4,13 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.24.6 - 2026-09-23
+
+fix: the fallback switch is read again at the moment of falling, not only when the call starts
+
+- worker.json was read once at the start of a call, so a fallback off typed while the worker was still answering did not stop that call from going to paid Claude Haiku when the worker then failed
+- the fake server of the tests can now delay its answer, which is what a switch flipped mid-call needs
+
 ## 0.24.5 - 2026-09-23
 
 fix: the stored key is hidden in everything a command prints, as it already was in the log

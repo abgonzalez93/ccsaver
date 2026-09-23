@@ -57,6 +57,7 @@ interface Reply {
   accepts: string | undefined
   location: string | undefined
   raw: string | undefined
+  delayMs: number
 }
 
 export interface FakeServer {
@@ -137,6 +138,7 @@ export const startServer = async (): Promise<FakeServer> => {
     accepts: undefined,
     location: undefined,
     raw: undefined,
+    delayMs: 0,
   }
   const server = createServer((request, response) => {
     let body = ""
@@ -147,17 +149,21 @@ export const startServer = async (): Promise<FakeServer> => {
       const authorization = request.headers.authorization
       seen.push({ authorization, body })
       const refused = reply.accepts !== undefined && authorization !== `Bearer ${reply.accepts}`
-      response.writeHead(refused ? 401 : reply.status, {
-        "content-type": "application/json",
-        ...(reply.location === undefined ? {} : { location: reply.location }),
-      })
-      response.end(
-        reply.raw ??
-          JSON.stringify({
-            choices: [{ message: { content: reply.content }, finish_reason: reply.finish }],
-            ...(reply.inTokens === undefined ? {} : { usage: { prompt_tokens: reply.inTokens } }),
-          }),
-      )
+      const answer = (): void => {
+        response.writeHead(refused ? 401 : reply.status, {
+          "content-type": "application/json",
+          ...(reply.location === undefined ? {} : { location: reply.location }),
+        })
+        response.end(
+          reply.raw ??
+            JSON.stringify({
+              choices: [{ message: { content: reply.content }, finish_reason: reply.finish }],
+              ...(reply.inTokens === undefined ? {} : { usage: { prompt_tokens: reply.inTokens } }),
+            }),
+        )
+      }
+      if (reply.delayMs > 0) setTimeout(answer, reply.delayMs)
+      else answer()
     })
   })
   await new Promise<void>((ready) => {
@@ -177,6 +183,7 @@ export const startServer = async (): Promise<FakeServer> => {
       reply.accepts = undefined
       reply.location = undefined
       reply.raw = undefined
+      reply.delayMs = 0
     },
     close: (): void => {
       server.close()

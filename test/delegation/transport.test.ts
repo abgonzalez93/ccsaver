@@ -252,3 +252,18 @@ test("the stored key is hidden in the answer the command prints, as it is in the
   assert.equal(out.stdout.includes(key), false)
   assert.match(out.stdout, /the header carried \[key\] and \[key\] again/)
 })
+
+test("the fallback switch is read again at the moment of falling, not only when the call starts", async () => {
+  const flip = join(WORK, "home-flip")
+  const worker = { url: server.url, model: "cheap-1" }
+  writeHome(flip, { plugged: PLUGGED, worker, key: "k-test" })
+  server.reply.status = 503
+  server.reply.delayMs = 1500
+  const call = bulkRead(SOURCE, { CCSAVER_HOME: flip })
+  await new Promise((tick) => setTimeout(tick, 500))
+  writeHome(flip, { worker: { ...worker, fallback: false } })
+  const out = await call
+  assert.equal(out.code, 1)
+  assert.equal(out.stdout, "")
+  assert.match(out.stderr, /the worker gave no answer \(status\) and the fallback is off/)
+})

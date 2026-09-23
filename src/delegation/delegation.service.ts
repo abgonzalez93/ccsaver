@@ -164,13 +164,14 @@ const invoke = async (
   } satisfies Delegation)
   const answer = inside ? await invokeExternal(mode, system, message, worker) : undefined
   if (answer !== undefined) return answer
-  if (worker?.fallback === false)
+  const now = readWorker() ?? worker
+  if (now?.fallback === false)
     return fail(
       inside
         ? `the worker gave no answer (${String(delegation.fell)}) and the fallback is off (ccsaver fallback on)`
         : "a file is outside the plugged project and the fallback is off, nothing was sent (ccsaver fallback on)",
     )
-  return invokeClaude(mode, system, message, worker)
+  return invokeClaude(mode, system, message, now)
 }
 
 interface Args {
