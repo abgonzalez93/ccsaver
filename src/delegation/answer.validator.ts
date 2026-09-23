@@ -14,7 +14,7 @@ const FENCED = /^\s*```[^\n]*\n([\s\S]*?)\n?```\s*$/
 const WRAPPED = /^\s*<file[^>]*>\s*\n([\s\S]*?)\n?<\/file>\s*$/
 const INNER_FENCE = /^```/m
 const RISKY =
-  /\bchild_process\b|\bprocess\.env\b|\bsubprocess\b|\bos\.system\b|\b(?:eval|fetch|Function|import)\(|\brm -rf\b|\b(?:curl|wget) |\brmSync\b|\bhttp\.request\b|\bnet\.connect\b|\bWebSocket\b/g
+  /\bchild_process\b|\bprocess\.env\b|\bprocess\[|\bsubprocess\b|\bos\.system\b|\b(?:eval|fetch|Function|import|require)\(|\brm -rf\b|\b(?:curl|wget) |\brmSync\b|\bhttp\.request\b|\bnet\.connect\b|\bWebSocket\b/g
 
 const isSame = (line: string, text: string): boolean =>
   line === text || (text.length >= 20 && line.startsWith(text))

@@ -124,5 +124,7 @@ test("names what generated code touches that a boilerplate test has no use for",
     "const again = process.env.OTHER",
   ].join("\n")
   assert.deepEqual(risky(code), ["child_process", "process.env", "fetch", "rm -rf", "curl"])
+  const sneaky = 'const fs = require("node:fs")\nconst home = process["env"].HOME\n'
+  assert.deepEqual(risky(sneaky), ["require", "process["])
   assert.deepEqual(risky('import { test } from "node:test"\ntest("adds", () => {})\n'), [])
 })
