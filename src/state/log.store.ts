@@ -12,9 +12,17 @@ export const numberAt = (row: Row, key: string): number => {
 }
 
 const LOG_VERSION = 1
+const PACKAGE = join(import.meta.dirname, "..", "..", "package.json")
 const LOG_LINE_BYTES = 4000
 const SESSION_CHARS = 200
 export const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/
+
+const versionOf = (): string => {
+  const raw = parsed(attempt(() => readFileSync(PACKAGE, "utf8")) ?? "")
+  return isRecord(raw) && typeof raw["version"] === "string" ? raw["version"] : "unknown"
+}
+
+const BY = versionOf()
 
 export const logDir = (): string => join(stateHome(), "log")
 
@@ -36,6 +44,7 @@ export const record = (kind: string, fields: Record<string, unknown>, session?: 
       kind,
       session: sessionOf(session),
       pid: process.pid,
+      by: BY,
     }
     const full = JSON.stringify({ ...head, ...fields })
     const size = Buffer.byteLength(full)

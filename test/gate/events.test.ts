@@ -14,6 +14,7 @@ import {
   run,
   startServer,
   tempDir,
+  VERSION,
   writeHome,
 } from "../test.helpers.ts"
 
@@ -110,6 +111,7 @@ test("one gate event per decision, with the ids of the call", async () => {
       kind: "gate",
       session: "session-hook",
       pid: 0,
+      by: VERSION,
       root: PROJECT,
       inside: true,
       path: "deep/long.txt",

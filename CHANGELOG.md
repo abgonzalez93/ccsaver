@@ -4,6 +4,13 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.24.12 - 2026-09-23
+
+fix: every log line says which version of ccsaver wrote it
+
+- a month's file mixes what seventeen versions and a few unpublished builds wrote, and three lines of September only made sense next to the git history: a ranged read with counted lines past the byte cap, a denial by tokens with lines counted, a gate line carrying raw hook fields
+- the by field comes from package.json, read once per process, in the Node writer and in the key set line the launcher writes in shell
+
 ## 0.24.11 - 2026-09-23
 
 fix: doctor reads a 400 from the worker as a rejected key or request

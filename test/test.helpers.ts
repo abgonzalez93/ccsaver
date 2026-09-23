@@ -44,6 +44,8 @@ export const jsonOf = (path: string): Record<PropertyKey, unknown> => {
   return raw
 }
 
+export const VERSION = String(jsonOf(join(REPO, "package.json"))["version"])
+
 interface Seen {
   authorization: string | undefined
   body: string

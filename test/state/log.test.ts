@@ -22,6 +22,7 @@ import {
   run,
   startServer,
   tempDir,
+  VERSION,
   writeHome,
 } from "../test.helpers.ts"
 
@@ -131,7 +132,7 @@ test("key set leaves the bare fact, never the key, in the format of every other 
   assert.match(String(last["ts"]), /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.000Z$/)
   assert.deepEqual(
     { ...last, ts: 0, pid: 0 },
-    { v: 1, ts: 0, kind: "config", session: null, pid: 0, action: "key set" },
+    { v: 1, ts: 0, kind: "config", session: null, pid: 0, by: VERSION, action: "key set" },
   )
   assert.deepEqual([...new Set(events(HOME).map(({ v }) => v))], [last["v"]])
   assert.equal(logged(HOME).includes(KEY), false)
