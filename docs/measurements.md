@@ -134,3 +134,7 @@ The denial message the hook writes is 376 characters for a path of 44, so ~94 to
 ## The hook's token estimate vs a real Read
 
 Fable 5.1, 9 batches in 2 sessions, line numbers included. The real cost of a whole-file `Read` measured 1.9–2.2× the bytes/4 estimate on batches of 16–27 KB, and 2.1–2.8× on batches of small files: the 8,000-token limit lets through reads of about 16,000 real tokens. A denied `Read` costs 136–251 tokens.
+
+## The terminal launcher
+
+Mean of 30 runs, process spawn included, 3 warm-ups, one machine, Node 24.16. `~/.local/bin/ccsaver` handing over to a plugin `bin/` found on the `PATH`, which is what a skill pays inside a session: **1.6 ms**, against 1.2 ms for `sh -c :`. From a terminal, reading `installed_plugins.json` with `node -e` and starting `bin/ccsaver version`: **49.4 ms**, against 33.2 ms for `bin/ccsaver version` on its own, so the record costs 16 ms a call, of which the `node -e` alone is 15.3 ms. The hand-written launcher it replaces, `ls | sort -V | tail -1` over the cache, took 36.6 ms and ran the newest folder there, an uninstalled one included. `claude plugin list --json`, the documented way to the same answer, took 129.9 ms and needs `claude` on the terminal's `PATH`, which the VS Code extension does not put there.

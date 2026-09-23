@@ -46,6 +46,8 @@ const MISTAKES: [string[], string, string][] = [
     "worker takes at most 3 arguments, not 4: set https://h/v1 m extra",
     "ccsaver worker set",
   ],
+  [["launcher"], "launcher needs write: ccsaver launcher write", "ccsaver launcher write"],
+  [["launcher", "fly"], "launcher takes write, not: fly", "ccsaver launcher write"],
   [["key"], "key needs set: ccsaver key set", "ccsaver key set   "],
   [["key", "get"], "key takes set, not: get", "ccsaver key set   "],
   [["key", "set", "extra"], "key takes at most 1 argument, not 2: set extra", "ccsaver key set   "],

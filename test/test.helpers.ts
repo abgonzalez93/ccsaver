@@ -11,7 +11,7 @@ import {
 } from "node:fs"
 import { createServer } from "node:http"
 import { tmpdir } from "node:os"
-import { join } from "node:path"
+import { dirname, join } from "node:path"
 import { isRecord } from "../src/state/state.store.ts"
 
 export const REPO = join(import.meta.dirname, "..")
@@ -28,6 +28,10 @@ export interface Ran {
 }
 
 export const AS_ROOT = process.getuid?.() === 0
+
+export const SHELL_PATH = [dirname(process.execPath), "/usr/local/bin", "/usr/bin", "/bin"].join(
+  ":",
+)
 
 export const HAS_PTY =
   process.platform === "linux" && spawnSync("script", ["--version"]).status === 0
@@ -250,4 +254,31 @@ export const logHome = (
       { mode: 0o600 },
     )
   return home
+}
+
+export const fakeInstall = (
+  config: string,
+  installed: string,
+  cached: string[],
+  marketplace = "abgonzalez93",
+): string => {
+  const plugin = join(config, "plugins", "cache", marketplace, "ccsaver")
+  mkdirSync(join(config, "plugins"), { recursive: true })
+  for (const version of cached) {
+    const root = join(plugin, version)
+    mkdirSync(join(root, "bin"), { recursive: true })
+    mkdirSync(join(root, ".claude-plugin"), { recursive: true })
+    writeFileSync(
+      join(root, ".claude-plugin", "plugin.json"),
+      `{"name":"ccsaver","version":"${version}"}`,
+    )
+    writeFileSync(join(root, "bin", "ccsaver"), `#!/bin/sh\necho ${version}\n`)
+    chmodSync(join(root, "bin", "ccsaver"), 0o755)
+  }
+  const entry = { scope: "user", installPath: join(plugin, installed), version: installed }
+  writeFileSync(
+    join(config, "plugins", "installed_plugins.json"),
+    JSON.stringify({ version: 2, plugins: { [`ccsaver@${marketplace}`]: [entry] } }, null, 2),
+  )
+  return plugin
 }

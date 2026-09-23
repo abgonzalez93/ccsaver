@@ -93,6 +93,7 @@ if [ "$1" = setup ]; then
   printf 'let paid Claude Haiku answer what the worker cannot? [Y/n] ' >&2
   IFS= read -r reply
   case $reply in [Nn]*) cli fallback off || exit 1 ;; *) cli fallback on || exit 1 ;; esac
+  cli launcher write
   cli doctor
   exit $?
 fi

@@ -4,6 +4,17 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.23.0 - 2026-09-23
+
+feat: ccsaver launcher write puts a launcher for your own terminal in ~/.local/bin, and setup runs it
+
+- Claude Code puts a plugin's bin/ on the PATH of its own Bash tool only, and nothing of a plugin's runs at install, so a terminal answered command not found until a launcher was typed by hand from the configuration page
+- the launcher reads the installed version from installed_plugins.json, under CLAUDE_CONFIG_DIR or ~/.claude, and runs that one: never the newest folder in the cache, which the hand-written script ran even after plugin uninstall; a record it does not know stops it with the file's name, never read as not installed
+- inside a session it hands over to the bin/ the session loaded, at 1.6 ms; a terminal pays 16 ms for the record, measured in docs/measurements.md
+- it is created with wx, never over a ccsaver it did not write, and replaces only an older launcher of its own; a folder off the PATH prints the one profile line to add, and a ccsaver of someone else's ahead on the PATH is named
+- pnpm test starts from a HOME that does not exist, so a test that forgets its own cannot touch a real launcher
+- the conventions guard blanks template literals before it reads a line, because a string is not code
+
 ## 0.22.0 - 2026-09-23
 
 feat: ccsaver warns when a session's context passes a limit, and keeps the handoff for the next one

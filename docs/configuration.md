@@ -14,21 +14,9 @@ ccsaver worker claude ~/.local/bin/claude   # optional: pin the binary the fallb
 
 ## Your own terminal
 
-Claude Code puts a plugin's `bin/` on the `PATH` of the Bash tool of its own sessions and nowhere else (observed in Claude Code 2.1), so after the install a terminal of yours answers `ccsaver: command not found`. The slash commands need nothing more. To type the commands yourself, give your shell a launcher:
+Claude Code puts a plugin's `bin/` on the `PATH` of the Bash tool of its own sessions and nowhere else, and runs nothing of a plugin's when it installs one ([plugins reference](https://code.claude.com/docs/en/plugins-reference)), so after the install a terminal of yours answers `ccsaver: command not found`. The slash commands need nothing more. For the commands, `ccsaver launcher write`, which `setup` runs, puts a launcher at `~/.local/bin/ccsaver`, where the native installer keeps `claude` itself, so a terminal that runs `claude` already looks there, and the `~/.profile` of Debian and Ubuntu adds it at the next login once it exists. When the folder is not on the `PATH` the command prints the one line to add to your shell profile, which it never edits, and it never replaces a `ccsaver` it did not write.
 
-```bash
-mkdir -p ~/.local/bin
-cat > ~/.local/bin/ccsaver <<'EOF'
-#!/bin/sh
-root="$HOME/.claude/plugins/cache/abgonzalez93/ccsaver"
-version=$(ls "$root" 2>/dev/null | sort -V | tail -1)
-[ -n "$version" ] || { echo "ccsaver: plugin not installed under $root" >&2; exit 1; }
-exec "$root/$version/bin/ccsaver" "$@"
-EOF
-chmod +x ~/.local/bin/ccsaver
-```
-
-It is a script and not a symlink because the folder Claude Code installs into carries the version in its name: a link would go on pointing at the version it was made for after every `plugin update`, and the script picks the newest on each call. `~/.local/bin` has to be on your `PATH`; the `~/.profile` of Debian and Ubuntu adds it only when the folder was there at login, so the first time open a new terminal or run `. ~/.profile`. The launcher is yours, not the plugin's: nothing installs it, and [Uninstall](../README.md#uninstall) removes it by hand.
+The launcher is a script, not a symlink, because the folder Claude Code installs into carries the version in its name. On each call it reads the installed version from Claude Code's own record, `installed_plugins.json` under `CLAUDE_CONFIG_DIR` or `~/.claude`, and runs that one, never the newest folder in the cache: an uninstalled plugin stays on disk for about 14 days, and the launcher then says `ccsaver is not installed` and exits 1. The record is undocumented: a shape it does not know stops it, naming the file. Inside a session it steps aside for the `bin/` the session loaded, so a skill runs the version its session carries, at [2 ms; a terminal pays 16 ms](measurements.md#the-terminal-launcher). `rm -f ~/.local/bin/ccsaver` removes it ([Uninstall](../README.md#uninstall)).
 
 ## The worker
 
@@ -135,7 +123,7 @@ Both limits are measured because both deny, and a file can need both raised: a 1
 
 The proposal never falls below the defaults, because a repository of ten short files would otherwise argue for a limit far worse than 350. Under twenty countable files it refuses to judge at all: one file in twenty is not a number.
 
-The measurement is taken at `plug` and at every `doctor`, and nowhere else: the hook never walks the project, because it answers every `Read` inside 24 ms. So a repository that grows past its limits says nothing until someone runs `doctor` again, which is worth doing when the project has changed shape rather than on a schedule. Nothing is stored between runs, so the answer is always that day's.
+The measurement is taken at `plug` and at every `doctor`, and nowhere else: the hook never walks the project, because it answers every `Read` inside 24 ms. So a repository that grows past its limits says nothing until someone runs `doctor` again. Nothing is stored between runs, so the answer is always that day's.
 
 `doctor` measures again on every run and adds one `warn shape:` line per project that has outgrown its limits, which is the moment the hook starts denying files the model should read whole. It is never a `FAIL`: nothing is broken, the limits are simply no longer the right ones. Growth the other way needs no warning, because a limit nothing reaches is merely inert.
 
@@ -220,6 +208,7 @@ The default limit comes from [175 sessions of one machine](measurements.md#where
 | `CLAUDE_CODE_EXECPATH` | the fallback, `doctor` | the binary of the running session (undocumented, observed in Claude Code 2.1) |
 | `CLAUDE_CODE_SESSION_ID` | the event log | the `session` field of every line |
 | `CLAUDE_CODE_CHILD_SESSION` | `doctor` | tells a shell inside a session from one outside (undocumented, observed in 2.1): a `claude` that does not run is a `FAIL` inside and a `warn` outside |
-| `NO_COLOR`, `TERM` | everything | whether a line is painted: only on a terminal, with `NO_COLOR` unset and `TERM` other than `dumb`, and each stream judged on its own, so an error on stderr is painted while stdout goes to a pipe. What is painted is the mark that opens a line, `✓` for a change, `→` for a repeat, `!` for a warning, `✗` for an error, the level label of `doctor`, and the `saved` band; the launcher paints its `key set` lines by the same rule. The colour never carries the meaning on its own: the word `ok`, `warn` or `FAIL` is always beside the level, `Error:` and `warn:` open their lines whether painted or not, the sign is always in front of the band, and a band that crosses zero says so in words. Off a terminal there is no mark either, so a parser reads plain words |
+| `CLAUDE_CONFIG_DIR` | the launcher | where Claude Code keeps `plugins/`; the default is `~/.claude` |
+| `NO_COLOR`, `TERM` | everything | whether a line is painted: only on a terminal, with `NO_COLOR` unset and `TERM` other than `dumb`, and each stream judged on its own, so an error on stderr is painted while stdout goes to a pipe. What is painted is the mark that opens a line, `✓` for a change, `→` for a repeat, `!` for a warning, `✗` for an error, the level label of `doctor`, and the `saved` band; the launcher paints its `key set` lines by the same rule. The colour never carries the meaning on its own: the word `ok`, `warn` or `FAIL` is always beside the level, `Error:` and `warn:` open their lines whether painted or not, the sign is always in front of the band, and a band that crosses zero says so in words |
 
 ccsaver sets `NODE_COMPILE_CACHE` (the `cache/` folder of the state folder) for the hook and the command, and four for the fallback: `MAX_THINKING_TOKENS=0`, `CLAUDE_CODE_EFFORT_LEVEL=low`, `CLAUDE_CODE_DISABLE_TERMINAL_TITLE=1` and `CLAUDE_CODE_PROMPT_CACHE_TTL=5m`.

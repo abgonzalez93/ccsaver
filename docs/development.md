@@ -12,7 +12,7 @@ claude plugin validate .
 
 The first three run in CI; the fourth is typed by hand, because a read-only CI that pins every action by SHA has nowhere to put an unpinned global install of Claude Code. What it would have caught on its own, `test/repo/skills.test.ts` holds: both manifests name the same plugin and the same version, the hook file `hooks.json` points at exists and is executable, and so are the launcher and the two git hooks.
 
-`CCSAVER_HOME` relocates the state folder; the tests use it and nothing else, and `pnpm test` starts from one that does not exist, so a test that forgets its own cannot touch yours.
+`CCSAVER_HOME` relocates the state folder; the tests use it and nothing else, and `pnpm test` starts from one that does not exist, and from a `HOME` that does not exist either, so a test that forgets its own cannot touch your key or your launcher.
 
 Once the gate is green and the commit made, `pnpm release` pushes `main` with its tags and then refreshes the plugin this machine runs, `claude plugin marketplace update abgonzalez93 && claude plugin update ccsaver@abgonzalez93`: the installed copy comes from the marketplace, never from this folder, so editing here changes nothing until that runs ([Update](../README.md#update)). The push is what makes the release workflow sweep for a `v*.*.0` tag ([versions](versions.md)).
 

@@ -13,7 +13,7 @@ claude plugin marketplace add abgonzalez93/ccsaver
 claude plugin install ccsaver@abgonzalez93
 ```
 
-Open a new session, or run `/reload-plugins`, then type `/ccsaver:setup` to point it at a worker and store its key, and `/ccsaver:plug` to turn it on for the project you are in. `/ccsaver:doctor` checks it all again later. Nothing else is installed on your machine, and ccsaver keeps no state of its own inside your projects. That includes your shell: Claude Code puts `ccsaver` on the `PATH` of its own sessions only, so a terminal of yours answers `command not found` until you give it [a launcher](docs/configuration.md#your-own-terminal).
+Open a new session, or run `/reload-plugins`, then type `/ccsaver:setup` to point it at a worker and store its key, and `/ccsaver:plug` to turn it on for the project you are in. `/ccsaver:doctor` checks it all again later. ccsaver keeps no state of its own inside your projects, and puts one file on your machine outside its state folder: Claude Code puts `ccsaver` on the `PATH` of its own sessions only, so `setup` writes [a launcher](docs/configuration.md#your-own-terminal) at `~/.local/bin/ccsaver` for a terminal of yours, and says so when that folder is not on your `PATH`.
 
 Needs Claude Code, Node.js 22.18+ or 24.2+, and a POSIX `sh`. Linux and macOS only.
 
@@ -82,7 +82,7 @@ Claude Code 2.1.274 applies a skill's grant when you type `/ccsaver:bulk-reader`
 
 | Command | What it does |
 | --- | --- |
-| `ccsaver setup` | ask for worker, key and fallback, then run `doctor` |
+| `ccsaver setup` | ask for worker, key and fallback, put the launcher in place, then run `doctor` |
 | `ccsaver plug [dir] [adapter]` | turn ccsaver on for one project; no directory means this one |
 | `ccsaver adapter <name> k=v ...` | set `maxLines` or `maxTokens` on an adapter, creating it if it is not there |
 | `ccsaver unplug <dir>` | turn it off again for that project |
@@ -90,6 +90,7 @@ Claude Code 2.1.274 applies a skill's grant when you type `/ccsaver:bulk-reader`
 | `ccsaver worker set <url> <model>` | point at an OpenAI-compatible chat completions endpoint |
 | `ccsaver worker claude <path>\|auto` | pin the `claude` binary the fallback runs, or give it back to the session |
 | `ccsaver key set` | store the API key: typed with the echo off, or read from stdin |
+| `ccsaver launcher write` | put a launcher at `~/.local/bin/ccsaver`, so a terminal of yours finds ccsaver; what `setup` runs before `doctor` |
 | `ccsaver fallback on\|off` | whether a call the worker cannot take goes to paid Claude Haiku |
 | `ccsaver log on\|off` | record events, metadata only, in a local file; off by default |
 | `ccsaver handoff on\|off\|<tokens>` | warn at the end of a turn whose context passed this many tokens, on by default at 200,000; with nothing after it, what is set and what is kept |
@@ -101,14 +102,14 @@ Claude Code 2.1.274 applies a skill's grant when you type `/ccsaver:bulk-reader`
 | `ccsaver bulk-read --question=<q> --paths <file>...` | what the `bulk-reader` skill runs; `--project <dir>` names the project |
 | `ccsaver code-write --spec=<s> --reference <file>...` | what the `code-writer` skill runs; `--target <out>` writes the file |
 
-A setting is a noun and a value (`worker set`, `key set`, `adapter <name> k=v`, `fallback on|off`, `log on|off`, `handoff on|off|<tokens>`); everything that does something is a verb (`plug`, `unplug`, `list`, `doctor`, `setup`). The last two rows are the subcommands the skills run, `handoff write` the one the slash command runs, and a hand rarely types them. Five of these have a slash command that walks a session through them and reads the answer back: `/ccsaver:setup`, `/ccsaver:plug`, `/ccsaver:doctor`, `/ccsaver:saved` and `/ccsaver:handoff`. `ccsaver` with no command, and `help`, print that table on stdout and exit 0. A command given the wrong arguments says what was wrong and prints its own row of the table under it, on stderr, and exits 1, so the line you need is never buried under the rest:
+A setting is a noun and a value (`worker set`, `key set`, `adapter <name> k=v`, `fallback on|off`, `log on|off`, `handoff on|off|<tokens>`); everything that does something is a verb (`plug`, `unplug`, `list`, `doctor`, `setup`). The last two rows are the subcommands the skills run, `handoff write` and `launcher write` the ones `/ccsaver:handoff` and `setup` run, and a hand rarely types them. Five of these have a slash command that walks a session through them and reads the answer back: `/ccsaver:setup`, `/ccsaver:plug`, `/ccsaver:doctor`, `/ccsaver:saved` and `/ccsaver:handoff`. `ccsaver` with no command, and `help`, print that table on stdout and exit 0. A command given the wrong arguments says what was wrong and prints its own row of the table under it, on stderr, and exits 1, so the line you need is never buried under the rest:
 
 ```
 Error: fallback takes on or off, not: sideways
 usage: ccsaver fallback on|off            whether a call the worker cannot take goes to paid Claude Haiku
 ```
 
-A word that is no command at all prints `Error: unknown command: <word>` and the whole table. A setting typed with the value it already has says so and changes nothing, on disk or in the [event log](docs/events.md): `the log is already on`, `the fallback is already off`, `the handoff limit is already 200000 tokens`, `the worker is already <url> · <model>`, `<model> is already $5/M`, `adapter <name> already holds maxLines=400`; `plug` on a project that is plugged in and `unplug` on one that is not answer the same way. All of them exit 0, because nothing is wrong. A change that replaced a value names the old one, `plugged <root> · adapter strict-ts (was none)`, `price claude-opus-5 $6/M (was $5/M)`, `fallback binary pinned: <path> (was <path>)`. On a terminal every line opens with a mark in colour: `✓` for a change made, `→` for something that was already so, `!` for a warning, `✗` for an error, and `doctor` paints its `ok`, `warn` and `FAIL` the same way. When the output goes to a pipe, or with `NO_COLOR` set or `TERM=dumb`, the words stand alone: what a script or a session reads never carries a mark or an escape code, and the word always says what the colour says. A control character in an argument, in a path or in what the worker answers is written as `\\x1b` before it is printed, and an invisible one that reorders or hides what you read, a bidi override or a zero-width space, as `\\u202e`, so nothing ccsaver echoes can repaint your terminal or show a line that reads differently from what it holds. The one exception is the code of a `code-write` without `--target`: that is a file's contents and travels byte for byte, which is one more reason to name a `--target`.
+A word that is no command at all prints `Error: unknown command: <word>` and the whole table. A setting typed with the value it already has says so and changes nothing, on disk or in the [event log](docs/events.md): `the log is already on`, `the fallback is already off`, `the handoff limit is already 200000 tokens`, `the worker is already <url> · <model>`, `<model> is already $5/M`, `adapter <name> already holds maxLines=400`, `the launcher is already at ~/.local/bin/ccsaver`; `plug` on a project that is plugged in and `unplug` on one that is not answer the same way. All of them exit 0, because nothing is wrong. A change that replaced a value names the old one, `plugged <root> · adapter strict-ts (was none)`, `price claude-opus-5 $6/M (was $5/M)`, `fallback binary pinned: <path> (was <path>)`. On a terminal every line opens with a mark in colour: `✓` for a change made, `→` for something that was already so, `!` for a warning, `✗` for an error, and `doctor` paints its `ok`, `warn` and `FAIL` the same way. When the output goes to a pipe, or with `NO_COLOR` set or `TERM=dumb`, the words stand alone: what a script or a session reads never carries a mark or an escape code, and the word always says what the colour says. A control character in an argument, in a path or in what the worker answers is written as `\\x1b` before it is printed, and an invisible one that reorders or hides what you read, a bidi override or a zero-width space, as `\\u202e`, so nothing ccsaver echoes can repaint your terminal or show a line that reads differently from what it holds. The one exception is the code of a `code-write` without `--target`: that is a file's contents and travels byte for byte, which is one more reason to name a `--target`.
 
 The target of a `code-write` is the one thing ccsaver ever writes inside a project; its own state never goes there, but in `~/.config/ccsaver/`: the key (600), `worker.json`, `prices.json`, `handoff.json`, the `plugged` list, your own `adapters/`, the `handoff/` folder with the handoffs you keep and one marker per session, Node's compile `cache/` and, once you ask for it, `log/`. `plug` stores the real path and refuses `/`, your home folder, any folder that contains the state folder, and a folder that is itself a store of credentials (`.ssh`, `.aws`, `.gnupg`, `.kube`, `.git`, `secrets`); a project *inside* one of them, `~/secrets/my-app`, still plugs. A `plugged` list that is there but cannot be read stops `plug`, `unplug`, `list` and `doctor` with its name, instead of being read as empty and written back with one line; the hook never starts on it, because the gate in `sh` asks whether it can read the file first.
 
@@ -141,7 +142,7 @@ ccsaver list                                   # what is still plugged
 claude plugin uninstall ccsaver@abgonzalez93
 claude plugin marketplace remove abgonzalez93
 rm -rf ~/.config/ccsaver                       # your API key and the event log live here
-rm -f ~/.local/bin/ccsaver                     # the launcher, if you made one
+rm -f ~/.local/bin/ccsaver                     # the launcher setup wrote
 ```
 
 Then delete the two `Bash(ccsaver …)` rules from `permissions.allow` in `~/.claude/settings.json`, if you added them.

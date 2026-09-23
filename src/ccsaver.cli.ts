@@ -1,9 +1,9 @@
 import { readFileSync } from "node:fs"
-import { join } from "node:path"
 import { isMode, runWorker } from "./delegation/delegation.service.ts"
 import { shown } from "./delegation/worker.client.ts"
 import { setClaude, setFallback, writeWorker } from "./delegation/worker.store.ts"
 import { doctor } from "./doctor/doctor.service.ts"
+import { ownVersion, writeLauncher } from "./doctor/launcher.service.ts"
 import { proposalOf, surveyFor } from "./doctor/survey.service.ts"
 import {
   listedPrices,
@@ -32,16 +32,7 @@ import {
   setHandoff,
 } from "./state/handoff.store.ts"
 import { crashed, logDir, MONTH, record, setLog } from "./state/log.store.ts"
-import {
-  attempt,
-  isRecord,
-  marked,
-  messageOf,
-  parsed,
-  Refusal,
-  scrubbed,
-  type Tone,
-} from "./state/state.store.ts"
+import { marked, messageOf, Refusal, scrubbed, type Tone } from "./state/state.store.ts"
 
 const USAGE = `usage: ccsaver <command>
 
@@ -53,6 +44,7 @@ const USAGE = `usage: ccsaver <command>
   worker set <url> <model>   point at an OpenAI-compatible chat completions endpoint
   worker claude <path>|auto  pin the claude binary the fallback runs (auto: the session's own)
   key set                    store the API key, read from the terminal or from stdin
+  launcher write             put a launcher in ~/.local/bin, so a terminal of yours finds ccsaver
   fallback on|off            whether a call the worker cannot take goes to paid Claude Haiku
   log on|off                 record events (metadata only) in a local file; off by default
   handoff on|off|<tokens>    warn at the end of a turn past this much context; alone, what is set
@@ -66,7 +58,6 @@ const USAGE = `usage: ccsaver <command>
   code-write --spec=<s> --reference <file>... [--target <out>] [--project <dir>]
 `
 
-const PACKAGE = join(import.meta.dirname, "..", "package.json")
 const HELP = ["help", "--help", "-h"]
 const LIMIT_KEYS = ["maxLines", "maxTokens"] as const
 const OWN_CLAUDE = "the session's own claude runs the fallback"
@@ -90,11 +81,6 @@ const limitsGiven = (pairs: string[]): Partial<Limits> => {
       `${LIMIT_KEYS.join("=<n> and ")}=<n>, n a positive integer up to ${LIMIT_CEILING}; not: ${wrong.map((parts) => parts.join("=")).join(" ")}`,
     )
   return Object.fromEntries(given.map(([key, value]) => [key, Number(value)]))
-}
-
-const version = (): string => {
-  const raw = parsed(attempt(() => readFileSync(PACKAGE, "utf8")) ?? "")
-  return isRecord(raw) && typeof raw["version"] === "string" ? raw["version"] : "unknown"
 }
 
 const say = (tone: Tone, text: string): void => {
@@ -128,7 +114,12 @@ const atMost =
 const onOff = (name: string, first: string | undefined): string =>
   first === undefined ? `${name} needs on or off` : `${name} takes on or off, not: ${first}`
 
-const printVersion: Command = (): Outcome => done("info", version())
+const only = (name: string, verb: string, first: string | undefined): string =>
+  first === undefined
+    ? `${name} needs ${verb}: ccsaver ${name} ${verb}`
+    : `${name} takes ${verb}, not: ${first}`
+
+const printVersion: Command = (): Outcome => done("info", ownVersion())
 
 const pinned = (given: string): number => {
   const { pinned, was } = setClaude(given === "auto" ? undefined : given)
@@ -286,7 +277,23 @@ const COMMANDS: Record<string, Command> = {
   key: atMost("key", 1, ([first]) => {
     if (first === "set")
       return "key set belongs to the launcher: run ccsaver key set, not node src/ccsaver.cli.ts"
-    return first === undefined ? "key needs set: ccsaver key set" : `key takes set, not: ${first}`
+    return only("key", "set", first)
+  }),
+  launcher: atMost("launcher", 1, ([first]) => {
+    if (first !== "write") return only("launcher", "write", first)
+    const { place, was, advice } = writeLauncher()
+    if (was === "current") say("info", `the launcher is already at ${place}`)
+    else {
+      say(
+        "ok",
+        was === "nothing"
+          ? `launcher written to ${place}`
+          : `launcher replaced at ${place} (an older launcher of ccsaver's)`,
+      )
+      say("info", "in a new terminal: ccsaver version")
+    }
+    for (const line of advice) warn(line)
+    return 0
   }),
   version: atMost("version", 0, printVersion),
   "--version": atMost("--version", 0, printVersion),
