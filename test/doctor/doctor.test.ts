@@ -22,7 +22,7 @@ import {
   startServer,
   tempDir,
   writeHome,
-} from "./helpers.ts"
+} from "../helpers.ts"
 
 const OLD_KEY = "k-old-0123456789-0123456789-012345678"
 const NEW_KEY = "k-new-9876543210-9876543210-987654321"

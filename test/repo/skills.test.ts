@@ -2,8 +2,8 @@ import assert from "node:assert/strict"
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs"
 import { join } from "node:path"
 import { test } from "node:test"
-import { isRecord } from "../src/state/state.ts"
-import { jsonOf, REPO } from "./helpers.ts"
+import { isRecord } from "../../src/state/state.ts"
+import { jsonOf, REPO } from "../helpers.ts"
 
 const SKILLS = [
   ["bulk-reader", "bulk-read"],

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { readdirSync, rmSync } from "node:fs"
 import { after, test } from "node:test"
-import { CLI, LAUNCHER, type Ran, run, tempDir } from "./helpers.ts"
+import { CLI, LAUNCHER, type Ran, run, tempDir } from "../helpers.ts"
 
 const HOME = tempDir("mistakes-home")
 

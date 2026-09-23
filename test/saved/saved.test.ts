@@ -1,9 +1,9 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
-import type { Prices } from "../src/saved/prices.ts"
-import { moneyOf, NOTHING_SPENT, tallied, totalled } from "../src/saved/saved.ts"
-import { foldMonth } from "../src/state/log.ts"
-import { denialRow, gateRow } from "./helpers.ts"
+import type { Prices } from "../../src/saved/prices.ts"
+import { moneyOf, NOTHING_SPENT, tallied, totalled } from "../../src/saved/saved.ts"
+import { foldMonth } from "../../src/state/log.ts"
+import { denialRow, gateRow } from "../helpers.ts"
 
 const OPUS = "claude-opus-5"
 const FABLE = "claude-fable-5-1"

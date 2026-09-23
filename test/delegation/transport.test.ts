@@ -3,7 +3,7 @@ import { chmodSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:
 import { createServer } from "node:http"
 import { join } from "node:path"
 import { after, before, beforeEach, test } from "node:test"
-import { fellOf } from "../src/delegation/transport.ts"
+import { fellOf } from "../../src/delegation/transport.ts"
 import {
   AS_ROOT,
   CLI,
@@ -15,7 +15,7 @@ import {
   startServer,
   tempDir,
   writeHome,
-} from "./helpers.ts"
+} from "../helpers.ts"
 
 const HOME = tempDir("transport-home")
 const PLAIN_HOME = tempDir("transport-plain")

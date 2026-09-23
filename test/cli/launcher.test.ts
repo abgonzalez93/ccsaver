@@ -15,7 +15,7 @@ import {
   run,
   startServer,
   tempDir,
-} from "./helpers.ts"
+} from "../helpers.ts"
 
 const OLD_KEY = "k-old-0123456789-0123456789-012345678"
 

@@ -11,7 +11,7 @@ import {
   startServer,
   tempDir,
   writeHome,
-} from "./helpers.ts"
+} from "../helpers.ts"
 
 const HOME = tempDir("spent-home")
 const WORK = tempDir("spent-work")

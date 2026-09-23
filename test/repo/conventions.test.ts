@@ -2,12 +2,13 @@ import assert from "node:assert/strict"
 import { existsSync, readdirSync, readFileSync } from "node:fs"
 import { dirname, join, relative } from "node:path"
 import { test } from "node:test"
-import { DEFAULT_LIMITS } from "../src/state/config.ts"
-import { isRecord, parsed } from "../src/state/state.ts"
-import { REPO } from "./helpers.ts"
+import { DEFAULT_LIMITS } from "../../src/state/config.ts"
+import { isRecord, parsed } from "../../src/state/state.ts"
+import { REPO } from "../helpers.ts"
 
 const SKIPPED = [".git", "node_modules"]
 const UNREAD_WHOLE = ["pnpm-lock.yaml", "CHANGELOG.md"]
+const CROWDED = 6
 const COMMENTS = [
   "// Portions of this file are adapted from a third-party Apache-2.0 work and were modified; see NOTICE.",
   "// the folder is the switch: without it the append fails and nothing else changes",
@@ -91,6 +92,14 @@ test("every file is readable whole under the default gate, the two append-only o
     return fits ? [] : [`${named(path)}: ${lines} lines, ${bytes.length} bytes`]
   })
   assert.deepEqual(over, [])
+})
+
+test("no directory but the root reaches six files", () => {
+  const grouped = Object.groupBy(filesUnder(REPO), (path) => named(dirname(path)))
+  const crowded = Object.entries(grouped)
+    .filter(([dir, files]) => dir !== "" && (files?.length ?? 0) >= CROWDED)
+    .map(([dir, files]) => `${dir}: ${files?.length} files`)
+  assert.deepEqual(crowded, [])
 })
 
 const LINK = /\[([^\]]*)\]\(([^)\s]+)\)/g

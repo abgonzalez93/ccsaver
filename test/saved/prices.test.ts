@@ -11,7 +11,7 @@ import {
   tempDir,
   twentyDenials,
   writeHome,
-} from "./helpers.ts"
+} from "../helpers.ts"
 
 const OPUS = "claude-opus-5"
 const WORK = tempDir("prices-work")

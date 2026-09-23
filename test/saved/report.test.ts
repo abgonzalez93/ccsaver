@@ -13,7 +13,7 @@ import {
   run,
   tempDir,
   twentyDenials,
-} from "./helpers.ts"
+} from "../helpers.ts"
 
 const WORK = tempDir("report-work")
 

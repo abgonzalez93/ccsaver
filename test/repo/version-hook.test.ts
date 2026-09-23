@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process"
 import { mkdirSync, readdirSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { test } from "node:test"
-import { REPO, tempDir } from "./helpers.ts"
+import { REPO, tempDir } from "../helpers.ts"
 
 const HOOKS = join(REPO, ".githooks")
 const REPAIR = `node ${join(REPO, "scripts", "version.ts")}`

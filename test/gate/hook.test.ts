@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process"
 import { mkdirSync, rmSync, symlinkSync, truncateSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { after, test } from "node:test"
-import { HOOK, type Ran, run, tempDir, writeHome } from "./helpers.ts"
+import { HOOK, type Ran, run, tempDir, writeHome } from "../helpers.ts"
 
 const HOME = tempDir("hook-home")
 const WORK = tempDir("hook-work")
