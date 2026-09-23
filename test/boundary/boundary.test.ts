@@ -81,10 +81,17 @@ test("refuses a private key, a well-known token and a binary, whatever the file 
 
 test("a target stays inside the root and away from what Claude Code protects", () => {
   const refused = ["/work/elsewhere/out.ts", "/work/project-two/out.ts"]
-  const guarded = [".claude/settings.json", ".Git/hooks/pre-commit", ".envrc", "sub/.vscode/x.json"]
+  const guarded = [
+    ".claude/settings.json",
+    ".Git/hooks/pre-commit",
+    ".envrc",
+    "sub/.vscode/x.json",
+    ".github/workflows/ci.yml",
+    ".githooks/pre-push",
+  ]
   for (const target of refused) assert.match(targetRefusal(target, ROOT) ?? "", /outside/)
   for (const target of guarded)
     assert.match(targetRefusal(`${ROOT}/${target}`, ROOT) ?? "", /protects/, target)
   assert.equal(targetRefusal(`${ROOT}/src/new.test.ts`, ROOT), undefined)
-  assert.equal(targetRefusal(`${ROOT}/.github/workflows/ci.yml`, ROOT), undefined)
+  assert.equal(targetRefusal(`${ROOT}/.github/dependabot.yml`, ROOT), undefined)
 })

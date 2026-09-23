@@ -4,6 +4,13 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.24.3 - 2026-09-23
+
+fix: code-write refuses a target under .github/workflows or .githooks
+
+- a workflow written by the cheap model runs in CI on the next push, and this repository runs the hooks of .githooks on every commit; both folders took a --target
+- the rest of .github stays writable, because dependabot.yml and the templates run nothing, and the boundary test that pinned ci.yml as a valid target now pins the opposite
+
 ## 0.24.2 - 2026-09-23
 
 fix: a private-key header is refused only at the start of a line

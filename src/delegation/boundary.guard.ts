@@ -7,7 +7,7 @@ const PRIVATE_KEY = /^-----BEGIN [A-Z ]*PRIVATE KEY( BLOCK)?-----/m
 const TOKEN =
   /\b(AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{22,}|glpat-[A-Za-z0-9_-]{20,}|npm_[A-Za-z0-9]{36}|xox[abprs]-[A-Za-z0-9-]{10,}|[sr]k[-_][A-Za-z0-9_-]{20,}|AIza[0-9A-Za-z_-]{35})\b/
 const PROTECTED_PLACE =
-  /(^|\/)(\.git|\.config\/git|\.vscode|\.idea|\.husky|\.cargo|\.devcontainer|\.yarn|\.mvn|\.claude)(\/|$)/i
+  /(^|\/)(\.git|\.config\/git|\.vscode|\.idea|\.husky|\.cargo|\.devcontainer|\.yarn|\.mvn|\.claude|\.githooks|\.github\/workflows)(\/|$)/i
 const PROTECTED_NAME =
   /^(\.gitconfig|\.gitmodules|\.bash(rc|_profile|_login|_aliases|_logout)|\.z(shrc|profile|shenv|login|logout)|\.profile|\.envrc|\.npmrc|\.yarnrc(\.yml)?|\.pnp\.(cjs|loader\.mjs)|\.pnpmfile\.cjs|\.?bunfig\.toml|\.bazel(rc|version|iskrc)|\.pre-commit-config\.yaml|\.?lefthook\.ya?ml|(gradle|maven)-wrapper\.properties|\.devcontainer\.json|\.ripgreprc|pyrightconfig\.json|\.mcp\.json|\.claude\.json)$/i
 
