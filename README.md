@@ -97,7 +97,7 @@ Claude Code 2.1.274 applies a skill's grant when you type `/ccsaver:bulk-reader`
 | `ccsaver handoff write` | what `/ccsaver:handoff` runs: keep a handoff read from stdin, private, for the next session |
 | `ccsaver saved [month\|all]` | what the log says it cost, and what it would have cost without |
 | `ccsaver price [<model>\|worker <usd>]` | dollars per million input tokens for one model, so `saved` can show money; with nothing after it, what is set |
-| `ccsaver doctor` | check permissions, key, worker, fallback and projects |
+| `ccsaver doctor` | check permissions, key, worker, fallback, the launcher and projects |
 | `ccsaver version` | print the version |
 | `ccsaver bulk-read --question=<q> --paths <file>...` | what the `bulk-reader` skill runs; `--project <dir>` names the project |
 | `ccsaver code-write --spec=<s> --reference <file>...` | what the `code-writer` skill runs; `--target <out>` writes the file |

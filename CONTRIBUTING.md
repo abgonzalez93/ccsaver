@@ -90,8 +90,8 @@ Guard: `test/repo/conventions.test.ts`.
 | `src/saved/saved.service.ts` | what the log says was spent, added up month by month | `config.store`, `log.store`, `prices.store`, `state.store` |
 | `src/saved/saved.reporter.ts` | what `ccsaver saved` prints, and every caveat under it | `log.store`, `prices.store`, `saved.service`, `state.store` |
 | `src/doctor/finding.model.ts` | what a check reports: a level, a text and the fix it offers, and how a line is painted | `state.store` |
-| `src/doctor/doctor.service.ts` | every check `doctor` runs and the level each one reports | `config.store`, `finding.model`, `log.store`, `state.store`, `survey.service`, `worker.client`, `worker.store` |
-| `src/doctor/launcher.service.ts` | the launcher of your own terminal: its text, its place, and what stands before it on the `PATH` | `log.store`, `state.store` |
+| `src/doctor/doctor.service.ts` | every check `doctor` runs and the level each one reports | `config.store`, `finding.model`, `launcher.service`, `log.store`, `state.store`, `survey.service`, `worker.client`, `worker.store` |
+| `src/doctor/launcher.service.ts` | the launcher of your own terminal: its text, its place, and what stands before it on the `PATH` | `finding.model`, `log.store`, `state.store` |
 | `src/ccsaver.cli.ts` | arguments and the exit code | `config.store`, `delegation.service`, `doctor.service`, `launcher.service`, `log.store`, `prices.store`, `saved.reporter`, `state.store`, `survey.service`, `worker.client`, `worker.store` |
 | `src/read-gate.hook.ts` | the `Read` gate | `config.store`, `log.store`, `state.store` |
 | `src/handoff.hook.ts` | the context warning at the end of a turn | `config.store`, `handoff.store`, `log.store`, `state.store` |

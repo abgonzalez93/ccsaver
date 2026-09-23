@@ -51,7 +51,7 @@ const USAGE = `usage: ccsaver <command>
   handoff write              keep a handoff read from stdin, what /ccsaver:handoff runs
   saved [month|all]          what the log says it cost, and what it would have cost without
   price <model>|worker <usd> dollars per million input tokens; price alone lists them
-  doctor                     check permissions, key, worker, fallback and projects
+  doctor                     check permissions, key, worker, fallback, launcher and projects
   version                    print the version
 
   bulk-read  --question=<q> --paths <file>... [--project <dir>]

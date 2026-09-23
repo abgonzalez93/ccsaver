@@ -38,6 +38,7 @@ import {
   workerFile,
 } from "../state/state.store.ts"
 import { type Finding, type Level, offer, painted, TONE } from "./finding.model.ts"
+import { launcherFindings } from "./launcher.service.ts"
 import {
   adapterNameOf,
   fixOf,
@@ -307,6 +308,7 @@ export const doctor = async (): Promise<number> => {
     ...spent(rows),
     ...(await workers()),
     ...(plugged.length > 0 ? plugged : [NOTHING_PLUGGED]),
+    ...launcherFindings(),
   ]
   for (const { level, text } of findings)
     process.stdout.write(`${painted(level, scrubbed(text))}\n`)

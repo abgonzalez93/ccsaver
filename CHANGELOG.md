@@ -4,6 +4,15 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.24.0 - 2026-09-23
+
+feat: doctor checks the launcher of your own terminal, which version it runs and whether its folder is on the PATH
+
+- launcher: ok when ~/.local/bin/ccsaver is ccsaver's and, run with the session's plugin bins off the PATH, answers this doctor's version; warn when there is none or when it is an older launcher of ccsaver's, both with the fix ccsaver launcher write that doctor offers on a terminal, when it is someone else's, which is left alone, or when it runs another version; FAIL with the launcher's own Error line
+- path: whether ~/.local/bin is on this PATH, with the profile line to add when it is not, and a ccsaver of someone else's that comes first on the PATH is named
+- the two lines come after the projects, so the fixes doctor offers keep their order
+- the doctor tally test compares the counts with the lines instead of demanding zero warn
+
 ## 0.23.0 - 2026-09-23
 
 feat: ccsaver launcher write puts a launcher for your own terminal in ~/.local/bin, and setup runs it

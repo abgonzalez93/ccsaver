@@ -77,6 +77,7 @@ Claude Code's documentation says `--bare` will become the default for `-p`, and 
 - The fallback binary, with `--version`, unless the fallback is off.
 - Every plugged project, with its adapter and limits. For each one it feeds the hook a throwaway file one line over the limit, and the `gate:` line fails unless that read is denied.
 - The shape of every plugged project, measured again on each run. A `warn shape:` line appears only when the project has outgrown its limit; see [Limits](#limits).
+- The launcher of [your own terminal](#your-own-terminal): that it is ccsaver's, which version it runs, and whether its folder is on the `PATH`, naming a `ccsaver` that comes first.
 
 It never prints the key, its length or the query of the worker url. From a terminal outside Claude Code with no `claude` on the `PATH`, the fallback line is a `warn`, not a failure: that shell cannot see the binary a session brings, so run `doctor` from inside one.
 

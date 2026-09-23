@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process"
 import {
   chmodSync,
   existsSync,
@@ -11,8 +12,12 @@ import { homedir } from "node:os"
 import { dirname, join } from "node:path"
 import { record } from "../state/log.store.ts"
 import { attempt, isRecord, messageOf, parsed, Refusal, real } from "../state/state.store.ts"
+import type { Finding, Fix } from "./finding.model.ts"
 
 const MARK = "# ccsaver launcher "
+const RUN_TIMEOUT_MS = 15_000
+const VERSION_SHAPE = /^\d+\.\d+\.\d+$/
+const RELOAD = "a session keeps the version it loaded until /reload-plugins"
 const PACKAGE = join(import.meta.dirname, "..", "..", "package.json")
 export const PROFILE_LINE = 'export PATH="$HOME/.local/bin:$PATH"'
 
@@ -154,4 +159,72 @@ export const writeLauncher = (): Placing => {
   const was = placed(place)
   if (was !== "current") record("config", { action: "launcher", place })
   return { place, was, advice: pathAdvice(place) }
+}
+
+const writeFix = (): Fix => ({
+  shown: "ccsaver launcher write",
+  apply: (): string => {
+    const { place, was } = writeLauncher()
+    return was === "older" ? `launcher replaced at ${place}` : `launcher written to ${place}`
+  },
+})
+
+const withoutPluginBins = (): string =>
+  pathEntries()
+    .filter((dir) => !isPluginBin(dir))
+    .join(":")
+
+const ran = (place: string): Finding => {
+  const run = spawnSync("sh", [place, "version"], {
+    encoding: "utf8",
+    timeout: RUN_TIMEOUT_MS,
+    env: { ...process.env, PATH: withoutPluginBins() },
+  })
+  const said = run.stdout.trim()
+  if (run.status !== 0 || !VERSION_SHAPE.test(said)) {
+    const reason = run.stderr.split("\n")[0] || `exit ${run.status ?? run.signal}`
+    return { level: "FAIL", text: `launcher: ${place} says: ${reason}` }
+  }
+  const own = ownVersion()
+  return said === own
+    ? { level: "ok", text: `launcher: ${place} runs ${said}` }
+    : {
+        level: "warn",
+        text: `launcher: ${place} runs ${said}, and this doctor is ${own}: ${RELOAD}`,
+      }
+}
+
+const launcherState = (place: string): Finding => {
+  const text = attempt(() => readFileSync(place, "utf8"))
+  if (text === undefined)
+    return existsSync(place)
+      ? { level: "FAIL", text: `launcher: ${place} cannot be read: check its owner and its mode` }
+      : {
+          level: "warn",
+          text: `launcher: none at ${place}, a terminal of yours answers command not found`,
+          fix: writeFix(),
+        }
+  if (!isLauncher(text))
+    return { level: "warn", text: `launcher: ${place} is not ccsaver's launcher, left alone` }
+  if (text !== LAUNCHER)
+    return {
+      level: "warn",
+      text: `launcher: ${place} is an older launcher of ccsaver's`,
+      fix: writeFix(),
+    }
+  return ran(place)
+}
+
+const pathFindings = (place: string): Finding[] => {
+  const dir = dirname(place)
+  const warned = pathAdvice(place).map(
+    (text): Finding => ({ level: "warn", text: `path: ${text}` }),
+  )
+  const found: Finding = { level: "ok", text: `path: ${dir} is on this PATH` }
+  return onPath(dir) ? [...warned, found] : warned
+}
+
+export const launcherFindings = (): Finding[] => {
+  const place = launcherPlace()
+  return [launcherState(place), ...pathFindings(place)]
 }

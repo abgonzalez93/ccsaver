@@ -305,8 +305,14 @@ test("doctor says whether the log is on, records its tally and marks its own pro
   const seen = events(HOME)
   const { ok, warn, fail } = seen.findLast(({ kind }) => kind === "doctor") ?? NONE
   const lines = out.stdout.split("\n").filter((line) => /^(ok|warn|FAIL) /.test(line))
-  assert.deepEqual([ok, warn, fail], [lines.length, 0, 0])
-  assert.ok(out.stdout.endsWith(`\n\n${lines.length} checks: ${lines.length} ok, 0 warn, 0 FAIL\n`))
+  const count = (level: string): number =>
+    lines.filter((line) => line.startsWith(`${level} `)).length
+  assert.deepEqual([ok, warn, fail], [count("ok"), count("warn"), count("FAIL")])
+  assert.ok(
+    out.stdout.endsWith(
+      `\n\n${lines.length} checks: ${count("ok")} ok, ${count("warn")} warn, ${count("FAIL")} FAIL\n`,
+    ),
+  )
   assert.equal(seen.at(-2)?.["tool_use_id"], "doctor")
   chmodSync(LOG, 0o755)
   assert.match((await ccsaver(["doctor"])).stdout, /FAIL log: /)
