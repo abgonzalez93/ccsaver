@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import {
   chmodSync,
+  existsSync,
   mkdirSync,
   readdirSync,
   readFileSync,
@@ -292,4 +293,23 @@ test("scrubbed escapes every control character but the line break and the tab, a
   assert.equal(scrubbed("a\rb\u009bc\u0000d\ne\tf"), "a\\x0db\\x9bc\\x00d\ne\tf")
   assert.equal(scrubbed("a‮b​c⁦d﻿e‍f"), "a\\u202eb\\u200bc\\u2066d\\ufeffe\\u200df")
   assert.equal(scrubbed("café · naïve — ok"), "café · naïve — ok")
+})
+
+test("moving the worker to another host sets the key aside, and the same host keeps it", () => {
+  writeFileSync(join(HOME, "api-key"), "k-state-0123456789\n", { mode: 0o600 })
+  writeWorker("https://d.invalid/v1", "d")
+  const { advice } = writeWorker("https://e.invalid/v1", "e")
+  assert.match(
+    advice ?? "",
+    /moved from d\.invalid to e\.invalid and the stored key was set aside in .*api-key\.moved: run ccsaver key set with the key of e\.invalid/,
+  )
+  assert.deepEqual(
+    [existsSync(join(HOME, "api-key")), existsSync(join(HOME, "api-key.moved"))],
+    [false, true],
+  )
+  assert.equal(writeWorker("https://f.invalid/v1", "f").advice, undefined)
+  writeFileSync(join(HOME, "api-key"), "k-state-0123456789\n", { mode: 0o600 })
+  assert.equal(writeWorker("https://f.invalid/v1", "f2").advice, undefined)
+  assert.equal(existsSync(join(HOME, "api-key")), true)
+  rmSync(join(HOME, "api-key.moved"))
 })

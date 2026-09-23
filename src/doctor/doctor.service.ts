@@ -8,7 +8,6 @@ import {
   fellOf,
   postJson,
   requestOf,
-  shown,
 } from "../delegation/worker.client.ts"
 import { readWorker, type Worker } from "../delegation/worker.store.ts"
 import {
@@ -28,12 +27,15 @@ import {
   keyFile,
   keyIsCarriable,
   keyIsStored,
+  keyWasMoved,
   marked,
   messageOf,
+  movedKeyFile,
   pluggedFile,
   pricesFile,
   readKey,
   scrubbed,
+  shown,
   stateHome,
   workerFile,
 } from "../state/state.store.ts"
@@ -102,6 +104,11 @@ const keyFault = (key: string | undefined): Finding => {
     return {
       level: "FAIL",
       text: `key: ${keyFile()} holds a character no HTTP header can carry, so no request was made: run ccsaver key set`,
+    }
+  if (keyWasMoved())
+    return {
+      level: "FAIL",
+      text: `key: set aside in ${movedKeyFile()} when the worker moved: run ccsaver key set`,
     }
   return keyIsStored()
     ? { level: "FAIL", text: `key: ${keyFile()} cannot be read: check its owner and its mode` }

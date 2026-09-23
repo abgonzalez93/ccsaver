@@ -49,7 +49,7 @@ test("on a terminal a change is marked ✓, a repeat →, a warning ! and an err
   const doctor = await onTerminal("doctor")
   assert.ok(doctor.stdout.includes(`${GREEN}✓ ok  ${PLAIN} state: `), doctor.stdout)
   assert.ok(doctor.stdout.includes(`${YELLOW}! warn${PLAIN} plugged: nothing`), doctor.stdout)
-  assert.ok(doctor.stdout.includes(`${RED}✗ FAIL${PLAIN} probe: `), doctor.stdout)
+  assert.ok(doctor.stdout.includes(`${RED}✗ FAIL${PLAIN} key: set aside in `), doctor.stdout)
   assert.match(
     doctor.stdout,
     new RegExp(

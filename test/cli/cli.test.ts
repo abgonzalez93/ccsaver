@@ -4,6 +4,7 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
+  renameSync,
   rmSync,
   statSync,
   writeFileSync,
@@ -225,14 +226,19 @@ test("worker claude pins the fallback binary, and auto gives it back to the sess
   assert.deepEqual(Object.keys(jsonOf(file)), ["url", "model"])
 })
 
-test("moving the worker to another host warns that the stored key stays", async () => {
+test("moving the worker to another host sets the stored key aside and says so", async () => {
   const moved = await ccsaver(["worker", "set", "https://other.invalid/v1", "cheap-1"])
   assert.equal(moved.code, 0)
   assert.match(
     moved.stderr,
-    /^warn: the worker moved from 127\.0\.0\.1:\d+ to other\.invalid and the stored key stays: run ccsaver key set /,
+    /^warn: the worker moved from 127\.0\.0\.1:\d+ to other\.invalid and the stored key was set aside in .*api-key\.moved: run ccsaver key set with the key of other\.invalid$/m,
+  )
+  assert.deepEqual(
+    [existsSync(join(HOME, "api-key")), existsSync(join(HOME, "api-key.moved"))],
+    [false, true],
   )
   const back = await ccsaver(["worker", "set", server.url, "cheap-2"])
-  assert.match(back.stderr, /^warn: the worker moved from other\.invalid to 127\.0\.0\.1:\d+ /)
+  assert.equal(back.stderr, "")
+  renameSync(join(HOME, "api-key.moved"), join(HOME, "api-key"))
   assert.equal((await ccsaver(["worker", "set", server.url, "cheap-1"])).stderr, "")
 })

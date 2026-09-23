@@ -1,6 +1,5 @@
 import { readFileSync } from "node:fs"
 import { isMode, runWorker } from "./delegation/delegation.service.ts"
-import { shown } from "./delegation/worker.client.ts"
 import { setClaude, setFallback, writeWorker } from "./delegation/worker.store.ts"
 import { doctor } from "./doctor/doctor.service.ts"
 import { ownVersion, writeLauncher } from "./doctor/launcher.service.ts"
@@ -32,7 +31,7 @@ import {
   setHandoff,
 } from "./state/handoff.store.ts"
 import { crashed, logDir, MONTH, record, setLog } from "./state/log.store.ts"
-import { marked, messageOf, Refusal, scrubbed, type Tone } from "./state/state.store.ts"
+import { marked, messageOf, Refusal, scrubbed, shown, type Tone } from "./state/state.store.ts"
 
 const USAGE = `usage: ccsaver <command>
 

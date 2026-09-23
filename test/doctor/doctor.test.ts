@@ -251,6 +251,12 @@ test("doctor fails on a missing key, a worker that is down and a broken adapter"
   assert.equal(keyless.code, 1)
   assert.match(keyless.stdout, /^FAIL key: missing, run: ccsaver key set$/m)
   assert.match(keyless.stdout, /^FAIL plugged: .*project · adapter no-such-adapter not found in /m)
+  writeFileSync(join(home, "api-key.moved"), `${OLD_KEY}\n`, { mode: 0o600 })
+  const aside = await ccsaver(["doctor"], "", { CCSAVER_HOME: home })
+  assert.match(
+    aside.stdout,
+    /^FAIL key: set aside in .*api-key\.moved when the worker moved: run ccsaver key set$/m,
+  )
   writeHome(home, { key: OLD_KEY })
   const down = await ccsaver(["doctor"], "", { CCSAVER_HOME: home })
   assert.match(down.stdout, /^FAIL probe: .* is unreachable$/m)

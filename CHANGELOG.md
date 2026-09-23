@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.24.9 - 2026-09-23
+
+fix: a worker moved to another host sets the stored key aside until key set stores the new one
+
+- worker set to a different host warned that the stored key stayed, and the next call sent the key of the old provider to the new one; the key is now renamed to api-key.moved, every call fails with one line and sends nothing anywhere, doctor fails its key: line the same way, and key set removes the file it set aside
+- the same host, a changed model, or no stored key leave things as they were
+- shown, how a url is displayed, moves from worker.client to state.store beside the other display helpers, which keeps worker.client under the gate
+
 ## 0.24.8 - 2026-09-23
 
 fix: the notes name a redirect, say when the fallback is off, and say why a call with no worker falls back

@@ -288,3 +288,18 @@ test("bulk-read asks for 2,048 tokens of answer and code-write for 8,192, and a 
   assert.match(out.stderr, /cheap-1 answered 200 without a complete result, falling back/)
   assert.match(out.stdout, /FROM-CLAUDE/)
 })
+
+test("a key set aside when the worker moved stops the call, and nothing is sent anywhere", async () => {
+  const moved = join(WORK, "home-moved")
+  writeHome(moved, { plugged: PLUGGED, worker: { url: server.url, model: "cheap-1" } })
+  writeFileSync(join(moved, "api-key.moved"), "k-test\n", { mode: 0o600 })
+  const before = server.seen.length
+  const out = await bulkRead(SOURCE, { CCSAVER_HOME: moved })
+  assert.equal(out.code, 1)
+  assert.equal(out.stdout, "")
+  assert.match(
+    out.stderr,
+    /^Error: the worker moved to http:\/\/127\.0\.0\.1:\d+\/v1\/chat\/completions and the key was set aside in .*api-key\.moved: run ccsaver key set$/m,
+  )
+  assert.equal(server.seen.length, before)
+})

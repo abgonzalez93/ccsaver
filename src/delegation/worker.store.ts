@@ -1,10 +1,12 @@
-import { existsSync, readFileSync, statSync } from "node:fs"
+import { existsSync, readFileSync, renameSync, statSync } from "node:fs"
 import { resolve } from "node:path"
 import { record } from "../state/log.store.ts"
 import {
   attempt,
   isEncrypted,
   isRecord,
+  keyFile,
+  movedKeyFile,
   parsed,
   Refusal,
   readKey,
@@ -78,12 +80,12 @@ export const writeWorker = (url: string, model: string): WorkerSet => {
   record("config", { action: "worker set", host, model })
   if (before === undefined || readKey() === undefined) return { changed: true }
   const old = attempt(() => new URL(before.url).host)
-  return old === host
-    ? { changed: true }
-    : {
-        changed: true,
-        advice: `the worker moved from ${old ?? "another host"} to ${host} and the stored key stays: run ccsaver key set unless the key belongs to ${host}`,
-      }
+  if (old === host) return { changed: true }
+  attempt(() => renameSync(keyFile(), movedKeyFile()))
+  return {
+    changed: true,
+    advice: `the worker moved from ${old ?? "another host"} to ${host} and the stored key was set aside in ${movedKeyFile()}: run ccsaver key set with the key of ${host}`,
+  }
 }
 
 export const setFallback = (on: boolean): boolean => {

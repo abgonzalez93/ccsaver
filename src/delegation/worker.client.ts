@@ -11,11 +11,14 @@ import {
   keyFile,
   keyIsCarriable,
   keyIsStored,
+  keyWasMoved,
   marked,
   messageOf,
+  movedKeyFile,
   parsed,
   readKey,
   scrubbed,
+  shown,
 } from "../state/state.store.ts"
 import type { Tally } from "./answer.validator.ts"
 import type { Worker } from "./worker.store.ts"
@@ -199,11 +202,6 @@ export const postJson = (
     body: JSON.stringify(body),
   })
 
-export const shown = (url: string): string => {
-  const parts = attempt(() => new URL(url))
-  return parts === undefined ? "(an unreadable url)" : `${parts.origin}${parts.pathname}`
-}
-
 export const fellOf = (error: unknown): Fell => {
   if (error instanceof Error && error.name === "TimeoutError") return "timeout"
   if (error instanceof SyntaxError) return "not json"
@@ -238,17 +236,12 @@ const contentOf = (raw: unknown): string | undefined => {
 }
 
 const bodyOf = async (response: Response, most: number): Promise<string | undefined> => {
-  const reader = response.body?.getReader()
-  if (reader === undefined) return undefined
   const parts: Uint8Array[] = []
   let size = 0
-  for (let chunk = await reader.read(); !chunk.done; chunk = await reader.read()) {
-    size += chunk.value.length
-    if (size > most) {
-      await reader.cancel()
-      return undefined
-    }
-    parts.push(chunk.value)
+  for await (const chunk of response.body ?? []) {
+    size += chunk.length
+    if (size > most) return undefined
+    parts.push(chunk)
   }
   return Buffer.concat(parts).toString("utf8")
 }
@@ -299,6 +292,12 @@ export const invokeExternal = async (
     return undefined
   }
   const key = readKey()
+  if (key === undefined && keyWasMoved()) {
+    delegation.fell = "key moved"
+    return fail(
+      `the worker moved to ${shown(worker.url)} and the key was set aside in ${movedKeyFile()}: run ccsaver key set`,
+    )
+  }
   if (key === undefined || !keyIsCarriable(key)) {
     const { fell, said } = keyTrouble(key)
     delegation.fell = fell

@@ -68,6 +68,10 @@ export const storedKey = (): string | undefined => (looked ? secret : readKey())
 
 export const keyIsStored = (): boolean => existsSync(keyFile())
 
+export const movedKeyFile = (): string => `${keyFile()}.moved`
+
+export const keyWasMoved = (): boolean => !existsSync(keyFile()) && existsSync(movedKeyFile())
+
 export const keyIsCarriable = (key: string): boolean => CARRIABLE.test(key)
 
 const SCRUB_FROM = 8
@@ -109,6 +113,11 @@ export const marked = (
   if (onTerminal(stream))
     return `${tinted(label === "" ? glyph : `${glyph} ${label}`, colour, stream)} ${text}`
   return label === "" ? text : `${label} ${text}`
+}
+
+export const shown = (url: string): string => {
+  const parts = attempt(() => new URL(url))
+  return parts === undefined ? "(an unreadable url)" : `${parts.origin}${parts.pathname}`
 }
 
 export const quoted = (path: string): string =>
