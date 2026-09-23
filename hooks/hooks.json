@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/read-gate",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/gate read-gate",
             "timeout": 5
           }
         ]

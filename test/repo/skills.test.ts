@@ -22,7 +22,7 @@ test("one version: both manifests carry it and the changelog opens with it", () 
   assert.equal(first, mine)
 })
 
-const PLUGIN_ROOT = /^"\$\{CLAUDE_PLUGIN_ROOT\}"\/(\S+)$/
+const PLUGIN_ROOT = /^"\$\{CLAUDE_PLUGIN_ROOT\}"\/(\S+)(?: ([a-z-]+))?$/
 const RUNNABLE = ["bin/ccsaver", ".githooks/post-commit", ".githooks/post-applypatch"]
 
 const commandsIn = (value: unknown): string[] => {
@@ -40,8 +40,12 @@ test("the plugin's own files name each other, and what they point at can run", (
   assert.equal(isRecord(listed) ? listed["name"] : undefined, plugin["name"])
   const commands = commandsIn(jsonOf(join(REPO, "hooks", "hooks.json")))
   assert.equal(commands.length, 1)
-  const hooked = commands.flatMap((command) => PLUGIN_ROOT.exec(command)?.[1] ?? [])
+  const parsed = commands.map((command) => PLUGIN_ROOT.exec(command))
+  const hooked = parsed.flatMap((match) => match?.[1] ?? [])
   assert.equal(hooked.length, commands.length)
+  const started = parsed.flatMap((match) => (match?.[2] === undefined ? [] : [match[2]]))
+  assert.equal(started.length, commands.length)
+  for (const name of started) assert.ok(existsSync(join(REPO, "src", `${name}.hook.ts`)), name)
   for (const file of [...RUNNABLE, ...hooked]) {
     const path = join(REPO, file)
     assert.ok(existsSync(path), path)

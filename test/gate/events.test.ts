@@ -174,7 +174,7 @@ test("an unplugged project records nothing, not even a crash", async () => {
   await hook(WHOLE, UNPLUGGED)
   await hook("not json", UNPLUGGED)
   const env = { CCSAVER_HOME: HOME, CLAUDE_PROJECT_DIR: UNPLUGGED }
-  await run("sh", [GATE], env, JSON.stringify(WHOLE))
+  await run("sh", [GATE, "read-gate"], env, JSON.stringify(WHOLE))
   assert.equal(logged(HOME).length, size)
 })
 

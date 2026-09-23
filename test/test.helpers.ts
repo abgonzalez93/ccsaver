@@ -17,7 +17,8 @@ import { isRecord } from "../src/state/state.store.ts"
 export const REPO = join(import.meta.dirname, "..")
 export const CLI = join(REPO, "src", "ccsaver.cli.ts")
 export const HOOK = join(REPO, "src", "read-gate.hook.ts")
-export const GATE = join(REPO, "hooks", "read-gate")
+export const GATE = join(REPO, "hooks", "gate")
+export const HANDOFF = join(REPO, "src", "handoff.hook.ts")
 export const LAUNCHER = join(REPO, "bin", "ccsaver")
 
 export interface Ran {

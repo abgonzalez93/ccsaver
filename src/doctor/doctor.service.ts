@@ -47,7 +47,7 @@ import {
 } from "./survey.service.ts"
 
 const PROBE_TIMEOUT_MS = 30_000
-const GATE = join(import.meta.dirname, "..", "..", "hooks", "read-gate")
+const GATE = join(import.meta.dirname, "..", "..", "hooks", "gate")
 const WHY = {
   timeout: "timed out",
   "not json": "did not answer JSON",
@@ -144,7 +144,7 @@ const gate = (root: string, lines: number): Finding => {
   try {
     const long = join(dir, "long.txt")
     writeFileSync(long, "x\n".repeat(lines))
-    const run = spawnSync("sh", [GATE], {
+    const run = spawnSync("sh", [GATE, "read-gate"], {
       encoding: "utf8",
       timeout: 15_000,
       env: { ...process.env, CLAUDE_PROJECT_DIR: root },

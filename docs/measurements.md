@@ -61,6 +61,8 @@ That 24 ms was 22 ms while the state folder, the log and the configuration lived
 
 Moving `worker.json` out of `config.store.ts` into `worker.store.ts` costs the hook nothing, because the hook never imported those 77 lines and gains no module: 30.1 / 30.4 ms whole against 31.4 / 30.0 ms split, two rounds of 30 runs per arm, paired, on a machine whose own floor for the harness is 4.2 ms. The two arms sit inside each other's spread, so the split is free, not faster — the only thing that moves a hook import list is a hook import.
 
+The launcher taking the name of the hook it starts, so that a second hook shares it instead of copying it, costs nothing either: 26.2 / 25.8 / 24.8 ms before against 26.4 / 25.9 / 25.1 ms after in a plugged project, and 1.8 against 1.7–1.8 ms unplugged, three rounds of 30 runs per arm, paired.
+
 Folders cost it nothing either. When `src/` regrouped by feature and the hook's three imports moved into `src/state/`: 21.3 / 20.6 / 21.0 ms flat against 21.4 / 20.6 / 20.4 ms in folders, three rounds of 30 runs per arm, paired, both trees on the same disk. A first pair with the flat copy on `tmpfs` read 2 ms in favour of the folders, which was the disk and not the layout: what the hook pays for is a module, never the depth of its path.
 
 ## Reading the model out of the transcript

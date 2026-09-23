@@ -23,7 +23,7 @@ chmodSync(join(FAKE_BIN, "node"), 0o755)
 writeHome(HOME, { plugged: [["", "strict-ts"], [join(WORK, "unrelated")], [PLUGGED, "strict-ts"]] })
 
 const gate = (project: string, env: NodeJS.ProcessEnv = {}): Promise<Ran> =>
-  run("sh", [GATE], { CCSAVER_HOME: HOME, CLAUDE_PROJECT_DIR: project, ...env }, INPUT)
+  run("sh", [GATE, "read-gate"], { CCSAVER_HOME: HOME, CLAUDE_PROJECT_DIR: project, ...env }, INPUT)
 
 after(() => {
   for (const dir of [HOME, EMPTY_HOME, WORK]) rmSync(dir, { recursive: true, force: true })

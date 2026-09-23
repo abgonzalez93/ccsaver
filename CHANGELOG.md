@@ -4,6 +4,15 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.21.5 - 2026-09-23
+
+refactor: one launcher starts either hook, and the transcript reader lives in config.store
+
+- hooks/read-gate is now hooks/gate <name>: the same sh gate leaves an unplugged project before Node starts, then execs src/<name>.hook.ts, so a second hook shares it instead of copying it
+- hooks.json and doctor call it as gate read-gate, and test/repo/skills.test.ts checks that the name a launcher is given is a hook file that exists
+- lastAssistantOf in src/state/config.store.ts reads the last main-chain assistant line of a transcript tail, its model and the tokens in its context, skipping a subagent's line and a synthetic one; the gate takes the model it records from it
+- measured paired, three rounds of 30 runs per arm: 26.2 / 25.8 / 24.8 ms before against 26.4 / 25.9 / 25.1 ms after in a plugged project, 1.8 against 1.7-1.8 ms unplugged
+
 ## 0.21.4 - 2026-09-23
 
 refactor: every file is name.role.ts, and every name below the root is kebab-case
