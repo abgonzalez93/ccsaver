@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import { existsSync, mkdirSync, readFileSync, rmSync, statSync } from "node:fs"
 import { join } from "node:path"
 import { after, before, test } from "node:test"
-import { events, jsonOf, LAUNCHER, type Ran, run, tempDir } from "../helpers.ts"
+import { events, jsonOf, LAUNCHER, type Ran, run, tempDir } from "../test.helpers.ts"
 
 const HOME = tempDir("twice-home")
 const WORK = tempDir("twice-work")

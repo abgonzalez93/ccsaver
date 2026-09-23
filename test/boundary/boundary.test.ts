@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
-import { contentRefusal, pathRefusal, targetRefusal } from "../../src/delegation/boundary.ts"
+import { contentRefusal, pathRefusal, targetRefusal } from "../../src/delegation/boundary.guard.ts"
 
 const ROOT = "/work/project"
 const STATE = "/home/me/.config/ccsaver"
@@ -25,7 +25,13 @@ test("refuses secret-looking names in any letter case, by given name and by real
 })
 
 test("lets an env template and ordinary files through", () => {
-  const plain = [".env.example", ".ENV.SAMPLE", ".env.template", "src/config.ts", "environment.ts"]
+  const plain = [
+    ".env.example",
+    ".ENV.SAMPLE",
+    ".env.template",
+    "src/config.store.ts",
+    "environment.ts",
+  ]
   for (const name of [...plain, "docs/secrets-management.md", ".docker/Dockerfile", "src/keys.ts"])
     assert.equal(kept(name), undefined, name)
   assert.match(kept(".env.example.local") ?? "", /secrets file/)

@@ -11,7 +11,7 @@ import {
 } from "node:fs"
 import { join } from "node:path"
 import { after, test } from "node:test"
-import { readWorker, setFallback, writeWorker } from "../../src/delegation/endpoint.ts"
+import { readWorker, setFallback, writeWorker } from "../../src/delegation/worker.store.ts"
 import {
   linesIn,
   loadAdapter,
@@ -21,9 +21,9 @@ import {
   tokensIn,
   unplug,
   writeLimits,
-} from "../../src/state/config.ts"
-import { isEncrypted, messageOf, Refusal, scrubbed } from "../../src/state/state.ts"
-import { AS_ROOT, tempDir } from "../helpers.ts"
+} from "../../src/state/config.store.ts"
+import { isEncrypted, messageOf, Refusal, scrubbed } from "../../src/state/state.store.ts"
+import { AS_ROOT, tempDir } from "../test.helpers.ts"
 
 const WORK = tempDir("state-work")
 const HOME = join(WORK, "holds-state", "ccsaver")

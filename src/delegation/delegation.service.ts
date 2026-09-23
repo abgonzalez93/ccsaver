@@ -5,8 +5,8 @@ import { randomBytes } from "node:crypto"
 import { lstatSync, readFileSync, type Stats, statSync, writeFileSync } from "node:fs"
 import { basename, dirname, join, relative, resolve } from "node:path"
 import { parseArgs } from "node:util"
-import { type Adapter, loadAdapter, pluggedRootOf } from "../state/config.ts"
-import { record } from "../state/log.ts"
+import { type Adapter, loadAdapter, pluggedRootOf } from "../state/config.store.ts"
+import { record } from "../state/log.store.ts"
 import {
   attempt,
   isRecord,
@@ -17,10 +17,9 @@ import {
   real,
   scrubbed,
   stateHome,
-} from "../state/state.ts"
-import { checked, risky, unwrapped } from "./answer.ts"
-import { contentRefusal, pathRefusal, targetRefusal } from "./boundary.ts"
-import { readWorker, type Worker } from "./endpoint.ts"
+} from "../state/state.store.ts"
+import { checked, risky, unwrapped } from "./answer.validator.ts"
+import { contentRefusal, pathRefusal, targetRefusal } from "./boundary.guard.ts"
 import {
   type Delegation,
   delegation,
@@ -28,7 +27,8 @@ import {
   invokeClaude,
   invokeExternal,
   note,
-} from "./transport.ts"
+} from "./worker.client.ts"
+import { readWorker, type Worker } from "./worker.store.ts"
 
 const MODES = {
   "bulk-read":

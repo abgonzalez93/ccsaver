@@ -3,7 +3,7 @@ import { chmodSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:
 import { createServer } from "node:http"
 import { join } from "node:path"
 import { after, before, beforeEach, test } from "node:test"
-import { fellOf } from "../../src/delegation/transport.ts"
+import { fellOf } from "../../src/delegation/worker.client.ts"
 import {
   AS_ROOT,
   CLI,
@@ -15,7 +15,7 @@ import {
   startServer,
   tempDir,
   writeHome,
-} from "../helpers.ts"
+} from "../test.helpers.ts"
 
 const HOME = tempDir("transport-home")
 const PLAIN_HOME = tempDir("transport-plain")
@@ -77,11 +77,11 @@ test("the three waits of a delegation fit inside the 120 s the Bash tool gives a
         .exec(readFileSync(join(REPO, "src", "delegation", file), "utf8"))?.[1]
         ?.replaceAll("_", ""),
     )
-  const external = msOf("transport.ts", "EXTERNAL_TIMEOUT_MS")
-  const fallback = msOf("transport.ts", "FALLBACK_TIMEOUT_MS")
-  const formatter = msOf("worker.ts", "FORMAT_TIMEOUT_MS")
-  const budget = msOf("worker.ts", "BASH_BUDGET_MS")
-  const floor = msOf("worker.ts", "FORMAT_FLOOR_MS")
+  const external = msOf("worker.client.ts", "EXTERNAL_TIMEOUT_MS")
+  const fallback = msOf("worker.client.ts", "FALLBACK_TIMEOUT_MS")
+  const formatter = msOf("delegation.service.ts", "FORMAT_TIMEOUT_MS")
+  const budget = msOf("delegation.service.ts", "BASH_BUDGET_MS")
+  const floor = msOf("delegation.service.ts", "FORMAT_FLOOR_MS")
   const waits = [external, fallback, formatter, budget, floor]
   assert.ok(
     waits.every((ms) => ms > 0),

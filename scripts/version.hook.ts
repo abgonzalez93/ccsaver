@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process"
 import { existsSync, readFileSync, writeFileSync } from "node:fs"
-import { attempt, isRecord, messageOf, parsed } from "../src/state/state.ts"
+import { attempt, isRecord, messageOf, parsed } from "../src/state/state.store.ts"
 
 type Level = "major" | "minor" | "patch"
 
@@ -13,7 +13,7 @@ interface Edit {
 const MANIFESTS = ["package.json", ".claude-plugin/plugin.json"]
 const CHANGELOG = "CHANGELOG.md"
 const VERSION_LINE = /^(\s*"version":\s*")[^"]*(")/m
-const REPAIR = "git rebase --exec 'node scripts/version.ts' HEAD~<commits>"
+const REPAIR = "git rebase --exec 'node scripts/version.hook.ts' HEAD~<commits>"
 const AMEND = ["-c", "core.hooksPath=/dev/null", "commit", "--amend", "--no-edit", "--quiet", "--"]
 
 export const levelOf = (message: string): Level => {

@@ -16,7 +16,7 @@ import {
   systemOf,
   tempDir,
   writeHome,
-} from "../helpers.ts"
+} from "../test.helpers.ts"
 
 const PINNED =
   'You are a precise code analyst. Read the provided files and answer the question concisely. Output structured bullets only. No greetings, no prose, no preambles, no summaries. Lead every bullet with the exact name, type, or line number. Use nested bullets for details. Skip anything the caller did not ask for. End every bullet with " @ " and the one line that proves it, copied the way grep -Hn prints it, the path first even when there is one file: path:line:text.'

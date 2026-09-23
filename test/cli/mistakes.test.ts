@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { readdirSync, rmSync } from "node:fs"
 import { after, test } from "node:test"
-import { CLI, LAUNCHER, type Ran, run, tempDir } from "../helpers.ts"
+import { CLI, LAUNCHER, type Ran, run, tempDir } from "../test.helpers.ts"
 
 const HOME = tempDir("mistakes-home")
 
@@ -125,7 +125,7 @@ test("key set through node instead of the launcher is refused with the reason", 
   assert.deepEqual([out.code, out.stdout], [1, ""])
   assert.ok(
     out.stderr.startsWith(
-      "Error: key set belongs to the launcher: run ccsaver key set, not node src/cli.ts\nusage: ccsaver key set",
+      "Error: key set belongs to the launcher: run ccsaver key set, not node src/ccsaver.cli.ts\nusage: ccsaver key set",
     ),
     out.stderr,
   )

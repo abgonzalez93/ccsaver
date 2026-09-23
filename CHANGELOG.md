@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.21.4 - 2026-09-23
+
+refactor: every file is name.role.ts, and every name below the root is kebab-case
+
+- 18 TypeScript files renamed to noun.role.ts, the launchers and NOTICE follow
+- CONTRIBUTING 2.6 lists the eleven roles, CLAUDE.md carries the law
+- the conventions test guards kebab-case below the root and the role of every .ts
+
 ## 0.21.3 - 2026-09-23
 
 test: test/ regroups by feature, and the conventions test guards the six-file rule

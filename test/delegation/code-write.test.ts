@@ -21,7 +21,7 @@ import {
   systemOf,
   tempDir,
   writeHome,
-} from "../helpers.ts"
+} from "../test.helpers.ts"
 
 const PINNED =
   "You generate code files based on a spec and reference files. Match the existing patterns, conventions, naming, and style exactly. Output only the code — no explanations, no markdown fences unless asked. If the spec is ambiguous, make reasonable choices that match the patterns in the reference code. House rules, they win over the reference: no comments of any kind; every function is an arrow const with an explicit return type, never the function keyword; no any; no non-null assertion (!); no type assertion (as) other than as const; relative imports carry the real file extension."

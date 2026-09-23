@@ -2,7 +2,7 @@
 import { spawnSync } from "node:child_process"
 import { writeSync } from "node:fs"
 import { tmpdir } from "node:os"
-import { record } from "../state/log.ts"
+import { record } from "../state/log.store.ts"
 import {
   attempt,
   isEncrypted,
@@ -15,9 +15,9 @@ import {
   parsed,
   readKey,
   scrubbed,
-} from "../state/state.ts"
-import type { Tally } from "./answer.ts"
-import type { Worker } from "./endpoint.ts"
+} from "../state/state.store.ts"
+import type { Tally } from "./answer.validator.ts"
+import type { Worker } from "./worker.store.ts"
 
 const FALLBACK_MODEL = "haiku"
 const FALLBACK_BUDGET_USD = "0.5"

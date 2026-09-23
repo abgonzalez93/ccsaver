@@ -3,10 +3,10 @@ import { spawnSync } from "node:child_process"
 import { mkdirSync, readdirSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { test } from "node:test"
-import { REPO, tempDir } from "../helpers.ts"
+import { REPO, tempDir } from "../test.helpers.ts"
 
 const HOOKS = join(REPO, ".githooks")
-const REPAIR = `node ${join(REPO, "scripts", "version.ts")}`
+const REPAIR = `node ${join(REPO, "scripts", "version.hook.ts")}`
 const MANIFESTS = ["package.json", ".claude-plugin/plugin.json"]
 const VERSION_FILES = [...MANIFESTS, "CHANGELOG.md"]
 const MANIFEST = '{\n  "name": "x",\n  "version": "0.1.0"\n}\n'
@@ -203,7 +203,7 @@ test("cherry-pick and rebase: the hook stays out mid-pick, and the script versio
   commit(repo, "feat: on main")
 
   assertLeftAlone(repo, git(repo, "cherry-pick", "lone"), "0.2.0")
-  spawnSync("node", [join(REPO, "scripts", "version.ts")], { cwd: repo, env: ENV })
+  spawnSync("node", [join(REPO, "scripts", "version.hook.ts")], { cwd: repo, env: ENV })
   assertVersioned(repo, "0.2.1", "fix: picked")
 
   git(repo, "switch", "-q", "side")

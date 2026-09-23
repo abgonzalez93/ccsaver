@@ -12,7 +12,7 @@ import {
 } from "node:fs"
 import { homedir } from "node:os"
 import { basename, join, resolve } from "node:path"
-import { record } from "./log.ts"
+import { record } from "./log.store.ts"
 import {
   adaptersDir,
   attempt,
@@ -25,7 +25,7 @@ import {
   real,
   stateHome,
   writePrivate,
-} from "./state.ts"
+} from "./state.store.ts"
 
 export interface Plugged {
   root: string

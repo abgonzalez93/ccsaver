@@ -1,6 +1,6 @@
 import { appendFileSync, chmodSync, existsSync, mkdirSync, readFileSync, renameSync } from "node:fs"
 import { join } from "node:path"
-import { attempt, isRecord, parsed, Refusal, stateHome, storedKey } from "./state.ts"
+import { attempt, isRecord, parsed, Refusal, stateHome, storedKey } from "./state.store.ts"
 
 export type Row = Record<PropertyKey, unknown>
 

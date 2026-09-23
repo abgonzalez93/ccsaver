@@ -11,7 +11,7 @@ import {
   startServer,
   tempDir,
   writeHome,
-} from "../helpers.ts"
+} from "../test.helpers.ts"
 
 const HOME = tempDir("egress-home")
 const WORK = tempDir("egress-work")

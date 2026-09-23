@@ -2,9 +2,9 @@ import assert from "node:assert/strict"
 import { existsSync, readdirSync, readFileSync } from "node:fs"
 import { dirname, join, relative } from "node:path"
 import { test } from "node:test"
-import { DEFAULT_LIMITS } from "../../src/state/config.ts"
-import { isRecord, parsed } from "../../src/state/state.ts"
-import { REPO } from "../helpers.ts"
+import { DEFAULT_LIMITS } from "../../src/state/config.store.ts"
+import { isRecord, parsed } from "../../src/state/state.store.ts"
+import { REPO } from "../test.helpers.ts"
 
 const SKIPPED = [".git", "node_modules"]
 const UNREAD_WHOLE = ["pnpm-lock.yaml", "CHANGELOG.md"]
@@ -56,8 +56,14 @@ test("src imports node: built-ins and its own files, and the package declares no
 })
 
 test("the hook starts with the three files of the state folder and nothing else of ours", () => {
-  const ours = importsOf(join(REPO, "src", "hook.ts")).filter((name) => name.startsWith("."))
-  assert.deepEqual(ours, ["./state/config.ts", "./state/log.ts", "./state/state.ts"])
+  const ours = importsOf(join(REPO, "src", "read-gate.hook.ts")).filter((name) =>
+    name.startsWith("."),
+  )
+  assert.deepEqual(ours, [
+    "./state/config.store.ts",
+    "./state/log.store.ts",
+    "./state/state.store.ts",
+  ])
 })
 
 test("no cast, no function keyword, no default export, and only the comments CONTRIBUTING lists", () => {
@@ -100,6 +106,44 @@ test("no directory but the root reaches six files", () => {
     .filter(([dir, files]) => dir !== "" && (files?.length ?? 0) >= CROWDED)
     .map(([dir, files]) => `${dir}: ${files?.length} files`)
   assert.deepEqual(crowded, [])
+})
+
+const KEBAB = /^\.?[a-z0-9]+(?:[-.][a-z0-9]+)*$/
+const NAMED_BY_A_TOOL = ["SKILL.md"]
+const ROLES = [
+  "cli",
+  "hook",
+  "store",
+  "service",
+  "client",
+  "guard",
+  "validator",
+  "model",
+  "reporter",
+  "helpers",
+  "test",
+]
+
+const roleOf = (file: string): string | undefined => {
+  const parts = file.split(".")
+  return parts.length >= 3 ? parts.at(-2) : undefined
+}
+
+test("below the root every name is kebab-case, and every TypeScript file is name.role.ts", () => {
+  const odd = filesUnder(REPO).flatMap((path) => {
+    const parts = named(path).split("/")
+    const file = parts.at(-1) ?? ""
+    const shouted =
+      parts.length === 1
+        ? []
+        : parts.filter((part) => !NAMED_BY_A_TOOL.includes(part) && !KEBAB.test(part))
+    const roleless = file.endsWith(".ts") && !ROLES.includes(roleOf(file) ?? "")
+    return [
+      ...shouted.map((part) => `${named(path)}: ${part} is not kebab-case`),
+      ...(roleless ? [`${named(path)}: not name.role.ts`] : []),
+    ]
+  })
+  assert.deepEqual(odd, [])
 })
 
 const LINK = /\[([^\]]*)\]\(([^)\s]+)\)/g

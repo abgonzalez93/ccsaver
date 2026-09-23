@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { after, before, beforeEach, test } from "node:test"
-import { troubleOf } from "../../src/delegation/transport.ts"
+import { troubleOf } from "../../src/delegation/worker.client.ts"
 import {
   CLI,
   type FakeServer,
@@ -12,7 +12,7 @@ import {
   startServer,
   tempDir,
   writeHome,
-} from "../helpers.ts"
+} from "../test.helpers.ts"
 
 const HOME = tempDir("fallback-home")
 const BARE_HOME = tempDir("fallback-bare")

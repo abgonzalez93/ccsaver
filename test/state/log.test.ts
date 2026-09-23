@@ -23,7 +23,7 @@ import {
   startServer,
   tempDir,
   writeHome,
-} from "../helpers.ts"
+} from "../test.helpers.ts"
 
 const KEY = "k-log-0123456789-0123456789-0123456789"
 const HOME = tempDir("log-home")

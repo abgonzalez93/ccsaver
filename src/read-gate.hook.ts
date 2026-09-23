@@ -13,9 +13,9 @@ import {
   pluggedRootOf,
   tailOf,
   tokensIn,
-} from "./state/config.ts"
-import { crashed, logDir, record } from "./state/log.ts"
-import { attempt, isRecord, isUnder, parsed, real } from "./state/state.ts"
+} from "./state/config.store.ts"
+import { crashed, logDir, record } from "./state/log.store.ts"
+import { attempt, isRecord, isUnder, parsed, real } from "./state/state.store.ts"
 
 const IDS = ["tool_use_id", "agent_id", "agent_type", "permission_mode"]
 const TRANSCRIPT_TAIL = 65_536

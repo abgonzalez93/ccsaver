@@ -21,7 +21,7 @@ import {
   run,
   startServer,
   tempDir,
-} from "../helpers.ts"
+} from "../test.helpers.ts"
 
 const HOME = tempDir("cli-home")
 const WORK = tempDir("cli-work")

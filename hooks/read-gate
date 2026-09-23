@@ -7,7 +7,7 @@ while IFS='	' read -r root _ <&3; do
   case "$dir/" in "$root"/*)
     NODE_COMPILE_CACHE="$home/cache"
     export NODE_COMPILE_CACHE
-    exec node "$(dirname "$0")/../src/hook.ts" 3<&-
+    exec node "$(dirname "$0")/../src/read-gate.hook.ts" 3<&-
     ;;
   esac
 done 3< "$home/plugged"

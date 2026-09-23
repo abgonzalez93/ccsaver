@@ -1,5 +1,5 @@
 import { basename, relative } from "node:path"
-import { isSecretPlace, isUnder } from "../state/state.ts"
+import { isSecretPlace, isUnder } from "../state/state.store.ts"
 
 const SECRET_NAME =
   /^\.env(?!\.(example|sample|template)$)|^\.dev\.vars$|^\.credentials\.json$|^\.claude\.json$|^settings\.local\.json$|^api-key$|^\.npmrc$|^\.netrc$|^\.pypirc$|^\.pgpass$|^\.htpasswd$|^\.git-credentials$|^kubeconfig|^credentials(\.|$)|^\.?secrets?(\.|$)|^id_(rsa|ed25519|ecdsa|dsa)|\.(key|pem|p12|pfx|jks|keystore|ppk|kdbx|tfvars|tfstate)$|\.tfvars\.json$|\.tfstate\.backup$/i

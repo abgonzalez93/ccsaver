@@ -2,8 +2,8 @@ import assert from "node:assert/strict"
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs"
 import { join } from "node:path"
 import { test } from "node:test"
-import { isRecord } from "../../src/state/state.ts"
-import { jsonOf, REPO } from "../helpers.ts"
+import { isRecord } from "../../src/state/state.store.ts"
+import { jsonOf, REPO } from "../test.helpers.ts"
 
 const SKILLS = [
   ["bulk-reader", "bulk-read"],
@@ -53,7 +53,7 @@ const USAGE_BLOCK = /const USAGE = `([\s\S]*?)`\n/
 const NAMED = /(?:^|`)ccsaver ([a-z-]+)/gm
 
 const answered = (): Set<string> => {
-  const source = readFileSync(join(REPO, "src", "cli.ts"), "utf8")
+  const source = readFileSync(join(REPO, "src", "ccsaver.cli.ts"), "utf8")
   const usage = USAGE_BLOCK.exec(source)?.[1] ?? ""
   return new Set(usage.split("\n").flatMap((line) => /^ {2}([a-z-]+)/.exec(line)?.[1] ?? []))
 }

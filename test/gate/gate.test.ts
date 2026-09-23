@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import { chmodSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { after, test } from "node:test"
-import { GATE, type Ran, run, tempDir, writeHome } from "../helpers.ts"
+import { GATE, type Ran, run, tempDir, writeHome } from "../test.helpers.ts"
 
 const HOME = tempDir("gate-home")
 const EMPTY_HOME = tempDir("gate-empty")

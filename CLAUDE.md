@@ -22,5 +22,6 @@ House laws:
 - Every function is an arrow const with an explicit return type; `unknown` is narrowed by a guard that checks at run time, and `as const` is the only `as`.
 - Every file stays under this project's own gate, 350 lines and 32 KB: split by responsibility first. Two are excused in `UNREAD_WHOLE`, `pnpm-lock.yaml` and `CHANGELOG.md`, and nothing else joins them without the owner's word.
 - Every directory stays under six files: the sixth regroups it by feature. Only the root is excused, because its files are the ones the tools look for there.
+- Every name below the root is kebab-case, and every TypeScript file is `name.role.ts`, the role from the list of CONTRIBUTING 2.6. The root and `SKILL.md` are excused, because the tools look for them by name.
 - A development dependency, or a rule or override in `biome.json`, waits for the owner's approval.
 - Commits: `type: subject` in English, a bullet-list body. The type sets the version: a git hook (`git config core.hooksPath .githooks`, once per clone) writes it and `CHANGELOG.md`, never a hand.

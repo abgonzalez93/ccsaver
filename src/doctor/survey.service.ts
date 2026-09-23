@@ -8,8 +8,8 @@ import {
   type Limits,
   linesIn,
   tokensIn,
-} from "../state/config.ts"
-import { attempt, quoted } from "../state/state.ts"
+} from "../state/config.store.ts"
+import { attempt, quoted } from "../state/state.store.ts"
 
 const PRUNED = [
   "node_modules",

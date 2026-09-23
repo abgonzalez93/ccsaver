@@ -15,7 +15,7 @@ import {
   startServer,
   tempDir,
   writeHome,
-} from "../helpers.ts"
+} from "../test.helpers.ts"
 
 const KEY = "k-events-0123456789-0123456789-0123"
 const HOME = tempDir("events-home")

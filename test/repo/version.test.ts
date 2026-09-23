@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
-import { bump, changelogOf, levelOf, sectionOf } from "../../scripts/version.ts"
+import { bump, changelogOf, levelOf, sectionOf } from "../../scripts/version.hook.ts"
 
 const CHANGELOG = "# Changelog\n\nIntro.\n\n## Unreleased\n\n- an old note\n\n## 0.1.0\n\nFirst.\n"
 

@@ -1,2 +1,2 @@
 #!/bin/sh
-exec node "$(dirname "$0")/../scripts/version.ts"
+exec node "$(dirname "$0")/../scripts/version.hook.ts"

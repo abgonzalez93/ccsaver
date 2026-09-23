@@ -32,7 +32,7 @@ if [ -d "$home" ]; then
 fi
 
 cli() {
-  node "$root/src/cli.ts" "$@"
+  node "$root/src/ccsaver.cli.ts" "$@"
 }
 
 store_key() {
@@ -97,4 +97,4 @@ if [ "$1" = setup ]; then
   exit $?
 fi
 
-exec node "$root/src/cli.ts" "$@"
+exec node "$root/src/ccsaver.cli.ts" "$@"

@@ -2,7 +2,6 @@ import { spawnSync } from "node:child_process"
 import { existsSync, mkdtempSync, rmSync, statSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { readWorker, type Worker } from "../delegation/endpoint.ts"
 import {
   CLAUDE_ON_PATH,
   claudeBin,
@@ -10,7 +9,8 @@ import {
   postJson,
   requestOf,
   shown,
-} from "../delegation/transport.ts"
+} from "../delegation/worker.client.ts"
+import { readWorker, type Worker } from "../delegation/worker.store.ts"
 import {
   type Limits,
   limitsFor,
@@ -18,8 +18,8 @@ import {
   plug,
   readPlugged,
   writeLimits,
-} from "../state/config.ts"
-import { logDir, logFile, numberAt, type Rows, readEvents, record } from "../state/log.ts"
+} from "../state/config.store.ts"
+import { logDir, logFile, numberAt, type Rows, readEvents, record } from "../state/log.store.ts"
 import {
   adaptersDir,
   attempt,
@@ -35,9 +35,16 @@ import {
   scrubbed,
   stateHome,
   workerFile,
-} from "../state/state.ts"
-import { type Finding, type Level, offer, painted, TONE } from "./finding.ts"
-import { adapterNameOf, fixOf, overshoots, proposalOf, raiseOf, surveyFor } from "./survey.ts"
+} from "../state/state.store.ts"
+import { type Finding, type Level, offer, painted, TONE } from "./finding.model.ts"
+import {
+  adapterNameOf,
+  fixOf,
+  overshoots,
+  proposalOf,
+  raiseOf,
+  surveyFor,
+} from "./survey.service.ts"
 
 const PROBE_TIMEOUT_MS = 30_000
 const GATE = join(import.meta.dirname, "..", "..", "hooks", "read-gate")

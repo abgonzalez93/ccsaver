@@ -1,10 +1,10 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
-import { setClaude, setFallback, writeWorker } from "./delegation/endpoint.ts"
-import { shown } from "./delegation/transport.ts"
-import { isMode, runWorker } from "./delegation/worker.ts"
-import { doctor } from "./doctor/doctor.ts"
-import { proposalOf, surveyFor } from "./doctor/survey.ts"
+import { isMode, runWorker } from "./delegation/delegation.service.ts"
+import { shown } from "./delegation/worker.client.ts"
+import { setClaude, setFallback, writeWorker } from "./delegation/worker.store.ts"
+import { doctor } from "./doctor/doctor.service.ts"
+import { proposalOf, surveyFor } from "./doctor/survey.service.ts"
 import {
   listedPrices,
   MODEL_NAME,
@@ -12,8 +12,8 @@ import {
   shownPrices,
   WORKER,
   writePrice,
-} from "./saved/prices.ts"
-import { report } from "./saved/report.ts"
+} from "./saved/prices.store.ts"
+import { report } from "./saved/saved.reporter.ts"
 import {
   LIMIT_CEILING,
   type Limits,
@@ -22,8 +22,8 @@ import {
   readPlugged,
   unplug,
   writeLimits,
-} from "./state/config.ts"
-import { crashed, logDir, MONTH, record, setLog } from "./state/log.ts"
+} from "./state/config.store.ts"
+import { crashed, logDir, MONTH, record, setLog } from "./state/log.store.ts"
 import {
   attempt,
   isRecord,
@@ -33,7 +33,7 @@ import {
   Refusal,
   scrubbed,
   type Tone,
-} from "./state/state.ts"
+} from "./state/state.store.ts"
 
 const USAGE = `usage: ccsaver <command>
 
@@ -231,7 +231,7 @@ const COMMANDS: Record<string, Command> = {
   }),
   key: atMost("key", 1, ([first]) => {
     if (first === "set")
-      return "key set belongs to the launcher: run ccsaver key set, not node src/cli.ts"
+      return "key set belongs to the launcher: run ccsaver key set, not node src/ccsaver.cli.ts"
     return first === undefined ? "key needs set: ccsaver key set" : `key takes set, not: ${first}`
   }),
   version: atMost("version", 0, printVersion),

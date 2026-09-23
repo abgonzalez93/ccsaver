@@ -12,11 +12,11 @@ import {
 import { createServer } from "node:http"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { isRecord } from "../src/state/state.ts"
+import { isRecord } from "../src/state/state.store.ts"
 
 export const REPO = join(import.meta.dirname, "..")
-export const CLI = join(REPO, "src", "cli.ts")
-export const HOOK = join(REPO, "src", "hook.ts")
+export const CLI = join(REPO, "src", "ccsaver.cli.ts")
+export const HOOK = join(REPO, "src", "read-gate.hook.ts")
 export const GATE = join(REPO, "hooks", "read-gate")
 export const LAUNCHER = join(REPO, "bin", "ccsaver")
 
