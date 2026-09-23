@@ -45,7 +45,7 @@ test("a thin month draws the bars all the same, with the two counts over them", 
   const out = await saved(thin)
   assert.equal(out.code, 0)
   assert.match(out.stdout, /^ {2}denied {5}2 whole-file reads/m)
-  assert.match(out.stdout, /^ {2}delegated {2}1 call/m)
+  assert.match(out.stdout, /^ {2}delegated {2}1 call · 1 external \(1000 tokens\)/m)
   assert.match(out.stdout, /^ {2}without {4}\$/m)
   assert.match(out.stdout, /^ {2}saved {6}.+ % - \d+ %$/m)
   assert.doesNotMatch(out.stdout, /where this starts to say anything/)
@@ -279,9 +279,7 @@ test("a model that denied nothing is not asked for a price that would change not
   assert.equal(out.code, 0)
   assert.match(
     out.stdout,
-    new RegExp(
-      `nothing was denied under ${FABLE}, so its 0\\.00 M ranged tokens are left out as well`,
-    ),
+    new RegExp(`nothing was denied under ${FABLE}, so its 1000 ranged tokens are left out as well`),
   )
   assert.doesNotMatch(out.stdout, new RegExp(`${FABLE} denied`))
   assert.doesNotMatch(out.stdout, new RegExp(`ccsaver price ${FABLE}`))

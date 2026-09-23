@@ -24,8 +24,10 @@ const RED = 31
 const LABEL = 11
 const WIDTH = 18
 const SMALL = 1
+const SMALL_COUNT = 10_000
 
-const millions = (tokens: number): string => `${(tokens / PER_MILLION).toFixed(2)} M`
+const millions = (tokens: number): string =>
+  tokens < SMALL_COUNT ? `${tokens}` : `${(tokens / PER_MILLION).toFixed(2)} M`
 
 const many = (count: number, one: string): string => `${count} ${one}${count === 1 ? "" : "s"}`
 
