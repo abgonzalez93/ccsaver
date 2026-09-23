@@ -4,6 +4,13 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.21.1 - 2026-09-23
+
+docs: a directory regroups at its sixth file, not past its fifteenth
+
+- CONTRIBUTING 2.5 said folders earn their place past 15 files or 3,000 lines; the owner's threshold is six files a directory and 350 lines a file, and the rule now says so: the sixth file regroups by feature, and only the root is excused
+- CLAUDE.md carries the law beside the one on file size
+
 ## 0.21.0 - 2026-09-21
 
 feat: ccsaver runs on the Node 22 line, from 22.18

@@ -121,7 +121,7 @@ export const invokeExternal = async (mode: string, system: string, message: stri
 
 Guard: *convention*. Revisit when a test needs to replace something that no parameter, variable or state file reaches, or when a seam gets a second implementation.
 
-**2.5 PREFER the flat `src/`.** It holds 15 files and about 2,800 lines. Folders and layers earn their place past 15 files or 3,000 lines; until then a new concept is a new file on the map of 2.1.
+**2.5 NEVER let a directory reach six files.** The sixth file is the signal to regroup by feature: what changes together lives together, the files everything imports go in a folder of their own, and the entry points stay where the launcher and the gate find them. A directory splits by feature the way a file splits by responsibility (1.8), and a new concept is still a new file on the map of 2.1. The root is excused: its files are the ones the tools look for there.
 Guard: *convention*.
 
 ## 3. Robustness
