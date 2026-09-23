@@ -81,8 +81,8 @@ export const fail: (message: string) => never = (message) => {
   process.exit(1)
 }
 
-export const note = (text: string): void => {
-  record("note", { text })
+export const note = (text: string, logged = text): void => {
+  record("note", { text: logged })
   said(`${marked("info", "", scrubbed(`[ccsaver: ${text}]`), process.stderr)}\n`)
 }
 

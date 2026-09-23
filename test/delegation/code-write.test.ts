@@ -15,6 +15,7 @@ import {
   CLI,
   type FakeServer,
   fakeClaude,
+  logged,
   type Ran,
   run,
   startServer,
@@ -41,6 +42,12 @@ let server: FakeServer
 const cli = (args: string[], env: NodeJS.ProcessEnv = {}): Promise<Ran> =>
   run("node", [CLI, ...args], { CCSAVER_HOME: HOME, CLAUDE_CODE_EXECPATH: FAKE, ...env })
 
+const FMT_CONF = join(FORMATTED, "tools", "fmt.conf")
+
+const formatterDoes = (lines: string[]): void => {
+  writeFileSync(FMT_CONF, `${lines.join("\n")}\n`)
+}
+
 const codeWrite = (project: string, target?: string, env: NodeJS.ProcessEnv = {}): Promise<Ran> =>
   cli(
     [
@@ -65,7 +72,7 @@ before(async () => {
     writeFileSync(join(dir, "source.ts"), "export const a = 1\nexport const b = 2\n")
   writeFileSync(
     join(tools, "fmt.sh"),
-    '#!/bin/sh\n[ -z "$FMT_RM" ] || exec rm "$1"\n[ -z "$FMT_SAY" ] || echo "$FMT_SAY" >&2\nprintf "export const formatted = 1\\n" >> "$1"\nexit $FMT_EXIT\n',
+    '#!/bin/sh\nconf="$(dirname "$0")/fmt.conf"\n[ -f "$conf" ] && . "$conf"\nenv | grep -q "^CLAUDE" && { echo "the formatter saw the session environment" >&2; exit 9; }\n[ -z "$FMT_RM" ] || exec rm "$1"\n[ -z "$FMT_SAY" ] || echo "$FMT_SAY" >&2\nprintf "export const formatted = 1\\n" >> "$1"\n[ -n "$FMT_EXIT" ] || FMT_EXIT=0\nexit $FMT_EXIT\n',
   )
   chmodSync(join(tools, "fmt.sh"), 0o755)
   writeFileSync(
@@ -138,14 +145,17 @@ test("says so when the formatter of the adapter cannot run", async () => {
 test("says so when the formatter exits with an error, with what it printed, and quotes a target that needs it", async () => {
   server.reply.content = "export const g = 7\n"
   const target = join(FORMATTED, "with space.ts")
-  const out = await codeWrite(FORMATTED, target, {
-    FMT_EXIT: "3",
-    FMT_SAY: "line 1: not formatted",
-  })
+  await cli(["log", "on"])
+  formatterDoes(["FMT_EXIT=3", "FMT_SAY='line 1: not formatted'"])
+  const out = await codeWrite(FORMATTED, target)
   assert.equal(out.code, 0)
   assert.match(out.stderr, /the formatter exited 3: line 1: not formatted, check .*with space\.ts/)
-  const quiet = await codeWrite(FORMATTED, join(FORMATTED, "quiet.ts"), { FMT_EXIT: "3" })
+  assert.equal(logged(HOME).includes("line 1: not formatted"), false)
+  assert.match(logged(HOME), /"text":"the formatter exited 3, check /)
+  formatterDoes(["FMT_EXIT=3"])
+  const quiet = await codeWrite(FORMATTED, join(FORMATTED, "quiet.ts"))
   assert.match(quiet.stderr, /the formatter exited 3, check /)
+  rmSync(FMT_CONF)
   assert.ok(out.stdout.includes(`next: check '${target}'\n`), out.stdout)
 })
 
@@ -188,7 +198,9 @@ test("a formatter that climbs out of the project is not run", async () => {
 test("fails instead of reporting a file the formatter took away", async () => {
   server.reply.content = "export const h = 8\n"
   const target = join(FORMATTED, "vanished.ts")
-  const out = await codeWrite(FORMATTED, target, { FMT_RM: "1" })
+  formatterDoes(["FMT_RM=1"])
+  const out = await codeWrite(FORMATTED, target)
+  rmSync(FMT_CONF)
   assert.equal(out.code, 1)
   assert.equal(out.stdout, "")
   assert.match(out.stderr, /^Error: .*vanished\.ts is gone after the formatter ran$/m)

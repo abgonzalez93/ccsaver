@@ -46,6 +46,7 @@ const FORMAT_TIMEOUT_MS = 60_000
 const FORMAT_FLOOR_MS = 1_000
 const FORMAT_MAX_BYTES = 1024 * 1024
 const FORMAT_SAID_CHARS = 400
+const FORMAT_ENV = ["PATH", "HOME", "LANG", "TMPDIR"]
 const BASH_BUDGET_MS = 115_000
 
 export const isMode = (value: string | undefined): value is Mode =>
@@ -120,6 +121,9 @@ const format = (adapter: Adapter, root: string, target: string): void => {
   const run = spawnSync(bin, [...args, target], {
     cwd: root,
     encoding: "utf8",
+    env: Object.fromEntries(
+      FORMAT_ENV.flatMap((name) => (process.env[name] ? [[name, process.env[name]]] : [])),
+    ),
     maxBuffer: FORMAT_MAX_BYTES,
     timeout: Math.max(FORMAT_FLOOR_MS, Math.min(FORMAT_TIMEOUT_MS, left)),
   })
@@ -131,7 +135,10 @@ const format = (adapter: Adapter, root: string, target: string): void => {
   if (run.error)
     note(`the formatter could not run (${run.error.message}), ${target} is unformatted`)
   else if (run.status !== 0)
-    note(`the formatter exited ${run.status ?? run.signal}${saidOn(run.stderr)}, check ${target}`)
+    note(
+      `the formatter exited ${run.status ?? run.signal}${saidOn(run.stderr)}, check ${target}`,
+      `the formatter exited ${run.status ?? run.signal}, check ${target}`,
+    )
 }
 
 const targetIn = (root: string, given: string): string => {
