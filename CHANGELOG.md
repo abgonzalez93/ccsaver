@@ -4,6 +4,15 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.24.17 - 2026-09-23
+
+docs: what the log cannot say, hard links, the skill's grant, the adapter limits event, and what a citation proves
+
+- events.md lists the adapter limits config event it never named, and ends with what the log does not record: work against development, what followed a denial, which doctor check failed, the settings made before log on, and calls killed or logged while the log was off
+- the README says a hard link is judged as the inside file it is, and quotes Claude Code's documentation on the skill's grant beside what 2.1.274 was seen to do
+- the bulk-reader skill says a citation proves the line, not the claim, and that "is X there?" belongs to Grep
+- measurements.md keeps the second code-write data point: an import copied from the reference against the spec, n = 1
+
 ## 0.24.16 - 2026-09-23
 
 fix: saved prints a count of tokens under ten thousand as a number, not as 0.00 M

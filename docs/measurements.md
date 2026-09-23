@@ -28,6 +28,9 @@ The third is that those 8 KB are now what a file that ends inside them is counte
 
 A ~110-line test file came out break-even: 0.80–1.02 $ delegated against 0.85 $ written directly. The cost is the review, not the writing.
 
+
+A second call on 2026-09-23, one of the two of a live check: a 15-line test file whose spec named its import as `../src/state/config.store.ts` came back with the reference's path, `../../src/…`, so the file did not load, and passed 3 of 3 once that one import was fixed; the formatter had run and the `warn:` line stayed silent. n = 1, and the skill's warning to name the module of every import stands.
+
 ## Where delegation starts to pay
 
 Roughly 2,000–3,000 lines and up.
