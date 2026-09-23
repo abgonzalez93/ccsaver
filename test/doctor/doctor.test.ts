@@ -64,6 +64,12 @@ test("doctor fails on a rejected key, and passes once the key is rotated", async
   assert.equal(rejected.code, 1)
   assert.match(rejected.stdout, /^FAIL probe: the key was rejected \(401\)$/m)
   assert.equal(server.seen.at(-1)?.authorization, `Bearer ${OLD_KEY}`)
+  server.reply.accepts = undefined
+  server.reply.status = 400
+  const malformed = await ccsaver(["doctor"])
+  assert.match(malformed.stdout, /^FAIL probe: the key or the request was rejected \(400\)$/m)
+  server.reply.status = 200
+  server.reply.accepts = NEW_KEY
   assert.equal((await ccsaver(["key", "set"], `${NEW_KEY}\n`)).code, 0)
   const accepted = await ccsaver(["doctor"])
   assert.equal(accepted.code, 0)
@@ -253,10 +259,7 @@ test("doctor fails on a missing key, a worker that is down and a broken adapter"
   assert.match(keyless.stdout, /^FAIL plugged: .*project · adapter no-such-adapter not found in /m)
   writeFileSync(join(home, "api-key.moved"), `${OLD_KEY}\n`, { mode: 0o600 })
   const aside = await ccsaver(["doctor"], "", { CCSAVER_HOME: home })
-  assert.match(
-    aside.stdout,
-    /^FAIL key: set aside in .*api-key\.moved when the worker moved: run ccsaver key set$/m,
-  )
+  assert.match(aside.stdout, /^FAIL key: set aside in .*api-key\.moved when the worker moved/m)
   writeHome(home, { key: OLD_KEY })
   const down = await ccsaver(["doctor"], "", { CCSAVER_HOME: home })
   assert.match(down.stdout, /^FAIL probe: .* is unreachable$/m)

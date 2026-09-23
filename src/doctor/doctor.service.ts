@@ -91,8 +91,10 @@ const probe = async (url: string, model: string, key: string): Promise<Finding> 
     const took = `${Math.round(performance.now() - started)} ms`
     if (response.status === 200)
       return { level: "ok", text: `probe: ${model} accepted the key in ${took}` }
-    return response.status === 401 || response.status === 403
-      ? { level: "FAIL", text: `probe: the key was rejected (${response.status})` }
+    if (response.status === 401 || response.status === 403)
+      return { level: "FAIL", text: `probe: the key was rejected (${response.status})` }
+    return response.status === 400
+      ? { level: "FAIL", text: "probe: the key or the request was rejected (400)" }
       : { level: "FAIL", text: `probe: ${model} answered ${response.status} in ${took}` }
   } catch (error) {
     return { level: "FAIL", text: `probe: ${shown(url)} ${WHY[fellOf(error)]}` }

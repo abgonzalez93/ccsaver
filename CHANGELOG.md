@@ -4,6 +4,12 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.24.11 - 2026-09-23
+
+fix: doctor reads a 400 from the worker as a rejected key or request
+
+- Google's OpenAI endpoint answers 400, not 401, to a key it does not know, and the probe reported it as the model answering 400 in so many milliseconds
+
 ## 0.24.10 - 2026-09-23
 
 fix: the formatter runs with a bare environment, and what it prints stays out of the log
