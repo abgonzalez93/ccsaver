@@ -94,7 +94,7 @@ test("one gate event per decision, with the ids of the call", async () => {
     [{ file_path: BLOB }, "allow", "binary"],
     [{ file_path: join(PROJECT, "missing.txt") }, "allow", "unreadable"],
     ["nope", "allow", "malformed"],
-    [{ file_path: OUTSIDE }, "allow", "under"],
+    [{ file_path: OUTSIDE }, "allow", "outside"],
   ]
   const before = events(HOME).length
   for (const [tool_input] of cases) await hook({ ...call, tool_input })
@@ -159,7 +159,9 @@ test("the gate records the model the session was on, read from the end of its tr
 test("an adapter the hook cannot load leaves a crash next to the gate event it explains", async () => {
   const before = events(HOME).length
   writeHome(HOME, { plugged: [[PROJECT], [BROKEN, "broken"]] })
-  const out = await hook({ tool_input: { file_path: LONG } }, BROKEN)
+  const brokenLong = join(BROKEN, "long.txt")
+  writeFileSync(brokenLong, "x\n".repeat(351))
+  const out = await hook({ tool_input: { file_path: brokenLong } }, BROKEN)
   writeHome(HOME, { plugged: [[PROJECT]] })
   assert.match(out.stdout, /"permissionDecision":"deny"/)
   const [crash, gate] = events(HOME).slice(before)

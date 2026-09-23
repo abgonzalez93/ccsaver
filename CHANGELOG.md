@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.24.13 - 2026-09-23
+
+fix: the gate never denies a file outside the plugged project, and the log says outside
+
+- six of the ten real denials of September were subagents reading Claude Code's own tool-results files outside the root; the denial pointed at bulk-reader, which cannot take a file outside the root while the fallback is off and sends it to paid Claude Haiku when it is on, and the subagents read the file whole through Bash instead
+- a whole-file read outside the root is now allowed with the reason outside, which saved will leave out of its without column
+- doctor writes its throwaway probe file inside the root for a moment, since one outside it would no longer be denied, and warns instead of failing when it cannot write there
+
 ## 0.24.12 - 2026-09-23
 
 fix: every log line says which version of ccsaver wrote it

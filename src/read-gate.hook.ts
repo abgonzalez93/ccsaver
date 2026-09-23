@@ -78,7 +78,12 @@ const denial = (given: string, { lines, bytes }: Measured, limits: Limits): stri
   return `${given} has ${counted}, ~${tokensIn(bytes)} tokens at 4 bytes each, and a whole-file Read measures about twice that (limits ${limits.maxLines} lines, ${limits.maxTokens} tokens). Locate or count with Grep first. When the answer needs the file understood end to end, use the /ccsaver:bulk-reader skill to delegate the read. To edit, Read only the range you need with offset and limit.`
 }
 
-const placeOf = (given: string, root: string): Record<string, unknown> => {
+interface Place {
+  inside: boolean
+  path?: string
+}
+
+const placeOf = (given: string, root: string): Place => {
   const path = real(given)
   return isUnder(path, root) ? { inside: true, path: relative(root, path) } : { inside: false }
 }
@@ -107,13 +112,14 @@ const gate = (root: string, adapterName: string | undefined): void => {
     return
   }
   const limits = limitsOf(adapterName)
+  const place = placeOf(given, root)
   const measured = measure(given, limits.maxTokens * BYTES_PER_TOKEN)
-  const reason = reasonOf(measured, ranged, limits)
+  const reason = place.inside || ranged ? reasonOf(measured, ranged, limits) : "outside"
   const denied = reason === "lines" || reason === "tokens"
   if (denied) deny(denial(given, measured, limits))
   if (!logging) return
   seen({
-    ...placeOf(given, root),
+    ...place,
     ...rangeOf(offset, limit),
     lines: measured.lines ?? null,
     bytes: measured.bytes,

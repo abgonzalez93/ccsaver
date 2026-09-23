@@ -21,16 +21,21 @@ writeFileSync(
 )
 writeFileSync(join(HOME, "adapters", "broken.json"), JSON.stringify({ maxLines: "abc" }))
 
-const fileOf = (name: string, lines: number): string => {
-  const path = join(WORK, name)
+const fileOf = (name: string, lines: number, dir = PROJECT): string => {
+  const path = join(dir, name)
   writeFileSync(path, "x\n".repeat(lines))
   return path
 }
 
 const LONG = fileOf("long.txt", 351)
 const EDGE = fileOf("edge.txt", 350)
-const HEAVY = join(WORK, "heavy.md")
+const HEAVY = join(PROJECT, "heavy.md")
 writeFileSync(HEAVY, `${"word ".repeat(8000)}\n`)
+const ROOMY_LONG = fileOf("long.txt", 351, ROOMY)
+const ROOMY_HEAVY = join(ROOMY, "heavy.md")
+writeFileSync(ROOMY_HEAVY, `${"word ".repeat(8000)}\n`)
+const BROKEN_LONG = fileOf("long.txt", 351, BROKEN)
+const OUTSIDE_LONG = fileOf("outside-long.txt", 351, WORK)
 
 const said = (input: unknown, project = PROJECT): Promise<Ran> =>
   run("node", [HOOK], { CCSAVER_HOME: HOME, CLAUDE_PROJECT_DIR: project }, JSON.stringify(input))
@@ -90,16 +95,22 @@ test("denies a short file that is heavy in tokens", async () => {
 })
 
 test("takes the limits from the adapter of the project", async () => {
-  assert.equal(await denied({ tool_input: { file_path: LONG } }, ROOMY), false)
-  assert.equal(await denied({ tool_input: { file_path: HEAVY } }, ROOMY), false)
+  assert.equal(await denied({ tool_input: { file_path: ROOMY_LONG } }, ROOMY), false)
+  assert.equal(await denied({ tool_input: { file_path: ROOMY_HEAVY } }, ROOMY), false)
 })
 
 test("keeps the default limits when the adapter is malformed", async () => {
-  assert.equal(await denied({ tool_input: { file_path: LONG } }, BROKEN), true)
+  assert.equal(await denied({ tool_input: { file_path: BROKEN_LONG } }, BROKEN), true)
+})
+
+test("a file outside the plugged root is never denied, however long", async () => {
+  assert.equal(await denied({ tool_input: { file_path: OUTSIDE_LONG } }), false)
+  const ranged = { file_path: OUTSIDE_LONG, offset: 1, limit: 5 }
+  assert.equal(await denied({ tool_input: ranged }), false)
 })
 
 test("denies a file it cannot read whole, and never reports lines it did not count", async () => {
-  const huge = join(WORK, "huge.txt")
+  const huge = join(PROJECT, "huge.txt")
   writeFileSync(huge, "x\n".repeat(4096))
   truncateSync(huge, 2_200_000_000)
   const out = await said({ tool_input: { file_path: huge } })
@@ -109,13 +120,13 @@ test("denies a file it cannot read whole, and never reports lines it did not cou
 })
 
 test("denies by bytes without reading a file that is past the limit", async () => {
-  const wide = join(WORK, "wide.md")
+  const wide = join(PROJECT, "wide.md")
   writeFileSync(wide, `${"word ".repeat(9000)}\n`)
   const out = await said({ tool_input: { file_path: wide } })
   assert.match(out.stdout, /45001 bytes, too big to count its lines, ~11250 tokens/)
 })
 test("lets a binary file through", async () => {
-  const path = join(WORK, "blob.bin")
+  const path = join(PROJECT, "blob.bin")
   writeFileSync(path, Buffer.concat([Buffer.from("x\n".repeat(400)), Buffer.from([0])]))
   assert.equal(await denied({ tool_input: { file_path: path } }), false)
 })
@@ -126,8 +137,8 @@ test("does nothing in a project that is not plugged in", async () => {
 
 test("denies a file one byte past the byte limit, however few lines it has, and lets one at the limit through", async () => {
   const row = `${"x".repeat(99)}\n`
-  const atLimit = join(WORK, "at-limit.txt")
-  const pastLimit = join(WORK, "past-limit.txt")
+  const atLimit = join(PROJECT, "at-limit.txt")
+  const pastLimit = join(PROJECT, "past-limit.txt")
   writeFileSync(atLimit, row.repeat(320))
   writeFileSync(pastLimit, `${row.repeat(320)}x`)
   assert.equal(await denied({ tool_input: { file_path: atLimit } }), false)
@@ -146,10 +157,10 @@ test("a Read of what is no regular file is let through at once, never waited on"
 })
 
 test("a last line without its newline counts, an empty file passes, and a symlink is judged by its target", async () => {
-  const bare = join(WORK, "bare.txt")
-  const partial = join(WORK, "partial.txt")
-  const empty = join(WORK, "empty.txt")
-  const alias = join(WORK, "alias.txt")
+  const bare = join(PROJECT, "bare.txt")
+  const partial = join(PROJECT, "partial.txt")
+  const empty = join(PROJECT, "empty.txt")
+  const alias = join(PROJECT, "alias.txt")
   writeFileSync(bare, "x\n".repeat(350).slice(0, -1))
   writeFileSync(partial, `${"x\n".repeat(350)}x`)
   writeFileSync(empty, "")

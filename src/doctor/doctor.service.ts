@@ -1,6 +1,5 @@
 import { spawnSync } from "node:child_process"
-import { existsSync, mkdtempSync, rmSync, statSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { existsSync, rmSync, statSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import {
   CLAUDE_ON_PATH,
@@ -152,10 +151,16 @@ const fallback = (worker: Worker | undefined): Finding => {
 }
 
 const gate = (root: string, lines: number): Finding => {
-  const dir = mkdtempSync(join(tmpdir(), "ccsaver-doctor-"))
+  const long = join(root, `.ccsaver-probe-${process.pid}.txt`)
   try {
-    const long = join(dir, "long.txt")
-    writeFileSync(long, "x\n".repeat(lines))
+    writeFileSync(long, "x\n".repeat(lines), { flag: "wx" })
+  } catch (error) {
+    return {
+      level: "warn",
+      text: `gate: ${root} · a throwaway file could not be written there (${messageOf(error)}), so the hook was not tried`,
+    }
+  }
+  try {
     const run = spawnSync("sh", [GATE, "read-gate"], {
       encoding: "utf8",
       timeout: 15_000,
@@ -166,7 +171,7 @@ const gate = (root: string, lines: number): Finding => {
       ? { level: "ok", text: `gate: ${root} · the hook denied a ${lines}-line read` }
       : { level: "FAIL", text: `gate: ${root} · the hook let a ${lines}-line read through` }
   } finally {
-    rmSync(dir, { recursive: true, force: true })
+    rmSync(long, { force: true })
   }
 }
 
