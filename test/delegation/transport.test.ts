@@ -241,3 +241,14 @@ test("an answer with no text in it is no answer, and falls back saying so", asyn
     )
   }
 })
+
+test("the stored key is hidden in the answer the command prints, as it is in the log", async () => {
+  const echo = join(WORK, "home-echo")
+  const key = "k-test-0123456789"
+  writeHome(echo, { plugged: PLUGGED, worker: { url: server.url, model: "cheap-1" }, key })
+  server.reply.content = `the header carried ${key} and ${key} again`
+  const out = await bulkRead(SOURCE, { CCSAVER_HOME: echo })
+  assert.equal(out.code, 0)
+  assert.equal(out.stdout.includes(key), false)
+  assert.match(out.stdout, /the header carried \[key\] and \[key\] again/)
+})

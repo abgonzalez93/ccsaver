@@ -1,6 +1,6 @@
 import { appendFileSync, chmodSync, existsSync, mkdirSync, readFileSync, renameSync } from "node:fs"
 import { join } from "node:path"
-import { attempt, isRecord, parsed, Refusal, stateHome, storedKey } from "./state.store.ts"
+import { attempt, hidden, isRecord, parsed, Refusal, stateHome } from "./state.store.ts"
 
 export type Row = Record<PropertyKey, unknown>
 
@@ -13,7 +13,6 @@ export const numberAt = (row: Row, key: string): number => {
 
 const LOG_VERSION = 1
 const LOG_LINE_BYTES = 4000
-const SCRUB_FROM = 8
 const SESSION_CHARS = 200
 export const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/
 
@@ -41,11 +40,7 @@ export const record = (kind: string, fields: Record<string, unknown>, session?: 
     const full = JSON.stringify({ ...head, ...fields })
     const size = Buffer.byteLength(full)
     const line = size > LOG_LINE_BYTES ? JSON.stringify({ ...head, dropped: size }) : full
-    const stored = storedKey()
-    const known = stored !== undefined && stored.length >= SCRUB_FROM ? stored : undefined
-    const clean =
-      known === undefined ? line : line.replaceAll(JSON.stringify(known).slice(1, -1), "[key]")
-    appendFileSync(logFile(now), `${clean}\n`, { mode: 0o600 })
+    appendFileSync(logFile(now), `${hidden(line)}\n`, { mode: 0o600 })
   } catch {
     // the folder is the switch: without it the append fails and nothing else changes
   }

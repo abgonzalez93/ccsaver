@@ -4,6 +4,13 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.24.5 - 2026-09-23
+
+fix: the stored key is hidden in everything a command prints, as it already was in the log
+
+- a worker that echoed the Authorization header, or a file that carried the key in a shape the net does not know, put the key on stdout and so into the session's context and transcript; the log alone replaced it with [key]
+- one function in state.store now hides it for the log, the framed answer, the notes, the errors and the lines code-write prints
+
 ## 0.24.4 - 2026-09-23
 
 fix: the warn line names require( and a bracket access to process

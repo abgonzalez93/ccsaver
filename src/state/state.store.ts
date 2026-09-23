@@ -70,6 +70,14 @@ export const keyIsStored = (): boolean => existsSync(keyFile())
 
 export const keyIsCarriable = (key: string): boolean => CARRIABLE.test(key)
 
+const SCRUB_FROM = 8
+
+export const hidden = (text: string): string => {
+  const known = storedKey()
+  if (known === undefined || known.length < SCRUB_FROM) return text
+  return text.replaceAll(known, "[key]").replaceAll(JSON.stringify(known).slice(1, -1), "[key]")
+}
+
 export const pluggedFile = (): string => join(stateHome(), "plugged")
 
 export const workerFile = (): string => join(stateHome(), "worker.json")

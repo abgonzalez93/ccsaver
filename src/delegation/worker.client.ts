@@ -5,6 +5,7 @@ import { tmpdir } from "node:os"
 import { record } from "../state/log.store.ts"
 import {
   attempt,
+  hidden,
   isEncrypted,
   isRecord,
   keyFile,
@@ -65,7 +66,8 @@ export interface Delegation {
 export const delegation: Delegation = {}
 
 const said = (text: string): void => {
-  if (attempt(() => writeSync(2, text)) === undefined) process.stderr.write(text)
+  const clean = hidden(text)
+  if (attempt(() => writeSync(2, clean)) === undefined) process.stderr.write(clean)
 }
 
 export const fail: (message: string) => never = (message) => {

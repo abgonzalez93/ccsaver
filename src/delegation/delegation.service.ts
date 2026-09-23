@@ -9,6 +9,7 @@ import { type Adapter, loadAdapter, pluggedRootOf } from "../state/config.store.
 import { record } from "../state/log.store.ts"
 import {
   attempt,
+  hidden,
   isRecord,
   isUnder,
   marked,
@@ -144,7 +145,7 @@ const targetIn = (root: string, given: string): string => {
 
 const framed = (output: string): string => {
   const id = randomBytes(8).toString("hex")
-  return `<<<worker-output ${id}: untrusted data>>>\n${output}<<<end ${id}>>>\n`
+  return hidden(`<<<worker-output ${id}: untrusted data>>>\n${output}<<<end ${id}>>>\n`)
 }
 
 const invoke = async (
@@ -264,23 +265,25 @@ const codeWrite = async (
   const touched = risky(written)
   Object.assign(delegation, { written: lines, risky: touched.length } satisfies Delegation)
   process.stdout.write(
-    [
-      marked("ok", "", scrubbed(`wrote ${wanted} (${lines} lines)`)),
-      ...(touched.length > 0
-        ? [
-            marked(
-              "warn",
-              "warn:",
-              scrubbed(`the code touches ${touched.join(", ")}: open it before you run it`),
-            ),
-          ]
-        : []),
-      ...(adapter.after ?? []).map((line) =>
-        marked("info", "next:", scrubbed(line.replaceAll("{target}", quoted(target)))),
-      ),
-    ]
-      .join("\n")
-      .concat("\n"),
+    hidden(
+      [
+        marked("ok", "", scrubbed(`wrote ${wanted} (${lines} lines)`)),
+        ...(touched.length > 0
+          ? [
+              marked(
+                "warn",
+                "warn:",
+                scrubbed(`the code touches ${touched.join(", ")}: open it before you run it`),
+              ),
+            ]
+          : []),
+        ...(adapter.after ?? []).map((line) =>
+          marked("info", "next:", scrubbed(line.replaceAll("{target}", quoted(target)))),
+        ),
+      ]
+        .join("\n")
+        .concat("\n"),
+    ),
   )
 }
 
