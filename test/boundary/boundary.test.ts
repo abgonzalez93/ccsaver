@@ -70,6 +70,9 @@ test("refuses a private key, a well-known token and a binary, whatever the file 
   ]
   const block = `${["-----BEGIN", "PGP", "PRIVATE KEY BLOCK-----"].join(" ")}\nabc\n`
   for (const header of [armor, block]) assert.match(contentRefusal(header) ?? "", /private key/)
+  const mention = `a changelog line that mentions ${["-----BEGIN", "PGP", "PRIVATE KEY BLOCK-----"].join(" ")} in passing\n`
+  assert.equal(contentRefusal(mention), undefined)
+  assert.match(contentRefusal(`notes\n${block}`) ?? "", /private key/)
   for (const token of tokens)
     assert.match(contentRefusal(`const t = "${token}"\n`) ?? "", /access token/, token.slice(0, 6))
   assert.match(contentRefusal("x\n\0y") ?? "", /binary/)

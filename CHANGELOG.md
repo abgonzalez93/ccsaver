@@ -4,6 +4,13 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.24.2 - 2026-09-23
+
+fix: a private-key header is refused only at the start of a line
+
+- the pattern matched a mention inside prose, so CHANGELOG.md, whose entry describes the header, could never be delegated: the gate denied its whole-file Read and the bulk-reader skill then refused it
+- a PEM or PGP block always opens at column 0, so anchoring the marker loses nothing
+
 ## 0.24.1 - 2026-09-23
 
 refactor: the launcher a terminal runs is two files under launcher/, put together when it is written

@@ -3,7 +3,7 @@ import { isSecretPlace, isUnder } from "../state/state.store.ts"
 
 const SECRET_NAME =
   /^\.env(?!\.(example|sample|template)$)|^\.dev\.vars$|^\.credentials\.json$|^\.claude\.json$|^settings\.local\.json$|^api-key$|^\.npmrc$|^\.netrc$|^\.pypirc$|^\.pgpass$|^\.htpasswd$|^\.git-credentials$|^kubeconfig|^credentials(\.|$)|^\.?secrets?(\.|$)|^id_(rsa|ed25519|ecdsa|dsa)|\.(key|pem|p12|pfx|jks|keystore|ppk|kdbx|tfvars|tfstate)$|\.tfvars\.json$|\.tfstate\.backup$/i
-const PRIVATE_KEY = /-----BEGIN [A-Z ]*PRIVATE KEY( BLOCK)?-----/
+const PRIVATE_KEY = /^-----BEGIN [A-Z ]*PRIVATE KEY( BLOCK)?-----/m
 const TOKEN =
   /\b(AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{22,}|glpat-[A-Za-z0-9_-]{20,}|npm_[A-Za-z0-9]{36}|xox[abprs]-[A-Za-z0-9-]{10,}|[sr]k[-_][A-Za-z0-9_-]{20,}|AIza[0-9A-Za-z_-]{35})\b/
 const PROTECTED_PLACE =
