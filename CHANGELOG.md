@@ -4,6 +4,12 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.24.14 - 2026-09-23
+
+fix: saved leaves a denial of a file outside the plugged project out of the without column
+
+- 83 % of the tokens September's report counted as saved came from six denials of files outside the root, which the subagents then read whole through Bash; the gate no longer denies those, and the report leaves the ones older logs hold out of the sum and says so at the foot
+
 ## 0.24.13 - 2026-09-23
 
 fix: the gate never denies a file outside the plugged project, and the log says outside

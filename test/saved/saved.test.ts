@@ -108,3 +108,8 @@ test("a month is YYYY-MM, so no reader of the log can be steered out of its fold
   for (const wrong of ["2026-13", "../../etc/passwd", "2026-01/../../.ssh/id_rsa"])
     assert.throws(() => foldMonth(wrong, 0, (sum) => sum), /a month is YYYY-MM, this one is not/)
 })
+
+test("a denial of a file outside the plugged root is counted apart, never as a saving", () => {
+  const spend = tallied([denialRow(40_000), { ...denialRow(40_000), inside: false }])
+  assert.deepEqual([spend.denied, spend.outside], [1, 1])
+})

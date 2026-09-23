@@ -153,6 +153,11 @@ const footnotes = (tally: Spend, prices: Prices, priced: boolean): string[] => [
         "  are left out of `instead`, which flatters ccsaver",
       ]
     : []),
+  ...(tally.outside > 0
+    ? [
+        `  ${many(tally.outside, "denied read")} of files outside the plugged project left out, because nothing could have delegated them`,
+      ]
+    : []),
   ...(priced && orphaned(tally)
     ? ["  nothing here replaced those reads, so `without` is the most flattering reading there is"]
     : []),

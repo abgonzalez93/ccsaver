@@ -17,6 +17,7 @@ export interface Read {
 
 export interface Spend {
   denied: number
+  outside: number
   ranged: number
   uncounted: number
   byModel: Record<string, Read>
@@ -44,6 +45,7 @@ const NO_READ: Read = { deniedTokens: 0, rangedTokens: 0 }
 
 export const NOTHING_SPENT: Spend = {
   denied: 0,
+  outside: 0,
   ranged: 0,
   uncounted: 0,
   byModel: {},
@@ -94,12 +96,14 @@ export const totalled = (byModel: Record<string, Read>): Read =>
 const gateInto = (sum: Spend, row: Row): Spend => {
   const tokens = tokensIn(numberAt(row, "bytes"))
   const model = modelOf(row)
-  if (row["decision"] === "deny")
+  if (row["decision"] === "deny") {
+    if (row["inside"] === false) return { ...sum, outside: sum.outside + 1 }
     return {
       ...sum,
       denied: sum.denied + 1,
       byModel: withRead(sum.byModel, model, { deniedTokens: tokens, rangedTokens: 0 }),
     }
+  }
   if (row["reason"] !== "range") return sum
   const lines = numberAt(row, "lines")
   if (lines <= 0) return { ...sum, ranged: sum.ranged + 1, uncounted: sum.uncounted + 1 }

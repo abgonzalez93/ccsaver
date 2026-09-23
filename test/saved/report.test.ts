@@ -286,3 +286,15 @@ test("a model that denied nothing is not asked for a price that would change not
   assert.doesNotMatch(out.stdout, new RegExp(`${FABLE} denied`))
   assert.doesNotMatch(out.stdout, new RegExp(`ccsaver price ${FABLE}`))
 })
+
+test("a denied read of a file outside the plugged project is left out, and the foot says so", async () => {
+  const home = homeWith("outside", [[...twentyDenials(), { ...denialRow(40_000), inside: false }]])
+  await priced(home, [OPUS, "5"])
+  const out = await saved(home)
+  assert.equal(out.code, 0)
+  assert.match(out.stdout, /^ {2}denied {5}20 whole-file reads/m)
+  assert.match(
+    out.stdout,
+    /1 denied read of files outside the plugged project left out, because nothing could have delegated them/,
+  )
+})
