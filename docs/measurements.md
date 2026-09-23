@@ -65,6 +65,24 @@ The launcher taking the name of the hook it starts, so that a second hook shares
 
 Folders cost it nothing either. When `src/` regrouped by feature and the hook's three imports moved into `src/state/`: 21.3 / 20.6 / 21.0 ms flat against 21.4 / 20.6 / 20.4 ms in folders, three rounds of 30 runs per arm, paired, both trees on the same disk. A first pair with the flat copy on `tmpfs` read 2 ms in favour of the folders, which was the disk and not the layout: what the hook pays for is a module, never the depth of its path.
 
+## The handoff hook per turn
+
+Three rounds of 30 runs per arm, paired, process spawn included, on a 4 MB transcript whose last line holds the count, with the warning already given for the multiple the count sits in, which is what every turn but the crossing one costs: **1.7 / 1.7 / 1.7 ms in an unplugged project and 1.7 / 1.7 / 1.7 ms in a plugged one with the warning off**, where `hooks/gate` exits in `sh` before Node starts, and **27.2 / 27.3 / 25.9 ms with it on**: Node's start-up with four modules, the last 256 KB of the transcript parsed, and the marker read. The `Read` gate did not move when the switch line joined the launcher: 24.3 / 23.9 / 24.3 ms before against 24.0 / 24.0 / 23.7 ms after.
+
+The fifth slash command's description is 86 characters, about 22 tokens by bytes/4 on the listing every session loads, beside the ~188 the two skill descriptions measured; it has not been measured in a session of its own.
+
+## Where the handoff limit comes from
+
+175 session transcripts of one machine, all from the VS Code extension, Claude Code 2.1.220 to 2.1.280, read on 2026-09-23 by a script that prints numbers and nothing else; 85 of them are working sessions of 20 requests or more, the rest probes. Context is the status line's sum over the last response of each request.
+
+- Where sessions end: p50 104k tokens, p75 268k, p90 495k, p95 847k, max 1,000k. Of the working sessions, 76 % pass 200k, 42 % pass 300k and 32 % pass 400k. Twelve compactions in nine sessions were automatic, at 967k–1,006k, and one manual, at 519k: nobody compacts at 200k.
+- Growth: 1,697 tokens per request at the median (p90 6,978), 8,509 per turn (p90 86,978, p99 321,949), 12.3 requests per turn. One turn in ten grows by more than 87,000 tokens, which is what a warning given at the end of the turn can be late by.
+- After crossing 200k a session makes 46 more requests at the median (p90 268), each carrying the whole history. Had those run in a new session opened with a 10,000-token handoff over the project's own base (39k–46k tokens for a first request), the input they carried would have been 31 % smaller; 44 % at 300k and 54 % at 400k, limits that reach fewer sessions. The estimate assumes the new session grows as the old one did and re-reads nothing, so it is a ceiling.
+- A real handoff costs 6.6k–14.5k tokens to read: six hand-written ones of 15–28 KB, measured as the difference in context around their `Read`, 2.2 bytes per token with line numbers.
+- Effective rates fitted on the cost lines of 15 Opus 5 sessions, residual 0.0 %: 5 $/M input, 25 $/M output, 0.50 $/M cache read, 10 $/M cache write, with no premium past 200k in sessions that reached 966k. At those rates the median session that crosses 200k would have spent 3.5 $ less.
+
+200,000 is the default because that is where three working sessions in four still have 46 requests ahead of them, and because it is the count the author was already applying by hand.
+
 ## Reading the model out of the transcript
 
 0.156 ms, mean of 200 runs, on a 2.5 MB transcript: open, read the last 64 KB, split it and `JSON.parse` each whole line, keep the `model` of the last assistant one. A naive regex over the same slice took 0.071 ms but reads a model name written in the conversation as the one in force, which this very repository's sessions produce.

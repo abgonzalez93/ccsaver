@@ -3,6 +3,9 @@
 dir=$(cd "${CLAUDE_PROJECT_DIR:-$PWD}" 2>/dev/null && pwd -P) || exit 0
 home="${CCSAVER_HOME:-$HOME/.config/ccsaver}"
 [ -r "$home/plugged" ] || exit 0
+if [ "$1" = handoff ] && [ -r "$home/handoff.json" ]; then
+  while IFS= read -r line; do case $line in *'"on": false'*) exit 0 ;; esac; done < "$home/handoff.json"
+fi
 while IFS='	' read -r root _ <&3; do
   [ -n "$root" ] || continue
   case "$dir/" in "$root"/*)

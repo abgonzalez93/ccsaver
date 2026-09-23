@@ -5,6 +5,7 @@ import { after, test } from "node:test"
 import { GATE, type Ran, run, tempDir, writeHome } from "../test.helpers.ts"
 
 const HOME = tempDir("gate-home")
+const OFF_HOME = tempDir("gate-off")
 const EMPTY_HOME = tempDir("gate-empty")
 const WORK = tempDir("gate-work")
 const PLUGGED = join(WORK, "proj-a")
@@ -21,12 +22,19 @@ writeFileSync(LONG, "x\n".repeat(351))
 writeFileSync(join(FAKE_BIN, "node"), `#!/bin/sh\n: > "${MARKER}"\n`)
 chmodSync(join(FAKE_BIN, "node"), 0o755)
 writeHome(HOME, { plugged: [["", "strict-ts"], [join(WORK, "unrelated")], [PLUGGED, "strict-ts"]] })
+writeHome(OFF_HOME, { plugged: [[PLUGGED]] })
+writeFileSync(
+  join(OFF_HOME, "handoff.json"),
+  `${JSON.stringify({ on: false, limit: 200_000 }, null, 2)}\n`,
+  { mode: 0o600 },
+)
 
 const gate = (project: string, env: NodeJS.ProcessEnv = {}): Promise<Ran> =>
   run("sh", [GATE, "read-gate"], { CCSAVER_HOME: HOME, CLAUDE_PROJECT_DIR: project, ...env }, INPUT)
 
 after(() => {
-  for (const dir of [HOME, EMPTY_HOME, WORK]) rmSync(dir, { recursive: true, force: true })
+  for (const dir of [HOME, OFF_HOME, EMPTY_HOME, WORK])
+    rmSync(dir, { recursive: true, force: true })
 })
 
 test("a plugged project is denied, and the hook input reaches node through the gate", async () => {
@@ -62,5 +70,20 @@ test("node is only launched for a plugged project", async () => {
   await gate(OTHER, { PATH: path })
   assert.equal(existsSync(MARKER), false)
   await gate(PLUGGED, { PATH: path })
+  assert.equal(existsSync(MARKER), true)
+})
+
+test("the handoff hook is launched in a plugged project unless the warning is off, never in an unplugged one, and never without a name", async () => {
+  const path = `${FAKE_BIN}:${process.env["PATH"] ?? ""}`
+  const launch = (project: string, home: string, args = [GATE, "handoff"]): Promise<Ran> =>
+    run("sh", args, { CCSAVER_HOME: home, CLAUDE_PROJECT_DIR: project, PATH: path }, "{}")
+  rmSync(MARKER, { force: true })
+  await launch(OTHER, HOME)
+  assert.equal(existsSync(MARKER), false)
+  await launch(PLUGGED, OFF_HOME)
+  assert.equal(existsSync(MARKER), false)
+  assert.deepEqual(await launch(PLUGGED, HOME, [GATE]), { code: 0, stdout: "", stderr: "" })
+  assert.equal(existsSync(MARKER), false)
+  await launch(PLUGGED, HOME)
   assert.equal(existsSync(MARKER), true)
 })

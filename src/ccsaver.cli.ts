@@ -23,6 +23,14 @@ import {
   unplug,
   writeLimits,
 } from "./state/config.store.ts"
+import {
+  handoffDir,
+  keepHandoff,
+  keptHandoffs,
+  latestHandoff,
+  readHandoff,
+  setHandoff,
+} from "./state/handoff.store.ts"
 import { crashed, logDir, MONTH, record, setLog } from "./state/log.store.ts"
 import {
   attempt,
@@ -47,6 +55,8 @@ const USAGE = `usage: ccsaver <command>
   key set                    store the API key, read from the terminal or from stdin
   fallback on|off            whether a call the worker cannot take goes to paid Claude Haiku
   log on|off                 record events (metadata only) in a local file; off by default
+  handoff on|off|<tokens>    warn at the end of a turn past this much context; alone, what is set
+  handoff write              keep a handoff read from stdin, what /ccsaver:handoff runs
   saved [month|all]          what the log says it cost, and what it would have cost without
   price <model>|worker <usd> dollars per million input tokens; price alone lists them
   doctor                     check permissions, key, worker, fallback and projects
@@ -61,6 +71,8 @@ const HELP = ["help", "--help", "-h"]
 const LIMIT_KEYS = ["maxLines", "maxTokens"] as const
 const OWN_CLAUDE = "the session's own claude runs the fallback"
 const HAIKU = "a call the worker cannot take"
+const HANDOFF_ON = "a warning at the end of the turn that takes the context past the limit"
+const HANDOFF_OFF = "no warning; /ccsaver:handoff still works by hand"
 
 const limitsGiven = (pairs: string[]): Partial<Limits> => {
   const given = pairs.map((pair) => pair.split("="))
@@ -133,6 +145,36 @@ const pinned = (given: string): number => {
     : done("ok", `fallback binary pinned: ${pinned}${before}`)
 }
 
+const handoffShown = (): number => {
+  const { on, limit } = readHandoff()
+  const kept = keptHandoffs()
+  const where =
+    kept.length === 0
+      ? `nothing kept yet in ${handoffDir()}`
+      : `${kept.length} kept in ${handoffDir()}, the latest ${latestHandoff()}`
+  return done("info", `handoff ${on ? "on" : "off"} · limit ${limit} tokens · ${where}`)
+}
+
+const handoffKept = (): number => {
+  const session = process.env["CLAUDE_CODE_SESSION_ID"] || undefined
+  const { place, lines, bytes } = keepHandoff(readFileSync(0, "utf8"), session)
+  say("ok", `handoff kept in ${place} (${lines} lines, ${bytes} bytes)`)
+  say(
+    "info",
+    `next session, in a terminal: claude "Read ${place} whole, then continue from its next step"`,
+  )
+  say("info", "in VS Code: open a new conversation and type that same line")
+  return 0
+}
+
+const handoffSwitched = (first: "on" | "off"): number => {
+  const on = first === "on"
+  const means = on ? HANDOFF_ON : HANDOFF_OFF
+  return setHandoff({ on }).changed
+    ? done("ok", `handoff ${first}: ${means}`)
+    : done("info", `the handoff warning is already ${first}: ${means}`)
+}
+
 const COMMANDS: Record<string, Command> = {
   plug: atMost("plug", 2, ([first, second]) => {
     const { entry, was } = plug(first ?? process.cwd(), second)
@@ -201,6 +243,18 @@ const COMMANDS: Record<string, Command> = {
     return setLog(on)
       ? done("ok", `log ${first}: ${where}`)
       : done("info", `the log is already ${first}`)
+  }),
+  handoff: atMost("handoff", 1, ([first]) => {
+    if (first === undefined) return handoffShown()
+    if (first === "write") return handoffKept()
+    if (first === "on" || first === "off") return handoffSwitched(first)
+    if (!/^[1-9][0-9]*$/.test(first))
+      return `handoff takes on, off, write or a number of tokens, not: ${first}`
+    const limit = Number(first)
+    const { before, changed } = setHandoff({ limit })
+    return changed
+      ? done("ok", `handoff limit ${limit} tokens (was ${before.limit})`)
+      : done("info", `the handoff limit is already ${limit} tokens`)
   }),
   saved: atMost("saved", 1, ([first]) => {
     if (first !== undefined && first !== "all" && !MONTH.test(first))

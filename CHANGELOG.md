@@ -4,6 +4,17 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.22.0 - 2026-09-23
+
+feat: ccsaver warns when a session's context passes a limit, and keeps the handoff for the next one
+
+- a Stop hook, src/handoff.hook.ts, reads the last 256 KB of the session transcript for the token count of the last response, input plus cache creation plus cache read, the sum the status line shows, and once per multiple of the limit ends the turn with a systemMessage naming the model, the count and the limit; a marker per session in handoff/<session>.tier remembers the multiple, falls back after a compaction, and markers older than seven days are swept
+- ccsaver handoff on|off|<tokens>: the switch and the limit live in handoff.json, absent means on at 200,000 tokens; a malformed or unreadable file stops the command with its name and leaves the hook silent with a crash event; typed with the value in force it answers already; ccsaver handoff alone shows what is set and what is kept
+- off costs what an unplugged project costs, because hooks/gate reads the switch in sh before Node starts
+- /ccsaver:handoff has the session write the handoff, eight parts for a reader who never saw the conversation, and ccsaver handoff write keeps it from stdin in handoff/<session>.md at 600, refuses one past 350 lines or 32,000 bytes, and prints the line that opens the next session with it
+- doctor reports the switch and the limit, and the modes of handoff.json and handoff/ once they exist; the log gains a handoff event, warned and written, and a config action
+- the limit comes from 175 transcripts: 76 % of working sessions pass 200,000 tokens and make 46 more requests after it; the hook costs 1.7 ms per turn unplugged or off and 26-27 ms on, and the Read gate did not move
+
 ## 0.21.5 - 2026-09-23
 
 refactor: one launcher starts either hook, and the transcript reader lives in config.store

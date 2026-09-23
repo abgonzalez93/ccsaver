@@ -52,6 +52,21 @@ const MISTAKES: [string[], string, string][] = [
   [["fallback"], "fallback needs on or off", "ccsaver fallback on|off"],
   [["fallback", "sideways"], "fallback takes on or off, not: sideways", "ccsaver fallback on|off"],
   [["log"], "log needs on or off", "ccsaver log on|off"],
+  [
+    ["handoff", "sideways"],
+    "handoff takes on, off, write or a number of tokens, not: sideways",
+    "ccsaver handoff on|off|<tokens>",
+  ],
+  [
+    ["handoff", "0"],
+    "handoff takes on, off, write or a number of tokens, not: 0",
+    "ccsaver handoff on|off|<tokens>",
+  ],
+  [
+    ["handoff", "on", "x"],
+    "handoff takes at most 1 argument, not 2: on x",
+    "ccsaver handoff on|off|<tokens>",
+  ],
   [["log", "on", "please"], "log takes at most 1 argument, not 2: on please", "ccsaver log on|off"],
   [
     ["saved", "2026-13"],

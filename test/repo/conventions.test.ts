@@ -66,6 +66,18 @@ test("the hook starts with the three files of the state folder and nothing else 
   ])
 })
 
+test("the handoff hook starts with those three, its own store, and nothing else of ours", () => {
+  const ours = importsOf(join(REPO, "src", "handoff.hook.ts")).filter((name) =>
+    name.startsWith("."),
+  )
+  assert.deepEqual(ours, [
+    "./state/config.store.ts",
+    "./state/handoff.store.ts",
+    "./state/log.store.ts",
+    "./state/state.store.ts",
+  ])
+})
+
 test("no cast, no function keyword, no default export, and only the comments CONTRIBUTING lists", () => {
   const found = CODE.flatMap(linesOf).flatMap(([where, line]) => {
     const bare = line.replace(STRINGS, '""')

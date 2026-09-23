@@ -19,6 +19,7 @@ import {
   readPlugged,
   writeLimits,
 } from "../state/config.store.ts"
+import { handoffDir, handoffFile, readHandoff } from "../state/handoff.store.ts"
 import { logDir, logFile, numberAt, type Rows, readEvents, record } from "../state/log.store.ts"
 import {
   adaptersDir,
@@ -207,6 +208,15 @@ const projects = (): Finding[] => {
   }
 }
 
+const handoff = (): Finding => {
+  try {
+    const { on, limit } = readHandoff()
+    return { level: "ok", text: `handoff: ${on ? "on" : "off"} · ${limit} tokens` }
+  } catch (error) {
+    return { level: "FAIL", text: `handoff: ${messageOf(error)}` }
+  }
+}
+
 const log = (): Finding => {
   const mode = modeOf(logDir())
   if (mode === undefined)
@@ -288,6 +298,9 @@ export const doctor = async (): Promise<number> => {
     permissions("worker file", workerFile(), 0o600),
     ...optional("prices file", pricesFile(), 0o600),
     ...optional("adapters", adaptersDir(), 0o700),
+    ...optional("handoff file", handoffFile(), 0o600),
+    ...optional("handoffs", handoffDir(), 0o700),
+    handoff(),
     log(),
     ...unread,
     ...denied(rows),

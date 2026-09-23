@@ -39,7 +39,7 @@ test("the plugin's own files name each other, and what they point at can run", (
   const listed: unknown = Array.isArray(market["plugins"]) ? market["plugins"][0] : undefined
   assert.equal(isRecord(listed) ? listed["name"] : undefined, plugin["name"])
   const commands = commandsIn(jsonOf(join(REPO, "hooks", "hooks.json")))
-  assert.equal(commands.length, 1)
+  assert.equal(commands.length, 2)
   const parsed = commands.map((command) => PLUGIN_ROOT.exec(command))
   const hooked = parsed.flatMap((match) => match?.[1] ?? [])
   assert.equal(hooked.length, commands.length)
