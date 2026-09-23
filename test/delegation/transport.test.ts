@@ -4,6 +4,7 @@ import { createServer } from "node:http"
 import { join } from "node:path"
 import { after, before, beforeEach, test } from "node:test"
 import { fellOf } from "../../src/delegation/worker.client.ts"
+import { isRecord } from "../../src/state/state.store.ts"
 import {
   AS_ROOT,
   CLI,
@@ -266,4 +267,21 @@ test("the fallback switch is read again at the moment of falling, not only when 
   assert.equal(out.code, 1)
   assert.equal(out.stdout, "")
   assert.match(out.stderr, /the worker gave no answer \(status\) and the fallback is off/)
+})
+
+test("bulk-read asks for 2,048 tokens of answer and code-write for 8,192, and a body past 4 MB is no answer", async () => {
+  const asked = (): unknown => {
+    const raw: unknown = JSON.parse(server.seen.at(-1)?.body ?? "{}")
+    return isRecord(raw) ? raw["max_tokens"] : undefined
+  }
+  assert.equal((await bulkRead(SOURCE)).code, 0)
+  assert.equal(asked(), 2048)
+  await cli(["code-write", "--project", PROJECT, "--spec", "s", "--reference", SOURCE])
+  assert.equal(asked(), 8192)
+  server.reply.raw = JSON.stringify({
+    choices: [{ message: { content: "x".repeat(5 * 1024 * 1024) }, finish_reason: "stop" }],
+  })
+  const out = await bulkRead(SOURCE)
+  assert.match(out.stderr, /cheap-1 answered 200 without a complete result, falling back/)
+  assert.match(out.stdout, /FROM-CLAUDE/)
 })

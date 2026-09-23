@@ -71,7 +71,7 @@ test("bulk-read sends numbered files and the question to the external model", as
   assert.match(out.stdout, /FROM-EXTERNAL/)
   assert.match(out.stderr, /^\[ccsaver: .*external \| cheap-1 \| delegated to bulk-read\]$/m)
   assert.equal(last?.authorization, "Bearer k-test")
-  assert.ok(last?.body.includes('"model":"cheap-1","temperature":0.2,"max_tokens":8192,'))
+  assert.ok(last?.body.includes('"model":"cheap-1","temperature":0.2,"max_tokens":2048,'))
   assert.ok(last?.body.includes("2\\texport const b = 2"))
   assert.ok(last?.body.includes("Question: what is b?"))
   assert.ok(last?.body.includes('<file path=\\"source.ts\\">'))

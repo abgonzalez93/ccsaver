@@ -34,6 +34,8 @@ const FALLBACK_TIMEOUT_MS = 85_000
 const EXTERNAL_TIMEOUT_MS = 30_000
 const FALLBACK_MAX_CHARS = 400_000
 const MAX_ANSWER_TOKENS = 8192
+const BULK_READ_ANSWER_TOKENS = 2048
+const MAX_BODY_BYTES = 4 * 1024 * 1024
 const CHARS_PER_TOKEN = 4
 const TEMPERATURE = 0.2
 
@@ -158,14 +160,18 @@ export const invokeClaude = (
   return raw["result"]
 }
 
+const answerTokensOf = (mode: string): number =>
+  mode === "bulk-read" ? BULK_READ_ANSWER_TOKENS : MAX_ANSWER_TOKENS
+
 export const requestOf = (
   model: string,
   system: string,
   message: string,
+  most = MAX_ANSWER_TOKENS,
 ): Record<string, unknown> => ({
   model,
   temperature: TEMPERATURE,
-  max_tokens: MAX_ANSWER_TOKENS,
+  max_tokens: most,
   messages: [
     { role: "system", content: system },
     { role: "user", content: message },
@@ -227,6 +233,22 @@ const contentOf = (raw: unknown): string | undefined => {
   return text.length > 0 ? text : undefined
 }
 
+const bodyOf = async (response: Response, most: number): Promise<string | undefined> => {
+  const reader = response.body?.getReader()
+  if (reader === undefined) return undefined
+  const parts: Uint8Array[] = []
+  let size = 0
+  for (let chunk = await reader.read(); !chunk.done; chunk = await reader.read()) {
+    size += chunk.value.length
+    if (size > most) {
+      await reader.cancel()
+      return undefined
+    }
+    parts.push(chunk.value)
+  }
+  return Buffer.concat(parts).toString("utf8")
+}
+
 const inTokensOf = (raw: unknown): number | undefined => {
   const usage = isRecord(raw) ? raw["usage"] : undefined
   const tokens = isRecord(usage) ? usage["prompt_tokens"] : undefined
@@ -285,11 +307,12 @@ export const invokeExternal = async (
     const response = await postJson(
       worker.url,
       key,
-      requestOf(worker.model, system, message),
+      requestOf(worker.model, system, message, answerTokensOf(mode)),
       EXTERNAL_TIMEOUT_MS,
     )
     delegation.status = response.status
-    const raw: unknown = response.ok ? await response.json() : undefined
+    const text = response.ok ? await bodyOf(response, MAX_BODY_BYTES) : undefined
+    const raw: unknown = JSON.parse(text ?? "null")
     const content = contentOf(raw)
     if (content === undefined) {
       gaveNothing(worker.model, response, raw)

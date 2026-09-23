@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.24.7 - 2026-09-23
+
+fix: bulk-read asks for 2,048 tokens of answer, and a body past 4 MB is no answer
+
+- the answer of a bulk-read was capped at 8,192 tokens, about 32 KB, and the Bash tool of Claude Code shows about 30 KB inline: a long answer landed in a file the gate then denied, so the delegation lost its point exactly when the worker rambled; a question that needs more than 2,048 tokens of bullets is Grep's job
+- code-write keeps 8,192, because a generated file can be long and with --target it never enters the context
+- the body of the worker's response is read with a 4 MB ceiling, so an endpoint that ignores max_tokens cannot fill the memory; past it the call counts as incomplete
+
 ## 0.24.6 - 2026-09-23
 
 fix: the fallback switch is read again at the moment of falling, not only when the call starts
