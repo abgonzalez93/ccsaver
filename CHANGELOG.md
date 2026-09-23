@@ -4,6 +4,13 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.24.18 - 2026-09-23
+
+docs: the skill's grant does not apply when Claude invokes the skill, and the Skill rule that pre-approves the invocation
+
+- measured on 2.1.280 in print mode with the user's rules removed: the Skill invocation itself is refused without a rule, and with Skill(ccsaver:bulk-reader) allowed the command the skill hands over still asks for approval; a probe skill granting Bash(node -e *) is refused the same way, while echo and grep run because Claude Code approves them on its own
+- the README now says which rules to add, for interactive and for print-mode sessions
+
 ## 0.24.17 - 2026-09-23
 
 docs: what the log cannot say, hard links, the skill's grant, the adapter limits event, and what a citation proves
