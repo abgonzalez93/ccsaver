@@ -2,8 +2,8 @@ import assert from "node:assert/strict"
 import { existsSync, readdirSync, readFileSync } from "node:fs"
 import { dirname, join, relative } from "node:path"
 import { test } from "node:test"
-import { DEFAULT_LIMITS } from "../src/config.ts"
-import { isRecord, parsed } from "../src/state.ts"
+import { DEFAULT_LIMITS } from "../src/state/config.ts"
+import { isRecord, parsed } from "../src/state/state.ts"
 import { REPO } from "./helpers.ts"
 
 const SKIPPED = [".git", "node_modules"]
@@ -42,7 +42,7 @@ const importsOf = (path: string): string[] =>
   linesOf(path).flatMap(([, line]) => /from "([^"]+)"$/.exec(line)?.[1] ?? [])
 
 test("src imports node: built-ins and its own files, and the package declares no runtime dependency", () => {
-  const foreign = SRC.flatMap(importsOf).filter((name) => !/^(node:|\.\/)/.test(name))
+  const foreign = SRC.flatMap(importsOf).filter((name) => !/^(node:|\.\.?\/)/.test(name))
   assert.deepEqual(foreign, [])
   const borrowed = SCRIPTS.flatMap(importsOf).filter((name) => !/^(node:|\.\.\/src\/)/.test(name))
   assert.deepEqual(borrowed, [])
@@ -56,7 +56,7 @@ test("src imports node: built-ins and its own files, and the package declares no
 
 test("the hook starts with the three files of the state folder and nothing else of ours", () => {
   const ours = importsOf(join(REPO, "src", "hook.ts")).filter((name) => name.startsWith("."))
-  assert.deepEqual(ours, ["./config.ts", "./log.ts", "./state.ts"])
+  assert.deepEqual(ours, ["./state/config.ts", "./state/log.ts", "./state/state.ts"])
 })
 
 test("no cast, no function keyword, no default export, and only the comments CONTRIBUTING lists", () => {
@@ -136,7 +136,7 @@ test("every link between the documents resolves, the file and the heading", () =
 
 test("every symbol CONTRIBUTING cites lives in the file it names", () => {
   const text = readFileSync(join(REPO, "CONTRIBUTING.md"), "utf8")
-  const cited = [...text.matchAll(/`((?:src|test|scripts)\/[a-z.-]+\.ts)` · `([A-Za-z]+)`/g)]
+  const cited = [...text.matchAll(/`((?:src|test|scripts)\/[a-z./-]+\.ts)` · `([A-Za-z]+)`/g)]
   assert.ok(cited.length > 0)
   const gone = cited.flatMap(([, file = "", symbol = ""]) =>
     new RegExp(`\\b${symbol}\\b`).test(readFileSync(join(REPO, file), "utf8"))

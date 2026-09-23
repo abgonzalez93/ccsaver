@@ -1,5 +1,19 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
+import { setClaude, setFallback, writeWorker } from "./delegation/endpoint.ts"
+import { shown } from "./delegation/transport.ts"
+import { isMode, runWorker } from "./delegation/worker.ts"
+import { doctor } from "./doctor/doctor.ts"
+import { proposalOf, surveyFor } from "./doctor/survey.ts"
+import {
+  listedPrices,
+  MODEL_NAME,
+  readPrices,
+  shownPrices,
+  WORKER,
+  writePrice,
+} from "./saved/prices.ts"
+import { report } from "./saved/report.ts"
 import {
   LIMIT_CEILING,
   type Limits,
@@ -8,12 +22,8 @@ import {
   readPlugged,
   unplug,
   writeLimits,
-} from "./config.ts"
-import { doctor } from "./doctor.ts"
-import { setClaude, setFallback, writeWorker } from "./endpoint.ts"
-import { crashed, logDir, MONTH, record, setLog } from "./log.ts"
-import { listedPrices, MODEL_NAME, readPrices, shownPrices, WORKER, writePrice } from "./prices.ts"
-import { report } from "./report.ts"
+} from "./state/config.ts"
+import { crashed, logDir, MONTH, record, setLog } from "./state/log.ts"
 import {
   attempt,
   isRecord,
@@ -23,10 +33,7 @@ import {
   Refusal,
   scrubbed,
   type Tone,
-} from "./state.ts"
-import { proposalOf, surveyFor } from "./survey.ts"
-import { shown } from "./transport.ts"
-import { isMode, runWorker } from "./worker.ts"
+} from "./state/state.ts"
 
 const USAGE = `usage: ccsaver <command>
 

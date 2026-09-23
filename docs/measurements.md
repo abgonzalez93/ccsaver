@@ -34,7 +34,7 @@ Roughly 2,000–3,000 lines and up.
 
 ## The rules of an adapter
 
-`gemini-flash-lite-latest` through an OpenAI-compatible endpoint, ccsaver 0.9.14, four `code-write` runs per arm with the same spec and the same two reference files: `src/state.ts`, which exports the function asked for, and a test file that imports from a different module with the real extension. The only difference between the arms is whether the plugged project points at an adapter carrying the `rules` of [`adapters/strict-ts.json`](../adapters/strict-ts.json).
+`gemini-flash-lite-latest` through an OpenAI-compatible endpoint, ccsaver 0.9.14, four `code-write` runs per arm with the same spec and the same two reference files: `src/state/state.ts`, which exports the function asked for, and a test file that imports from a different module with the real extension. The only difference between the arms is whether the plugged project points at an adapter carrying the `rules` of [`adapters/strict-ts.json`](../adapters/strict-ts.json).
 
 - A return type on the `test` callback: **3 of 4 with the rules, 0 of 4 without**, where the four without copied the reference.
 - Importing the function from the module that exports it, with the real extension: **4 of 4 in both arms**, with the spec not naming the module and the reference importing from another one.
@@ -60,6 +60,8 @@ Mean of 30 runs, process spawn included. 1–3 ms in an unplugged project, where
 That 24 ms was 22 ms while the state folder, the log and the configuration lived in one module. Splitting them into `state.ts`, `log.ts` and `config.ts` costs **1.7 ms per `Read`**, measured paired on the same machine, three rounds of 30 runs per arm: 22.4 / 22.1 / 21.9 ms before against 22.7 / 24.3 / 24.8 ms after, with every round after above every round before. The bytes are the same; the cost is two more module resolutions, about 0.85 ms each. The unplugged path does not move, because the `sh` gate never starts Node.
 
 Moving `worker.json` out of `config.ts` into `endpoint.ts` costs the hook nothing, because the hook never imported those 77 lines and gains no module: 30.1 / 30.4 ms whole against 31.4 / 30.0 ms split, two rounds of 30 runs per arm, paired, on a machine whose own floor for the harness is 4.2 ms. The two arms sit inside each other's spread, so the split is free, not faster — the only thing that moves a hook import list is a hook import.
+
+Folders cost it nothing either. When `src/` regrouped by feature and the hook's three imports moved into `src/state/`: 21.3 / 20.6 / 21.0 ms flat against 21.4 / 20.6 / 20.4 ms in folders, three rounds of 30 runs per arm, paired, both trees on the same disk. A first pair with the flat copy on `tmpfs` read 2 ms in favour of the folders, which was the disk and not the layout: what the hook pays for is a module, never the depth of its path.
 
 ## Reading the model out of the transcript
 
@@ -101,7 +103,7 @@ The earlier wording, `grep -n`, is tagged 20 times of 278 in 3 of 18 answers (38
 
 ## The citation check with the Haiku fallback as the reader
 
-Claude Code 2.1.274; this README, `src/hook.ts` and `src/state.ts`, one file and one question per call, 5 calls per file per wording.
+Claude Code 2.1.274; this README, `src/hook.ts` and `src/state/state.ts`, one file and one question per call, 5 calls per file per wording.
 
 The instruction used to say "the way `grep -n` prints it", and for one file that is `line:text`: 10 of 15 answers carried no citation the check could read, and 58 cited lines reached Claude whole and unchecked. With `grep -Hn` and "the path first even when there is one file", 1 of 15 carried none (it cited `path:line` and no text), 0 citations arrived without their path, 147 matched, 1 was renumbered, 6 were tagged, and Claude received 8,949 bytes where it had received 13,551.
 

@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { after, before, beforeEach, test } from "node:test"
-import { troubleOf } from "../src/transport.ts"
+import { troubleOf } from "../src/delegation/transport.ts"
 import {
   CLI,
   type FakeServer,

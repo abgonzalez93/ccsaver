@@ -1,10 +1,25 @@
 import { spawnSync } from "node:child_process"
-import { existsSync, mkdtempSync, readSync, rmSync, statSync, writeFileSync } from "node:fs"
+import { existsSync, mkdtempSync, rmSync, statSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { type Limits, limitsFor, type Plugged, plug, readPlugged, writeLimits } from "./config.ts"
-import { readWorker, type Worker } from "./endpoint.ts"
-import { logDir, logFile, numberAt, type Rows, readEvents, record } from "./log.ts"
+import { readWorker, type Worker } from "../delegation/endpoint.ts"
+import {
+  CLAUDE_ON_PATH,
+  claudeBin,
+  fellOf,
+  postJson,
+  requestOf,
+  shown,
+} from "../delegation/transport.ts"
+import {
+  type Limits,
+  limitsFor,
+  type Plugged,
+  plug,
+  readPlugged,
+  writeLimits,
+} from "../state/config.ts"
+import { logDir, logFile, numberAt, type Rows, readEvents, record } from "../state/log.ts"
 import {
   adaptersDir,
   attempt,
@@ -20,72 +35,17 @@ import {
   scrubbed,
   stateHome,
   workerFile,
-} from "./state.ts"
+} from "../state/state.ts"
+import { type Finding, type Level, offer, painted, TONE } from "./finding.ts"
 import { adapterNameOf, fixOf, overshoots, proposalOf, raiseOf, surveyFor } from "./survey.ts"
-import { CLAUDE_ON_PATH, claudeBin, fellOf, postJson, requestOf, shown } from "./transport.ts"
 
 const PROBE_TIMEOUT_MS = 30_000
-const GATE = join(import.meta.dirname, "..", "hooks", "read-gate")
+const GATE = join(import.meta.dirname, "..", "..", "hooks", "read-gate")
 const WHY = {
   timeout: "timed out",
   "not json": "did not answer JSON",
   unreachable: "is unreachable",
 } as const
-
-type Level = "ok" | "warn" | "FAIL"
-
-interface Fix {
-  shown: string
-  apply: () => string
-}
-
-interface Finding {
-  level: Level
-  text: string
-  fix?: Fix
-}
-
-const TONE = { ok: "ok", warn: "warn", FAIL: "fail" } as const
-const YES = /^\s*(y|yes|s|si|sí)\s*$/i
-const ANSWER_BYTES = 64
-const ANSWER_CAP = 4096
-
-const painted = (level: Level, text: string): string => marked(TONE[level], level.padEnd(4), text)
-
-const lineFrom = (fd: number): string | undefined => {
-  const buffer = Buffer.alloc(ANSWER_BYTES)
-  let typed = ""
-  while (!typed.includes("\n") && typed.length < ANSWER_CAP) {
-    const read = attempt(() => readSync(fd, buffer, 0, ANSWER_BYTES, null))
-    if (read === undefined) return undefined
-    if (read === 0) break
-    typed += buffer.subarray(0, read).toString("utf8")
-  }
-  return typed.split("\n")[0] ?? ""
-}
-
-const answered = (question: string): boolean => {
-  process.stdout.write(question)
-  const typed = lineFrom(0)
-  process.stdout.write(typed === undefined ? "\n" : "")
-  return typed !== undefined && YES.test(typed)
-}
-
-const offer = (fixes: Fix[]): void => {
-  if (fixes.length === 0 || process.stdin.isTTY !== true) return
-  for (const fix of fixes) {
-    process.stdout.write(scrubbed(`\nfix: ${fix.shown}\n`))
-    if (!answered("run it? [y/N] ")) {
-      process.stdout.write("skipped\n")
-      continue
-    }
-    try {
-      process.stdout.write(scrubbed(`${fix.apply()}\n`))
-    } catch (error) {
-      process.stdout.write(`${painted("FAIL", scrubbed(messageOf(error)))}\n`)
-    }
-  }
-}
 
 const NOTHING_PLUGGED: Finding = { level: "warn", text: "plugged: nothing" }
 

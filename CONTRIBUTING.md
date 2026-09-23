@@ -2,7 +2,7 @@
 
 The rules of this repository, for a person or a model. The [README](README.md) and the pages it links under [docs/](docs/) say what ccsaver does; this file says how its code is written.
 
-Each rule names its **guard**: the compiler switch (`tsconfig.json`), the Biome rule (`biome.json`) or the test that goes red when the rule is broken. A rule that no tool checks says *convention*: the reviewer is the guard. Examples cite a file and a symbol, like `src/endpoint.ts` · `readWorker`, and `test/conventions.test.ts` fails when that symbol is gone.
+Each rule names its **guard**: the compiler switch (`tsconfig.json`), the Biome rule (`biome.json`) or the test that goes red when the rule is broken. A rule that no tool checks says *convention*: the reviewer is the guard. Examples cite a file and a symbol, like `src/delegation/endpoint.ts` · `readWorker`, and `test/conventions.test.ts` fails when that symbol is gone.
 
 ## The gate
 
@@ -20,7 +20,7 @@ Guard: `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noPr
 ```ts
 // ❌ an optional field assigned undefined
 return { url, model, claude: claude || undefined }
-// ✅ `src/endpoint.ts` · `readWorker`: the field is there or it is not
+// ✅ `src/delegation/endpoint.ts` · `readWorker`: the field is there or it is not
 return { url, model, ...(claude ? { claude } : {}) }
 ```
 
@@ -30,7 +30,7 @@ Guard: Biome `noExplicitAny`, `noEvolvingTypes`, `noNonNullAssertion`; `as` by `
 ```ts
 // ❌ blesses whatever the file holds
 const worker = JSON.parse(text) as Worker
-// ✅ `src/endpoint.ts` · `readWorker`: unknown in, checked fields out
+// ✅ `src/delegation/endpoint.ts` · `readWorker`: unknown in, checked fields out
 const raw = parsed(text)
 const { url, model } = isRecord(raw) ? raw : {}
 if (typeof url !== "string" || typeof model !== "string") throw new Refusal(`${workerFile()} is malformed`)
@@ -42,7 +42,7 @@ Guard: Biome `useExplicitReturnType`, `useArrowFunction`, `useConsistentTypeDefi
 ```ts
 // ❌
 export default function fellOf(error) { … }
-// ✅ `src/transport.ts` · `fellOf`
+// ✅ `src/delegation/transport.ts` · `fellOf`
 export const fellOf = (error: unknown): Fell => { … }
 ```
 
@@ -52,51 +52,52 @@ Guard: Biome `useConst`; the rest is *convention*.
 ```ts
 // ❌ the tally is counted up inside the map that rewrites the rows
 tally[verdictOf(line, claimed)] += 1
-// ✅ `src/answer.ts` · `counted`, folded over the rows the map returns
+// ✅ `src/delegation/answer.ts` · `counted`, folded over the rows the map returns
 verdict === undefined ? tally : { ...tally, [verdict]: tally[verdict] + 1 }
 ```
 
-Module-level mutable state exists twice, `secret` in `src/state.ts`, read through `storedKey`, and `delegation` in `src/transport.ts`, because one process serves one call. Both become parameters the day a process serves two.
+Module-level mutable state exists twice, `secret` in `src/state/state.ts`, read through `storedKey`, and `delegation` in `src/delegation/transport.ts`, because one process serves one call. Both become parameters the day a process serves two.
 
-**1.5 NEVER comment code.** Names carry the what, the README and the pages under `docs/` carry the why. The complete list of exceptions: the one-line attribution header on a file that holds adapted third-party material (Apache-2.0 asks for it; [NOTICE](NOTICE) names the files), and one line inside a `catch` that is empty on purpose, saying why (`src/log.ts` · `record`).
+**1.5 NEVER comment code.** Names carry the what, the README and the pages under `docs/` carry the why. The complete list of exceptions: the one-line attribution header on a file that holds adapted third-party material (Apache-2.0 asks for it; [NOTICE](NOTICE) names the files), and one line inside a `catch` that is empty on purpose, saying why (`src/state/log.ts` · `record`).
 Guard: `test/conventions.test.ts`.
 
-**1.6 NEVER leave dead code, PREFER the helper that exists.** `attempt` for a call whose failure is an expected answer, `parsed` for JSON text, `isRecord` to open an unknown object, `messageOf` for a caught error, `real` and `isUnder` for paths, `isSecretPlace` for a folder that holds credentials, whether a file is leaving it or a root is being plugged, `linesIn` and `tokensIn` for bytes weighed against a limit, `readKey`, `readWorker` and `readEvents` as the only readers of their files, with one exception named here: `src/prices.ts` · `workerNamed` reads `worker.json` on its own, because the model beside `worker` in a price line is decoration, and a broken file there must not stop a report that `readWorker` would refuse. One export is a test seam and nothing else: `src/saved.ts` · `tallied`, which `report.ts` never calls because it folds a month through `foldMonth` without holding its rows, and which the tests feed rows by hand.
+**1.6 NEVER leave dead code, PREFER the helper that exists.** `attempt` for a call whose failure is an expected answer, `parsed` for JSON text, `isRecord` to open an unknown object, `messageOf` for a caught error, `real` and `isUnder` for paths, `isSecretPlace` for a folder that holds credentials, whether a file is leaving it or a root is being plugged, `linesIn` and `tokensIn` for bytes weighed against a limit, `readKey`, `readWorker` and `readEvents` as the only readers of their files, with one exception named here: `src/saved/prices.ts` · `workerNamed` reads `worker.json` on its own, because the model beside `worker` in a price line is decoration, and a broken file there must not stop a report that `readWorker` would refuse. One export is a test seam and nothing else: `src/saved/saved.ts` · `tallied`, which `report.ts` never calls because it folds a month through `foldMonth` without holding its rows, and which the tests feed rows by hand.
 Guard: `noUnusedLocals`, `noUnusedParameters`, Biome `noUnusedImports`, `noUnusedVariables`; an unused export and a duplicated helper are *convention*.
 
 **1.7 PREFER a function a reader holds in their head: cognitive complexity 15 or less.**
-Guard: *convention*, measured with `pnpm exec biome lint --only=complexity/noExcessiveCognitiveComplexity src test`. Nothing in `src` or `test` is over it. The last one that was, the field-by-field guard `adapterOf` in `src/config.ts` (18), came under by splitting the rejecting from the building: `fieldsHold` says whether the fields hold, `adapterOf` builds from them. A new function over 15 is split before it lands; three that resist put the rule in `biome.json` as an error.
+Guard: *convention*, measured with `pnpm exec biome lint --only=complexity/noExcessiveCognitiveComplexity src test`. Nothing in `src` or `test` is over it. The last one that was, the field-by-field guard `adapterOf` in `src/state/config.ts` (18), came under by splitting the rejecting from the building: `fieldsHold` says whether the fields hold, `adapterOf` builds from them. A new function over 15 is split before it lands; three that resist put the rule in `biome.json` as an error.
 
-**1.8 ALWAYS keep every file readable whole under this project's own gate: 350 lines and 32 KB.** A file splits by responsibility before it gets there, the way `worker.ts` gave birth to `boundary.ts`, `answer.ts` and `transport.ts`, `config.ts` to `endpoint.ts` and `saved.ts` to `report.ts`: what goes is what the hook never reads, because every line left in a file the hook imports is parsed on every `Read` (4.4). Two files are excused, in `UNREAD_WHOLE`: `pnpm-lock.yaml`, and `CHANGELOG.md`, which grows by one section per commit and is read from the top. Splitting either one buys nothing, because neither holds a responsibility that could move; ccsaver's own hook answers a whole-file `Read` of them with Grep or a range, which is how they are read anyway.
+**1.8 ALWAYS keep every file readable whole under this project's own gate: 350 lines and 32 KB.** A file splits by responsibility before it gets there, the way `worker.ts` gave birth to `boundary.ts`, `answer.ts` and `transport.ts`, `config.ts` to `endpoint.ts`, `saved.ts` to `report.ts` and `doctor.ts` to `finding.ts`: what goes is what the hook never reads, because every line left in a file the hook imports is parsed on every `Read` (4.4). Two files are excused, in `UNREAD_WHOLE`: `pnpm-lock.yaml`, and `CHANGELOG.md`, which grows by one section per commit and is read from the top. Splitting either one buys nothing, because neither holds a responsibility that could move; ccsaver's own hook answers a whole-file `Read` of them with Grep or a range, which is how they are read anyway.
 Guard: `test/conventions.test.ts`.
 
 ## 2. Architecture
 
-**2.1 ALWAYS respect the map.** Fifteen files, one reason to change each, arrows that never turn back.
+**2.1 ALWAYS respect the map.** Sixteen files in four folders and two entry points, one reason to change each, arrows that never turn back. `src/state/` holds the three files of the state folder, which everything else imports; `src/delegation/` the two flows, their ways out and what may leave the machine; `src/saved/` the report and its prices; `src/doctor/` the checks, what they report and the survey. `src/cli.ts` and `src/hook.ts` stay at the top, where `bin/ccsaver` and `hooks/read-gate` find them.
 
 | File | Owns | Imports |
 | --- | --- | --- |
-| `src/state.ts` | the state folder, the key, the guards, what a terminal may be shown (`scrubbed`, `tinted`, `marked`) and what a shell may be handed (`quoted`), `Refusal` | `node:` only |
-| `src/log.ts` | the event log, its switch and its reader | `state` |
-| `src/config.ts` | what the user configured: the plugged roots, the adapters, and how a file is weighed against a limit | `log`, `state` |
-| `src/endpoint.ts` | `worker.json`: the url, the model, the pinned binary and the fallback switch | `log`, `state` |
-| `src/survey.ts` | how long a project's files are, and what limit that asks for | `config`, `state` |
-| `src/answer.ts` | pure text work on the worker's answer | nothing |
-| `src/boundary.ts` | what may leave the machine | `state` |
-| `src/transport.ts` | the two ways out: `fetch` to the worker, spawn of the fallback | `log`, `state`, the `Worker` type of `endpoint`, the `Tally` type of `answer` |
-| `src/worker.ts` | the `bulk-read` and `code-write` flows | `answer`, `boundary`, `config`, `endpoint`, `log`, `state`, `transport` |
-| `src/prices.ts` | `prices.json`: one price per model, one for the worker, and the worker's name beside a price, its own lenient read of `worker.json` | `log`, `state` |
-| `src/saved.ts` | what the log says was spent, added up month by month | `config`, `log`, `prices`, `state` |
-| `src/report.ts` | what `ccsaver saved` prints, and every caveat under it | `log`, `prices`, `saved`, `state` |
-| `src/doctor.ts` | every check `doctor` runs and the level each one reports | `config`, `endpoint`, `log`, `state`, `survey`, `transport` |
+| `src/state/state.ts` | the state folder, the key, the guards, what a terminal may be shown (`scrubbed`, `tinted`, `marked`) and what a shell may be handed (`quoted`), `Refusal` | `node:` only |
+| `src/state/log.ts` | the event log, its switch and its reader | `state` |
+| `src/state/config.ts` | what the user configured: the plugged roots, the adapters, and how a file is weighed against a limit | `log`, `state` |
+| `src/delegation/endpoint.ts` | `worker.json`: the url, the model, the pinned binary and the fallback switch | `log`, `state` |
+| `src/doctor/survey.ts` | how long a project's files are, and what limit that asks for | `config`, `state` |
+| `src/delegation/answer.ts` | pure text work on the worker's answer | nothing |
+| `src/delegation/boundary.ts` | what may leave the machine | `state` |
+| `src/delegation/transport.ts` | the two ways out: `fetch` to the worker, spawn of the fallback | `log`, `state`, the `Worker` type of `endpoint`, the `Tally` type of `answer` |
+| `src/delegation/worker.ts` | the `bulk-read` and `code-write` flows | `answer`, `boundary`, `config`, `endpoint`, `log`, `state`, `transport` |
+| `src/saved/prices.ts` | `prices.json`: one price per model, one for the worker, and the worker's name beside a price, its own lenient read of `worker.json` | `log`, `state` |
+| `src/saved/saved.ts` | what the log says was spent, added up month by month | `config`, `log`, `prices`, `state` |
+| `src/saved/report.ts` | what `ccsaver saved` prints, and every caveat under it | `log`, `prices`, `saved`, `state` |
+| `src/doctor/finding.ts` | what a check reports: a level, a text and the fix it offers, and how a line is painted | `state` |
+| `src/doctor/doctor.ts` | every check `doctor` runs and the level each one reports | `config`, `endpoint`, `finding`, `log`, `state`, `survey`, `transport` |
 | `src/cli.ts` | arguments and the exit code | `config`, `doctor`, `endpoint`, `log`, `prices`, `report`, `state`, `survey`, `transport`, `worker` |
 | `src/hook.ts` | the `Read` gate | `config`, `log`, `state` |
 
-Guard: Biome `noImportCycles`, which is why the log cannot live in `src/state.ts`: it needs `stateHome` and the stored key, and every command that records a `config` event would then point back at it. The import list of `src/hook.ts` is pinned by `test/conventions.test.ts`, because it is the start-up cost of every `Read` (4.4).
+Guard: Biome `noImportCycles`, which is why the log cannot live in `src/state/state.ts`: it needs `stateHome` and the stored key, and every command that records a `config` event would then point back at it. The import list of `src/hook.ts` is pinned by `test/conventions.test.ts`, because it is the start-up cost of every `Read` (4.4).
 
-Off the map: `scripts/version.ts`, the git hook of 5.3. It is no part of the product: nothing in `src/` imports it, and it imports `node:` built-ins and the guards of `src/state.ts`, by `test/conventions.test.ts`.
+Off the map: `scripts/version.ts`, the git hook of 5.3. It is no part of the product: nothing in `src/` imports it, and it imports `node:` built-ins and the guards of `src/state/state.ts`, by `test/conventions.test.ts`.
 
-Off the map too: `bin/ccsaver`, the POSIX `sh` launcher, which holds `key set` and `setup`, because only a shell can turn a terminal's echo off and the key must never reach a Node argument list. `setup` asks for the four settings, hands each one to the CLI and shares `store_key` with `key set`, so the key file keeps one writer. It also stops a `node` older than 22.18, one on the 23 line and a 24 under 24.2, before `setup`, `doctor` and `plug`, the three a person types before anything works, and before no others: the check is a second process start and [costs 14 ms](docs/measurements.md#the-cost-of-the-node-version-check), which the delegation commands would pay on every call. The launcher appends one event of its own, the `key set` line, in shell: the line format of `src/log.ts` · `LOG_VERSION` therefore has two writers, and a change to it has to touch both or the month's file will hold two shapes.
+Off the map too: `bin/ccsaver`, the POSIX `sh` launcher, which holds `key set` and `setup`, because only a shell can turn a terminal's echo off and the key must never reach a Node argument list. `setup` asks for the four settings, hands each one to the CLI and shares `store_key` with `key set`, so the key file keeps one writer. It also stops a `node` older than 22.18, one on the 23 line and a 24 under 24.2, before `setup`, `doctor` and `plug`, the three a person types before anything works, and before no others: the check is a second process start and [costs 14 ms](docs/measurements.md#the-cost-of-the-node-version-check), which the delegation commands would pay on every call. The launcher appends one event of its own, the `key set` line, in shell: the line format of `src/state/log.ts` · `LOG_VERSION` therefore has two writers, and a change to it has to touch both or the month's file will hold two shapes.
 
 Off the map as well: `commands/`, the four markdown files behind `/ccsaver:setup`, `/ccsaver:plug`, `/ccsaver:doctor` and `/ccsaver:saved`. They are prompts for Claude, not code: they call the subcommands a shell would call and hold no logic of their own.
 
@@ -110,12 +111,12 @@ Guard: Biome `useImportExtensions`, `allowImportingTsExtensions`; barrels are *c
 **2.3 PREFER functions and plain data to classes.** The only class is `Refusal`, because `instanceof` is how the CLI tells a refusal from a bug. No interface with one implementation, no factory for one product, no option for a value that never changes.
 Guard: *convention*.
 
-**2.4 ALWAYS pass a dependency as a parameter.** There is no container and no service locator. The seams the tests use are a parameter (`worker` in `src/transport.ts` · `invokeExternal`), a default parameter (`src/log.ts` · `logFile` takes `now = new Date()`), an environment variable (`CCSAVER_HOME`, `CLAUDE_CODE_EXECPATH`) and a file in the state folder.
+**2.4 ALWAYS pass a dependency as a parameter.** There is no container and no service locator. The seams the tests use are a parameter (`worker` in `src/delegation/transport.ts` · `invokeExternal`), a default parameter (`src/state/log.ts` · `logFile` takes `now = new Date()`), an environment variable (`CCSAVER_HOME`, `CLAUDE_CODE_EXECPATH`) and a file in the state folder.
 
 ```ts
 // ❌ reads its collaborator from a global registry
 const answer = await container.get("worker").ask(message)
-// ✅ `src/transport.ts` · `invokeExternal`
+// ✅ `src/delegation/transport.ts` · `invokeExternal`
 export const invokeExternal = async (mode: string, system: string, message: string, worker: Worker | undefined): Promise<string | undefined> => { … }
 ```
 
@@ -126,37 +127,37 @@ Guard: *convention*.
 
 ## 3. Robustness
 
-**3.1 ALWAYS end a stop the user can fix the same way:** one `Error: …` line on stderr, one `fail` event, exit code 1, nothing sent. That line leaves through `writeSync` and not through the stream (`src/transport.ts` · `said`), because `process.exit` drops what a stream has queued and Node queues a pipe on macOS, which is where the whole message would have gone missing. Three doors lead there. State code throws a `Refusal`, caught once at the bottom of `src/cli.ts`; the worker path calls `fail`, which returns `never` (`src/transport.ts` · `fail`); a command handed arguments it cannot take returns the complaint as a string instead of an exit code, and `src/cli.ts` · `mistake` prints it as the `Error:` line with the command's own row of the usage table under it, so the reason and the remedy arrive together. Anything else that throws is a bug and is recorded as a `crash`.
+**3.1 ALWAYS end a stop the user can fix the same way:** one `Error: …` line on stderr, one `fail` event, exit code 1, nothing sent. That line leaves through `writeSync` and not through the stream (`src/delegation/transport.ts` · `said`), because `process.exit` drops what a stream has queued and Node queues a pipe on macOS, which is where the whole message would have gone missing. Three doors lead there. State code throws a `Refusal`, caught once at the bottom of `src/cli.ts`; the worker path calls `fail`, which returns `never` (`src/delegation/transport.ts` · `fail`); a command handed arguments it cannot take returns the complaint as a string instead of an exit code, and `src/cli.ts` · `mistake` prints it as the `Error:` line with the command's own row of the usage table under it, so the reason and the remedy arrive together. Anything else that throws is a bug and is recorded as a `crash`.
 
-Every line a person reads goes through `src/state.ts` · `marked`, which puts a mark and a colour in front of it on a terminal and nothing at all on a pipe, `NO_COLOR` or `TERM=dumb`: the words carry the meaning, the paint only repeats it. Untrusted text is `scrubbed` first and painted second, because `scrubbed` would escape the paint. A command that finds its setting already so says `already` and returns 0 without writing or recording anything: `src/log.ts` · `setLog`, `src/endpoint.ts` · `setFallback`, `src/config.ts` · `plug` and their siblings answer whether anything changed, and the wording lives in `src/cli.ts`.
+Every line a person reads goes through `src/state/state.ts` · `marked`, which puts a mark and a colour in front of it on a terminal and nothing at all on a pipe, `NO_COLOR` or `TERM=dumb`: the words carry the meaning, the paint only repeats it. Untrusted text is `scrubbed` first and painted second, because `scrubbed` would escape the paint. A command that finds its setting already so says `already` and returns 0 without writing or recording anything: `src/state/log.ts` · `setLog`, `src/delegation/endpoint.ts` · `setFallback`, `src/state/config.ts` · `plug` and their siblings answer whether anything changed, and the wording lives in `src/cli.ts`.
 Guard: every `throw new` in `src/` throws a `Refusal`, by `test/conventions.test.ts`; `test/log.test.ts` pins that a mistake on the command line is a `fail`, never a `crash`.
 
 ```ts
 // ❌ a typo in an adapter name reads as a crash of ccsaver
 throw new Error(`adapter ${name} not found`)
-// ✅ `src/config.ts` · `loadAdapter`
+// ✅ `src/state/config.ts` · `loadAdapter`
 throw new Refusal(`adapter ${name} not found in ${places.join(" or ")}`)
 ```
 
-**3.2 ALWAYS turn an expected failure into a value, and NEVER a refusal.** A missing file is an answer, and the caller decides what it means; a `Refusal` is a decision already made, so `src/state.ts` · `attempt` lets it through instead of turning it into `undefined`. Swallowing one turns a stop into a default, which is 3.4 by another door.
+**3.2 ALWAYS turn an expected failure into a value, and NEVER a refusal.** A missing file is an answer, and the caller decides what it means; a `Refusal` is a decision already made, so `src/state/state.ts` · `attempt` lets it through instead of turning it into `undefined`. Swallowing one turns a stop into a default, which is 3.4 by another door.
 
 ```ts
 // ❌ an inline try/catch at every call site, each free to swallow something else
 let text
 try { text = readFileSync(place, "utf8") } catch {}
-// ✅ `src/state.ts` · `attempt`
+// ✅ `src/state/state.ts` · `attempt`
 const text = attempt(() => readFileSync(place, "utf8"))
 if (text === undefined) continue
 ```
 
 Guard: *convention*.
 
-**3.3 ALWAYS validate at the boundary, by hand, and return a typed value built from the checked fields.** The boundaries are `worker.json` (`readWorker`), the `plugged` file (`src/config.ts` · `readPlugged`, which drops a line that is not an absolute path), an adapter file (`adapterOf`, which also rejects unknown keys), the hook's stdin (`src/hook.ts` · `gate`), the tail of the session transcript Claude Code names on it (`src/hook.ts` · `spokenIn`, which reads whole JSON lines rather than matching text, so a model named in the conversation is not read as the one in force), the worker's HTTP response (`src/transport.ts` · `contentOf`), the fallback's stdout (`invokeClaude`), the month's own log lines when `doctor` adds up what was spent (`src/doctor.ts` · `spent`) and when `ccsaver saved` adds up the whole log (`src/saved.ts` · `tallied`, which reads every field through `numberAt`), `prices.json` (`src/prices.ts` · `readPrices`) and `package.json` when it prints the version (`src/cli.ts` · `version`). Every `JSON.parse` lands in a `const` typed `unknown`, or goes through `parsed`.
+**3.3 ALWAYS validate at the boundary, by hand, and return a typed value built from the checked fields.** The boundaries are `worker.json` (`readWorker`), the `plugged` file (`src/state/config.ts` · `readPlugged`, which drops a line that is not an absolute path), an adapter file (`adapterOf`, which also rejects unknown keys), the hook's stdin (`src/hook.ts` · `gate`), the tail of the session transcript Claude Code names on it (`src/hook.ts` · `spokenIn`, which reads whole JSON lines rather than matching text, so a model named in the conversation is not read as the one in force), the worker's HTTP response (`src/delegation/transport.ts` · `contentOf`), the fallback's stdout (`invokeClaude`), the month's own log lines when `doctor` adds up what was spent (`src/doctor/doctor.ts` · `spent`) and when `ccsaver saved` adds up the whole log (`src/saved/saved.ts` · `tallied`, which reads every field through `numberAt`), `prices.json` (`src/saved/prices.ts` · `readPrices`) and `package.json` when it prints the version (`src/cli.ts` · `version`). Every `JSON.parse` lands in a `const` typed `unknown`, or goes through `parsed`.
 
 ```ts
 // ❌ trusts the shape of a response from the network
 const content = (await response.json()).choices[0].message.content
-// ✅ `src/transport.ts` · `firstChoice`, the one guard `contentOf` and `isCutShort` open the answer with
+// ✅ `src/delegation/transport.ts` · `firstChoice`, the one guard `contentOf` and `isCutShort` open the answer with
 if (!isRecord(raw) || !Array.isArray(raw["choices"])) return undefined
 const first: unknown = raw["choices"][0]
 return isRecord(first) ? first : undefined
@@ -164,15 +165,15 @@ return isRecord(first) ? first : undefined
 
 Guard: `test/conventions.test.ts` for `JSON.parse`; `noPropertyAccessFromIndexSignature` forces the bracket on an unchecked key. No schema library: zero runtime dependencies is a promise (5.4). Revisit past 10 untrusted shapes or a shape nested more than 2 levels deep.
 
-**3.4 NEVER read a broken config as an absent one.** Absent means defaults; present and malformed stops the call. `readWorker` once read a stray comma as "no worker", which quietly turned the paid fallback back on, and `writeLimits` once read a malformed adapter as no adapter at all and wrote a file holding one limit over the `rules` and the `format` of a project. `src/config.ts` · `findAdapter` tells absent from broken, and only absent starts from `{}`. Unreadable is the third answer and belongs with broken, not with absent: `readWorker` asks `existsSync` before it reports no worker, the way `src/state.ts` · `keyIsStored` already told a key that cannot be read from a key that was never stored (3.5), `src/log.ts` · `textAt` asks it before it hands back a month with no rows, because a month read as empty is a saving report that lies, `findAdapter` asks it before it moves on to the bundled adapter, because a private one skipped in silence changes the rules and the limits, and `writeLimits` would then write the bundled one over it, and `src/config.ts` · `readPlugged` asks it before it hands back an empty list, because `plug` and `unplug` write that list back and would replace every root you plugged with the one you just typed. The hook is not reached by that one: `hooks/read-gate` asks `[ -r ]` of the same file before Node starts.
+**3.4 NEVER read a broken config as an absent one.** Absent means defaults; present and malformed stops the call. `readWorker` once read a stray comma as "no worker", which quietly turned the paid fallback back on, and `writeLimits` once read a malformed adapter as no adapter at all and wrote a file holding one limit over the `rules` and the `format` of a project. `src/state/config.ts` · `findAdapter` tells absent from broken, and only absent starts from `{}`. Unreadable is the third answer and belongs with broken, not with absent: `readWorker` asks `existsSync` before it reports no worker, the way `src/state/state.ts` · `keyIsStored` already told a key that cannot be read from a key that was never stored (3.5), `src/state/log.ts` · `textAt` asks it before it hands back a month with no rows, because a month read as empty is a saving report that lies, `findAdapter` asks it before it moves on to the bundled adapter, because a private one skipped in silence changes the rules and the limits, and `writeLimits` would then write the bundled one over it, and `src/state/config.ts` · `readPlugged` asks it before it hands back an empty list, because `plug` and `unplug` write that list back and would replace every root you plugged with the one you just typed. The hook is not reached by that one: `hooks/read-gate` asks `[ -r ]` of the same file before Node starts.
 Guard: `test/state.test.ts`, "a worker.json that is there but wrong is an error, never the same as no worker".
 
-**3.5 NEVER let one failure hide another.** Name the cause. `fellOf` tells a timeout from a body that is not JSON from a dead host. `src/transport.ts` · `troubleOf` reads the `code` of a failed spawn: an `EPIPE` is a child that stopped reading and no error at all, an `ETIMEDOUT` is the 85 s running out and says so rather than showing `spawnSync claude ETIMEDOUT`. `invokeClaude` then reports the reason the child printed, which is all a spent budget leaves behind, before its exit and stderr. A key that is present but unreadable is told from a key that was never stored, in the note and in `doctor`, by `src/state.ts` · `keyIsStored`; reading the first as the second sent the call to the paid worker under a message that said the opposite. A worker's answer cut at an output limit falls as `length`, never as `incomplete`. Every fall to the paid worker says why on stderr first.
+**3.5 NEVER let one failure hide another.** Name the cause. `fellOf` tells a timeout from a body that is not JSON from a dead host. `src/delegation/transport.ts` · `troubleOf` reads the `code` of a failed spawn: an `EPIPE` is a child that stopped reading and no error at all, an `ETIMEDOUT` is the 85 s running out and says so rather than showing `spawnSync claude ETIMEDOUT`. `invokeClaude` then reports the reason the child printed, which is all a spent budget leaves behind, before its exit and stderr. A key that is present but unreadable is told from a key that was never stored, in the note and in `doctor`, by `src/state/state.ts` · `keyIsStored`; reading the first as the second sent the call to the paid worker under a message that said the opposite. A worker's answer cut at an output limit falls as `length`, never as `incomplete`. Every fall to the paid worker says why on stderr first.
 
 ```ts
 // ❌ past 64 KB of input the real error hides behind `spawnSync … EPIPE`
 if (run.error) return fail(`fallback worker could not run: ${run.error.message}`)
-// ✅ `src/transport.ts` · `invokeClaude`
+// ✅ `src/delegation/transport.ts` · `invokeClaude`
 const trouble = troubleOf(run.error)
 if (trouble !== undefined) return fail(trouble)
 const raw = parsed(run.stdout)
@@ -183,23 +184,23 @@ if (run.status !== 0) return fail(`fallback worker exited ${run.status ?? run.si
 
 Guard: `test/transport.test.ts`.
 
-**3.6 ALWAYS choose, per boundary, which way it fails.** The hook fails open: a crash inside the gate lets the `Read` through and leaves a `crash` event, because ccsaver must never block a session; an adapter it cannot load falls back to the default limits the same way, and `src/hook.ts` · `adapterOrDefaults` records that crash too, so the `gate` line beside it is not read as those limits being the adapter's. Egress fails closed: a refused path, a secret or a malformed config stops the call before anything is sent. The event log changes nothing: a failed append is swallowed (`src/log.ts` · `record`).
+**3.6 ALWAYS choose, per boundary, which way it fails.** The hook fails open: a crash inside the gate lets the `Read` through and leaves a `crash` event, because ccsaver must never block a session; an adapter it cannot load falls back to the default limits the same way, and `src/hook.ts` · `adapterOrDefaults` records that crash too, so the `gate` line beside it is not read as those limits being the adapter's. Egress fails closed: a refused path, a secret or a malformed config stops the call before anything is sent. The event log changes nothing: a failed append is swallowed (`src/state/log.ts` · `record`).
 Guard: `test/events.test.ts`, `test/egress.test.ts`, `test/boundary.test.ts`.
 
-**3.7 NEVER check and then act on a path in two steps.** Resolve each path once, so the file that is judged is the file that is read (`src/worker.ts` · `fileBlock`). Create with `flag: "wx"`, so an existing target is refused by the write itself. Replace a state file by writing a temporary name and renaming it (`src/state.ts` · `writePrivate`). Keep a log line under 4,096 bytes, so appends from two processes stay whole lines. The one place the rule does not reach is two `plug` commands at the same instant: `src/config.ts` · `plug` reads the `plugged` file, filters it and writes it back, and although each write is atomic the three steps are not, so the later command wins and the earlier root is lost. It is typed by hand, one at a time, so it stays a known hole and not a lock.
+**3.7 NEVER check and then act on a path in two steps.** Resolve each path once, so the file that is judged is the file that is read (`src/delegation/worker.ts` · `fileBlock`). Create with `flag: "wx"`, so an existing target is refused by the write itself. Replace a state file by writing a temporary name and renaming it (`src/state/state.ts` · `writePrivate`). Keep a log line under 4,096 bytes, so appends from two processes stay whole lines. The one place the rule does not reach is two `plug` commands at the same instant: `src/state/config.ts` · `plug` reads the `plugged` file, filters it and writes it back, and although each write is atomic the three steps are not, so the later command wins and the earlier root is lost. It is typed by hand, one at a time, so it stays a known hole and not a lock.
 Guard: `test/egress.test.ts`, `test/code-write.test.ts`, `test/log.test.ts`.
 
 ## 4. Performance and async
 
-**4.1 PREFER synchronous file I/O.** One process serves one call and has nothing to interleave, so `src/` reads and writes with the `*Sync` calls and awaits only the network: one `fetch` site, `src/transport.ts` · `postJson`, which carries the headers, the timeout and `redirect: "error"` for both callers, `src/doctor.ts` · `probe` and `invokeExternal`.
+**4.1 PREFER synchronous file I/O.** One process serves one call and has nothing to interleave, so `src/` reads and writes with the `*Sync` calls and awaits only the network: one `fetch` site, `src/delegation/transport.ts` · `postJson`, which carries the headers, the timeout and `redirect: "error"` for both callers, `src/doctor/doctor.ts` · `probe` and `invokeExternal`.
 Guard: *convention*. Revisit for a long-lived process or a call that gains from reading files in parallel.
 
-**4.2 ALWAYS bound what waits or grows.** A `fetch` carries `AbortSignal.timeout` and `redirect: "error"`; a spawn carries `timeout` and `maxBuffer`; an answer takes at most 8,192 tokens; the paid fallback takes at most 400,000 characters, 85 s and 0.50 $. The worker's 30 s and the fallback's 85 s are `src/worker.ts` · `BASH_BUDGET_MS`, 115 s, and the formatter takes what is left of it rather than a fixed minute, never less than `FORMAT_FLOOR_MS`, so the worst case stays inside the 120 s a Bash command gets. A log line takes at most 4,000 bytes.
+**4.2 ALWAYS bound what waits or grows.** A `fetch` carries `AbortSignal.timeout` and `redirect: "error"`; a spawn carries `timeout` and `maxBuffer`; an answer takes at most 8,192 tokens; the paid fallback takes at most 400,000 characters, 85 s and 0.50 $. The worker's 30 s and the fallback's 85 s are `src/delegation/worker.ts` · `BASH_BUDGET_MS`, 115 s, and the formatter takes what is left of it rather than a fixed minute, never less than `FORMAT_FLOOR_MS`, so the worst case stays inside the 120 s a Bash command gets. A log line takes at most 4,000 bytes.
 
 ```ts
 // ❌ waits for ever, follows a redirect with the file in hand
 const response = await fetch(worker.url, { method: "POST", body })
-// ✅ `src/transport.ts` · `invokeExternal`
+// ✅ `src/delegation/transport.ts` · `invokeExternal`
 const response = await fetch(worker.url, { method: "POST", signal: AbortSignal.timeout(EXTERNAL_TIMEOUT_MS), redirect: "error", body })
 ```
 
@@ -208,7 +209,7 @@ Guard: `test/transport.test.ts`, which also adds up the three waits; a new wait 
 **4.3 ALWAYS await or return every promise**, with `async`/`await` and no `.then` chains. `src/cli.ts` sets `process.exitCode` from `await main()`; the only `process.exit` lives inside `fail`.
 Guard: Biome `noFloatingPromises`, `noMisusedPromises`, `useAwaitThenable`.
 
-**4.4 ALWAYS treat the hook as the hot path: it runs on every `Read`.** The `sh` gate leaves an unplugged project before Node starts. In a plugged one the cost is Node's start-up, so `src/hook.ts` imports `src/state.ts`, `src/log.ts`, `src/config.ts` and `node:` built-ins, nothing else; it counts lines on the bytes and skips measuring a ranged read while the log is off. Touching the hook means measuring it before and after, the way `docs/measurements.md` does it: mean of 30 runs, process spawn included. Each module the hook imports costs about 0.85 ms of that, measured when `state.ts` became three files, so a fourth import is paid on every `Read` and needs the same measurement.
+**4.4 ALWAYS treat the hook as the hot path: it runs on every `Read`.** The `sh` gate leaves an unplugged project before Node starts. In a plugged one the cost is Node's start-up, so `src/hook.ts` imports `src/state/state.ts`, `src/state/log.ts`, `src/state/config.ts` and `node:` built-ins, nothing else; it counts lines on the bytes and skips measuring a ranged read while the log is off. Touching the hook means measuring it before and after, the way `docs/measurements.md` does it: mean of 30 runs, process spawn included. Each module the hook imports costs about 0.85 ms of that, measured when `state.ts` became three files, so a fourth import is paid on every `Read` and needs the same measurement.
 Guard: the import list by `test/conventions.test.ts`; the measurement is *convention*.
 
 **4.5 NEVER optimise, or claim a saving, without a number.** A number in the README or under `docs/` carries its sample size, and `docs/measurements.md` carries the note behind it.

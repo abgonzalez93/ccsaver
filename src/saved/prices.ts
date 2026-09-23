@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs"
-import { record } from "./log.ts"
+import { record } from "../state/log.ts"
 import {
   attempt,
   isRecord,
@@ -9,7 +9,7 @@ import {
   scrubbed,
   workerFile,
   writePrivate,
-} from "./state.ts"
+} from "../state/state.ts"
 
 export const MODEL_NAME = /^[a-z0-9][a-z0-9._-]{0,63}$/
 

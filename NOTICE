@@ -6,6 +6,6 @@ This product includes material adapted from spotify/portal-ai-plugins
 licensed under the Apache License, Version 2.0.
 
 The adapted material was modified. It lives in the worker instructions and
-the framing of the message of src/worker.ts, in the usage note of
-src/transport.ts, in the structure of the hook message of src/hook.ts and in
+the framing of the message of src/delegation/worker.ts, in the usage note of
+src/delegation/transport.ts, in the structure of the hook message of src/hook.ts and in
 parts of skills/bulk-reader/SKILL.md and skills/code-writer/SKILL.md.

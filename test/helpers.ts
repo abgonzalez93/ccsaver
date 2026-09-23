@@ -12,7 +12,7 @@ import {
 import { createServer } from "node:http"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { isRecord } from "../src/state.ts"
+import { isRecord } from "../src/state/state.ts"
 
 export const REPO = join(import.meta.dirname, "..")
 export const CLI = join(REPO, "src", "cli.ts")

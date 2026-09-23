@@ -3,7 +3,7 @@ import { chmodSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:
 import { createServer } from "node:http"
 import { join } from "node:path"
 import { after, before, beforeEach, test } from "node:test"
-import { fellOf } from "../src/transport.ts"
+import { fellOf } from "../src/delegation/transport.ts"
 import {
   AS_ROOT,
   CLI,
@@ -74,7 +74,7 @@ test("the three waits of a delegation fit inside the 120 s the Bash tool gives a
   const msOf = (file: string, name: string): number =>
     Number(
       new RegExp(`^const ${name} = ([\\d_]+)$`, "m")
-        .exec(readFileSync(join(REPO, "src", file), "utf8"))?.[1]
+        .exec(readFileSync(join(REPO, "src", "delegation", file), "utf8"))?.[1]
         ?.replaceAll("_", ""),
     )
   const external = msOf("transport.ts", "EXTERNAL_TIMEOUT_MS")

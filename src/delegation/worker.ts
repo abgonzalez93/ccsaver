@@ -5,11 +5,8 @@ import { randomBytes } from "node:crypto"
 import { lstatSync, readFileSync, type Stats, statSync, writeFileSync } from "node:fs"
 import { basename, dirname, join, relative, resolve } from "node:path"
 import { parseArgs } from "node:util"
-import { checked, risky, unwrapped } from "./answer.ts"
-import { contentRefusal, pathRefusal, targetRefusal } from "./boundary.ts"
-import { type Adapter, loadAdapter, pluggedRootOf } from "./config.ts"
-import { readWorker, type Worker } from "./endpoint.ts"
-import { record } from "./log.ts"
+import { type Adapter, loadAdapter, pluggedRootOf } from "../state/config.ts"
+import { record } from "../state/log.ts"
 import {
   attempt,
   isRecord,
@@ -20,7 +17,10 @@ import {
   real,
   scrubbed,
   stateHome,
-} from "./state.ts"
+} from "../state/state.ts"
+import { checked, risky, unwrapped } from "./answer.ts"
+import { contentRefusal, pathRefusal, targetRefusal } from "./boundary.ts"
+import { readWorker, type Worker } from "./endpoint.ts"
 import {
   type Delegation,
   delegation,

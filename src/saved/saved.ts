@@ -1,8 +1,8 @@
 import { readdirSync } from "node:fs"
-import { tokensIn } from "./config.ts"
-import { foldMonth, logDir, MONTH, numberAt, type Row, type Rows } from "./log.ts"
+import { tokensIn } from "../state/config.ts"
+import { foldMonth, logDir, MONTH, numberAt, type Row, type Rows } from "../state/log.ts"
+import { attempt } from "../state/state.ts"
 import { MODEL_NAME, type Prices } from "./prices.ts"
-import { attempt } from "./state.ts"
 
 export const REAL_LOW = 1.9
 export const REAL_HIGH = 2.8

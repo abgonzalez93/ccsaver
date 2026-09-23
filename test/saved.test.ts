@@ -1,8 +1,8 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
-import { foldMonth } from "../src/log.ts"
-import type { Prices } from "../src/prices.ts"
-import { moneyOf, NOTHING_SPENT, tallied, totalled } from "../src/saved.ts"
+import type { Prices } from "../src/saved/prices.ts"
+import { moneyOf, NOTHING_SPENT, tallied, totalled } from "../src/saved/saved.ts"
+import { foldMonth } from "../src/state/log.ts"
 import { denialRow, gateRow } from "./helpers.ts"
 
 const OPUS = "claude-opus-5"

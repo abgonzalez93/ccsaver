@@ -4,6 +4,15 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.21.2 - 2026-09-23
+
+refactor: src/ regroups by feature, in state, delegation, saved and doctor
+
+- the sixth-file rule of CONTRIBUTING 2.5: the three files of the state folder in src/state/, the two flows with their ways out and what may leave in src/delegation/, the report and its prices in src/saved/, the checks and the survey in src/doctor/; cli.ts and hook.ts stay at the top, where bin/ccsaver and hooks/read-gate find them
+- doctor.ts gives birth to finding.ts, what a check reports and how its fix is offered, because the longer import paths wrapped it past 350 lines
+- the hook pays nothing for the folders: 21.3 / 20.6 / 21.0 ms flat against 21.4 / 20.6 / 20.4 ms in folders, three rounds of 30 runs per arm on the same disk, in docs/measurements.md
+- the map of 2.1, every citation, NOTICE and the tests follow the files; the conventions test pins the hook's imports at their new paths and lets a citation name a folder
+
 ## 0.21.1 - 2026-09-23
 
 docs: a directory regroups at its sixth file, not past its fifteenth

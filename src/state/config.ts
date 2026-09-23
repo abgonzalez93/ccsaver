@@ -156,7 +156,7 @@ const adapterPlace = (name: string): string => join(adaptersDir(), `${name}.json
 const adapterPlaces = (name: string): string[] => {
   if (!ADAPTER_NAME.test(name))
     throw new Refusal(`an adapter name takes lowercase letters, digits and dashes; not: ${name}`)
-  return [adapterPlace(name), join(import.meta.dirname, "..", "adapters", `${name}.json`)]
+  return [adapterPlace(name), join(import.meta.dirname, "..", "..", "adapters", `${name}.json`)]
 }
 
 const findAdapter = (name: string, places: string[]): Adapter | undefined => {

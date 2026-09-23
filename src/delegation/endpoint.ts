@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, statSync } from "node:fs"
 import { resolve } from "node:path"
-import { record } from "./log.ts"
+import { record } from "../state/log.ts"
 import {
   attempt,
   isEncrypted,
@@ -10,7 +10,7 @@ import {
   readKey,
   workerFile,
   writePrivate,
-} from "./state.ts"
+} from "../state/state.ts"
 
 export interface Worker {
   url: string

@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process"
 import { existsSync, readFileSync, writeFileSync } from "node:fs"
-import { attempt, isRecord, messageOf, parsed } from "../src/state.ts"
+import { attempt, isRecord, messageOf, parsed } from "../src/state/state.ts"
 
 type Level = "major" | "minor" | "patch"
 
