@@ -4,6 +4,15 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.24.1 - 2026-09-23
+
+refactor: the launcher a terminal runs is two files under launcher/, put together when it is written
+
+- launcher/ccsaver.sh is the shell and launcher/installed.js the reader of installed_plugins.json it carries inline, each in its own language and lintable, and the JavaScript piece runs on its own too
+- src/doctor/launcher.service.ts inlines the second into the first at its placeholder, so the file that lands in ~/.local/bin stays one self-contained script
+- the conventions guard reads every line again, template literals included, because the shell no longer lives in a TypeScript string
+- the tests of the terminal launcher move next to the service they exercise, test/doctor/terminal-launcher.test.ts, and test/cli/launcher.test.ts keeps those of bin/ccsaver
+
 ## 0.24.0 - 2026-09-23
 
 feat: doctor checks the launcher of your own terminal, which version it runs and whether its folder is on the PATH

@@ -21,41 +21,13 @@ const RELOAD = "a session keeps the version it loaded until /reload-plugins"
 const PACKAGE = join(import.meta.dirname, "..", "..", "package.json")
 export const PROFILE_LINE = 'export PATH="$HOME/.local/bin:$PATH"'
 
-export const LAUNCHER = String.raw`#!/bin/sh
-# ccsaver launcher 1 · written by ccsaver launcher write · removed by: rm -f ~/.local/bin/ccsaver
-set -f
-IFS=:
-for dir in $PATH; do
-  [ -n "$dir" ] || dir=.
-  if [ -x "$dir/ccsaver" ] && [ -f "$dir/../.claude-plugin/plugin.json" ]; then
-    exec "$dir/ccsaver" "$@"
-  fi
-done
-unset IFS
-set +f
-command -v node >/dev/null 2>&1 || { echo "Error: ccsaver needs node on the PATH, 22.18+ or 24.2+" >&2; exit 1; }
-config=$CLAUDE_CONFIG_DIR
-[ -n "$config" ] || config=$HOME/.claude
-root=$(node -e '
-const fs = require("node:fs")
-const registry = process.argv[1]
-const stop = (text) => { fs.writeSync(2, "Error: " + text + "\n"); process.exit(1) }
-const install = "claude plugin install ccsaver@abgonzalez93, or remove this launcher: rm -f ~/.local/bin/ccsaver"
-const isRecord = (value) => typeof value === "object" && value !== null
-let text
-try { text = fs.readFileSync(registry, "utf8") } catch { stop("ccsaver is not installed (no " + registry + "): " + install) }
-let raw
-try { raw = JSON.parse(text) } catch { stop(registry + " is not JSON, so this launcher cannot tell which ccsaver is installed") }
-if (!isRecord(raw) || raw.version !== 2 || !isRecord(raw.plugins)) stop(registry + " has a shape this launcher does not know: run ccsaver from a Claude Code session, and update ccsaver")
-const installs = Object.entries(raw.plugins).filter(([id]) => id.startsWith("ccsaver@")).flatMap(([, list]) => (Array.isArray(list) ? list : []))
-if (installs.length === 0) stop("ccsaver is not installed: " + install)
-const chosen = installs.find((entry) => isRecord(entry) && entry.scope === "user") ?? installs[0]
-if (!isRecord(chosen) || typeof chosen.installPath !== "string") stop(registry + ": the ccsaver entry has no installPath this launcher knows")
-fs.writeSync(1, chosen.installPath)
-' "$config/plugins/installed_plugins.json") || exit 1
-[ -x "$root/bin/ccsaver" ] || { echo "Error: the installed ccsaver is gone from $root: claude plugin update ccsaver@abgonzalez93" >&2; exit 1; }
-exec "$root/bin/ccsaver" "$@"
-`
+const PIECES = join(import.meta.dirname, "..", "..", "launcher")
+const PLACEHOLDER = "__INSTALLED_JS__"
+
+export const launcher = (): string =>
+  readFileSync(join(PIECES, "ccsaver.sh"), "utf8").replace(PLACEHOLDER, () =>
+    readFileSync(join(PIECES, "installed.js"), "utf8").trimEnd(),
+  )
 
 export type Before = "nothing" | "current" | "older"
 
@@ -79,10 +51,10 @@ const codeOf = (error: unknown): unknown => (isRecord(error) ? error["code"] : u
 const cannotWrite = (place: string, error: unknown): Refusal =>
   new Refusal(`${place} cannot be written: ${messageOf(error)}`)
 
-const replaced = (place: string): void => {
+const replaced = (place: string, text: string): void => {
   const fresh = `${place}.${process.pid}.new`
   try {
-    writeFileSync(fresh, LAUNCHER, { mode: 0o755 })
+    writeFileSync(fresh, text, { mode: 0o755 })
     chmodSync(fresh, 0o755)
     renameSync(fresh, place)
   } catch (error) {
@@ -90,25 +62,25 @@ const replaced = (place: string): void => {
   }
 }
 
-const found = (place: string): Before => {
+const found = (place: string, current: string): Before => {
   const text = attempt(() => readFileSync(place, "utf8"))
   if (text === undefined) throw new Refusal(`${place} is there but cannot be read, nothing written`)
-  if (text === LAUNCHER) return "current"
+  if (text === current) return "current"
   if (!isLauncher(text))
     throw new Refusal(
       `${place} is not ccsaver's launcher, nothing written: move it away, or keep using it`,
     )
-  replaced(place)
+  replaced(place, current)
   return "older"
 }
 
-const placed = (place: string): Before => {
+const placed = (place: string, current: string): Before => {
   try {
     mkdirSync(dirname(place), { recursive: true })
-    writeFileSync(place, LAUNCHER, { flag: "wx", mode: 0o755 })
+    writeFileSync(place, current, { flag: "wx", mode: 0o755 })
     chmodSync(place, 0o755)
   } catch (error) {
-    if (codeOf(error) === "EEXIST") return found(place)
+    if (codeOf(error) === "EEXIST") return found(place, current)
     throw cannotWrite(place, error)
   }
   return "nothing"
@@ -156,7 +128,7 @@ export const pathAdvice = (place: string): string[] => {
 
 export const writeLauncher = (): Placing => {
   const place = launcherPlace()
-  const was = placed(place)
+  const was = placed(place, launcher())
   if (was !== "current") record("config", { action: "launcher", place })
   return { place, was, advice: pathAdvice(place) }
 }
@@ -206,7 +178,7 @@ const launcherState = (place: string): Finding => {
         }
   if (!isLauncher(text))
     return { level: "warn", text: `launcher: ${place} is not ccsaver's launcher, left alone` }
-  if (text !== LAUNCHER)
+  if (text !== launcher())
     return {
       level: "warn",
       text: `launcher: ${place} is an older launcher of ccsaver's`,

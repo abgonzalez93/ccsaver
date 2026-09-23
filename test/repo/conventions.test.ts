@@ -14,7 +14,6 @@ const COMMENTS = [
   "// the folder is the switch: without it the append fails and nothing else changes",
 ]
 const STRINGS = /"(?:[^"\\]|\\.)*"|`(?:[^`\\]|\\.)*`/g
-const TEMPLATES = /`(?:[^`\\]|\\.)*`/gs
 const BANNED = [
   ["a type assertion", /\bas\s+(?!const\b)[A-Za-z{[(]/],
   ["the function keyword", /\bfunction\b/],
@@ -31,11 +30,8 @@ const filesUnder = (dir: string): string[] =>
 
 const named = (path: string): string => relative(REPO, path)
 
-const withoutTemplates = (text: string): string =>
-  text.replace(TEMPLATES, (literal) => literal.replace(/[^\n]/g, ""))
-
 const linesOf = (path: string): [string, string][] =>
-  withoutTemplates(readFileSync(path, "utf8"))
+  readFileSync(path, "utf8")
     .split("\n")
     .map((line, index) => [`${named(path)}:${index + 1}`, line])
 
