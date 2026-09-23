@@ -1,9 +1,15 @@
 import assert from "node:assert/strict"
 import { spawnSync } from "node:child_process"
-import { mkdirSync, readdirSync, writeFileSync } from "node:fs"
+import { mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
-import { test } from "node:test"
+import { after, test } from "node:test"
 import { REPO, tempDir } from "../test.helpers.ts"
+
+const made: string[] = []
+
+after(() => {
+  for (const dir of made) rmSync(dir, { recursive: true, force: true })
+})
 
 const HOOKS = join(REPO, ".githooks")
 const REPAIR = `node ${join(REPO, "scripts", "version.hook.ts")}`
@@ -31,6 +37,7 @@ const hook = (repo: string, on: boolean): string =>
 
 const fresh = (hooked = true): string => {
   const repo = tempDir("version")
+  made.push(repo)
   git(repo, "init", "-q", "-b", "main")
   mkdirSync(join(repo, ".claude-plugin"))
   for (const path of MANIFESTS) writeFileSync(join(repo, path), MANIFEST)
@@ -84,6 +91,7 @@ const assertLeftAlone = (repo: string, said: string, version: string): void => {
 
 const patchesOf = (repo: string, count: number): string[] => {
   const dir = tempDir("patches")
+  made.push(dir)
   git(repo, "format-patch", "-q", `-${count}`, "-o", dir)
   return readdirSync(dir)
     .sort()
