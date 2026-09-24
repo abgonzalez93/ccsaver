@@ -140,7 +140,7 @@ The instruction used to say "the way `grep -n` prints it", and for one file that
 
 ## What ccsaver adds to the session's own context
 
-The denial message the hook writes is 376 characters for a path of 44, so ~94 tokens at chars/4: 330 of them are the fixed text and the rest is the path and the three numbers. The session reads one per denied `Read`, and it reads the worker's answer back on every delegation, which the event log records as `answerChars`. `ccsaver saved` adds both up at the foot of the report and puts neither in a column, because nothing in the log says which model was running when the answer came back.
+The denial message the hook writes is 254 characters for a path of 45, so ~64 tokens at chars/4: 189 of them are the fixed text and the rest is the path and the four numbers. It was 376 characters and ~94 until the three sentences it repeated moved out, because the skill's description in the listing every session loads already says when to delegate; the tokenizer counted that one at 114, 3.3 characters a token, which puts this one near 77. The shorter message moved the hook by nothing beyond the guard's half a millisecond: on the deny path, 27.7 / 27.0 / 27.6 ms against 28.2 / 27.9 / 28.2 ms with both changes in, three rounds of 30 runs per arm, paired, log on. The session reads one per denied `Read`, and it reads the worker's answer back on every delegation, which the event log records as `answerChars`. `ccsaver saved` adds both up at the foot of the report and puts neither in a column, because nothing in the log says which model was running when the answer came back.
 
 ## What a denial costs after the message
 
@@ -155,7 +155,7 @@ Six days of session transcripts of one machine, 2026-09-18 to 24, Claude Code 2.
 
 ## The hook's token estimate vs a real Read
 
-Fable 5.1, 9 batches in 2 sessions, line numbers included. The real cost of a whole-file `Read` measured 1.9–2.2× the bytes/4 estimate on batches of 16–27 KB, and 2.1–2.8× on batches of small files: the 8,000-token limit lets through reads of about 16,000 real tokens. A denied `Read` costs 136–251 tokens.
+Fable 5.1, 9 batches in 2 sessions, line numbers included. The real cost of a whole-file `Read` measured 1.9–2.2× the bytes/4 estimate on batches of 16–27 KB, and 2.1–2.8× on batches of small files: the 8,000-token limit lets through reads of about 16,000 real tokens. A denied `Read` cost 136–251 tokens with the 376-character message; the 254-character one has not been measured in a session.
 
 ## The terminal launcher
 

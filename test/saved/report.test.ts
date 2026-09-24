@@ -248,7 +248,7 @@ test("the tokens the session read back because of ccsaver are counted, and left 
   assert.equal(out.code, 0)
   assert.match(
     out.stdout,
-    /neither column holds what the session read back because of ccsaver: 0\.10 M tokens\n {2}of denial messages \(~94 each\) and worker answers, all of it against ccsaver/,
+    /neither column holds what the session read back because of ccsaver: 0\.10 M tokens\n {2}of denial messages \(~64 each\) and worker answers, all of it against ccsaver/,
   )
   const quiet = await saved(homeWith("read-back-quiet", [[]]))
   assert.equal(quiet.stdout.includes("read back because of ccsaver"), false)

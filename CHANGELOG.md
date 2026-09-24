@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.25.3 - 2026-09-24
+
+fix: the denial message is the counts and a pointer, 254 characters instead of 376
+
+- the hook's message named Grep, the skill and the ranged Read in three sentences the skill's own description in the listing already carries; it now gives the counts, the limits and the three ways out in one line, ~64 tokens by chars/4 for a 45-character path against ~94
+- `saved` counts the message at 64 at the foot, and the measurement note keeps the old size beside the new one, with the tokenizer's 114 for the old
+- the hook did not move for it: 27.7 / 27.0 / 27.6 ms against 28.2 / 27.9 / 28.2 ms on the deny path, three rounds of 30 runs, paired, the guard's half a millisecond included
+
 ## 0.25.2 - 2026-09-24
 
 docs: the fixed cost is seven entries and 266 tokens, and a Bash read leaves no trace in the log

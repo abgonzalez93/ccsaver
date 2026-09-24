@@ -88,7 +88,7 @@ const reasonOf = (measured: Measured, inside: boolean, ranged: boolean, limits: 
 const denial = (given: string, { lines, bytes }: Measured, limits: Limits): string => {
   const counted =
     lines === undefined ? `${bytes} bytes, too big to count its lines` : `${lines} lines`
-  return `${given} has ${counted}, ~${tokensIn(bytes)} tokens at 4 bytes each, and a whole-file Read measures about twice that (limits ${limits.maxLines} lines, ${limits.maxTokens} tokens). Locate or count with Grep first. When the answer needs the file understood end to end, use the /ccsaver:bulk-reader skill to delegate the read. To edit, Read only the range you need with offset and limit.`
+  return `${given} has ${counted}, ~${tokensIn(bytes)} tokens by bytes/4 and about twice that as a Read (limits ${limits.maxLines} lines, ${limits.maxTokens} tokens): Grep to locate, /ccsaver:bulk-reader to understand it whole, a ranged Read with offset and limit to edit.`
 }
 
 interface Place {

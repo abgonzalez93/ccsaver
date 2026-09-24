@@ -17,7 +17,7 @@ import {
   UNNAMED,
 } from "./saved.service.ts"
 
-const DENIAL_TOKENS = 94
+const DENIAL_TOKENS = 64
 const BAR = 22
 const GREEN = 32
 const RED = 31
