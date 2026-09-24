@@ -4,6 +4,12 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.29.6 - 2026-09-24
+
+fix: a model id written the Bedrock or the Vertex way takes a price, instead of falling under (unnamed)
+
+- the transcript writes the id the request carried, us.anthropic.claude-sonnet-4-5-20250929-v1:0 on Bedrock or claude-sonnet-4-5@20250929 on Vertex, and the name check let neither through, so every read of such a session went under (unnamed) and ccsaver price refused the id
+
 ## 0.29.5 - 2026-09-24
 
 fix: a PDF read by pages is a ranged read, in the hook, in the sh gate and in saved

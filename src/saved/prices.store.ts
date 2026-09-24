@@ -11,7 +11,7 @@ import {
   writePrivate,
 } from "../state/state.store.ts"
 
-export const MODEL_NAME = /^[a-z0-9][a-z0-9._-]{0,63}$/
+export const MODEL_NAME = /^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,127}$/
 
 export const WORKER = "worker"
 

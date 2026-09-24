@@ -86,6 +86,15 @@ test("a price is a positive number, stored privately, and shown back with both s
   assert.equal(statSync(join(home, "prices.json")).mode & 0o777, 0o600)
 })
 
+test("a Bedrock or a Vertex model id takes a price, as the transcript writes it", async () => {
+  const home = homeWith("bedrock", [twenty()])
+  const bedrock = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+  const out = await priced(home, [bedrock, "3"])
+  assert.deepEqual([out.code, out.stdout.startsWith(`price ${bedrock} $3/M`)], [0, true])
+  assert.equal((await priced(home, ["claude-sonnet-4-5@20250929", "3"])).code, 0)
+  assert.equal((await priced(home, ["bad name", "3"])).code, 1)
+})
+
 test("a prices.json that cannot be read stops the command, never reads as no price", {
   skip: AS_ROOT,
 }, async () => {

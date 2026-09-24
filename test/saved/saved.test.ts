@@ -79,6 +79,16 @@ test("a PDF read by pages is a ranged read the log cannot weigh, so it is counte
   assert.deepEqual([tally.ranged, tally.uncounted, totalled(tally.byModel).rangedTokens], [1, 1, 0])
 })
 
+test("a model id written the Bedrock or the Vertex way is a model of its own, never unnamed", () => {
+  const bedrock = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+  const vertex = "claude-sonnet-4-5@20250929"
+  const tally = tallied([
+    { ...denialRow(40_000), model: bedrock },
+    { ...denialRow(40_000), model: vertex },
+  ])
+  assert.deepEqual(Object.keys(tally.byModel).sort(), [vertex, bedrock].sort())
+})
+
 test("a read under the limit is neither denied nor counted as a range", () => {
   const tally = tallied([gateRow({ reason: "under", bytes: 900, lines: 20 })])
   assert.deepEqual([tally.denied, tally.ranged, totalled(tally.byModel).deniedTokens], [0, 0, 0])

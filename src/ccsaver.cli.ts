@@ -258,7 +258,7 @@ const COMMANDS: Record<string, Command> = {
       return 0
     }
     if (first !== WORKER && !MODEL_NAME.test(first))
-      return `a model name takes lowercase letters, digits, dots, dashes and underscores; not: ${first}`
+      return `a model name takes letters, digits and . _ - : @ /, as Anthropic, Bedrock and Vertex write them; not: ${first}`
     if (second === undefined)
       return `price needs the dollars per million after ${first}: ccsaver price ${first} <usd>`
     const dollars = Number(second)

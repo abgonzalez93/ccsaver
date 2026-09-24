@@ -87,7 +87,7 @@ const MISTAKES: [string[], string, string][] = [
   ],
   [
     ["price", "Bad Name", "5"],
-    "a model name takes lowercase letters, digits, dots, dashes and underscores; not: Bad Name",
+    "a model name takes letters, digits and . _ - : @ /, as Anthropic, Bedrock and Vertex write them; not: Bad Name",
     "ccsaver price <model>|worker <usd>",
   ],
   [
