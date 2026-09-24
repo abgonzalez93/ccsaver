@@ -251,6 +251,8 @@ const log = (): Finding => {
     : { level: "FAIL", text: `log: ${logDir()} must be 700 and its files 600` }
 }
 
+const NEVER_DENIED = ["range", "outside", "unreadable", "malformed", "binary"]
+
 const kindOf = (rows: Rows, kind: string): Rows => rows.filter((row) => row["kind"] === kind)
 
 const middleOf = (sorted: number[]): number | undefined => {
@@ -262,7 +264,7 @@ const middleOf = (sorted: number[]): number | undefined => {
 
 const denied = (rows: Rows): Finding[] => {
   const gates = kindOf(rows, "gate").filter((row) => row["tool_use_id"] !== "doctor")
-  const whole = gates.filter((row) => row["reason"] !== "range")
+  const whole = gates.filter((row) => !NEVER_DENIED.includes(String(row["reason"])))
   if (whole.length === 0) return []
   const why = whole.filter((row) => row["decision"] === "deny")
   const counted = why

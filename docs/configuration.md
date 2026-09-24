@@ -74,7 +74,7 @@ Claude Code's documentation says `--bare` will become the default for `-p`, and 
 `doctor` stops at a `node` older than 22.18, and at the 23 line and a 24 under 24.2, and then checks, in order:
 
 - The permissions of the state folder and of every file it keeps there: the key, `plugged` and `worker.json`, all 600, plus `prices.json` at 600 and your own `adapters/` at 700 once either one exists — a folder made by hand is world-readable, and the adapters in it carry your house style. Stricter passes: what the check asks is that you can read them and nobody else can, so a key you set to 400 is `ok` and the line shows the mode it found. The log is the exception, because the hook appends to its files: its folder must be 700 and its files 600.
-- Whether the [event log](events.md) is on and how many bytes this month's file holds, a file it cannot read being a `FAIL` of its own rather than the end of the report, and while it is on, how many whole-file reads the hook denied this month and their median length (`denied:`), and how many delegations went to paid Claude Haiku, what they cost and why (`spent:`).
+- Whether the [event log](events.md) is on and how many bytes this month's file holds, a file it cannot read being a `FAIL` of its own rather than the end of the report, and while it is on, how many of the whole-file reads it could judge the hook denied this month and their median length (`denied:`; a file outside the root, a binary, a missing one or a malformed call could never be denied and stay out of the count), and how many delegations went to paid Claude Haiku, what they cost and why (`spent:`).
 - The worker, with a probe shaped like a real call: same temperature, the `max_tokens` of a `code-write`, a system message, so a provider that would refuse the real thing fails here. 200 = the key works, 401/403 = rejected, 400 = the key or the request rejected, which is what Google answers to a wrong key, and a timeout is told from a host that cannot be reached. A `worker.json` it cannot trust fails the line.
 - The fallback binary, with `--version`, unless the fallback is off.
 - Every plugged project, with its adapter and limits. For each one it writes a throwaway file one line over the limit inside the root for a moment, feeds it to the hook, and the `gate:` line fails unless that read is denied, or cut to the limit under an adapter with `rewrite`.
@@ -141,7 +141,7 @@ It writes `~/.config/ccsaver/adapters/<name>.json` at 600, in a folder it puts b
 
 On a terminal `doctor` offers to run it, one `warn` at a time, reading your whole answer before judging it, so a long one never spills into the next question.
 
-While the [event log](events.md) is on, `doctor` also prints a `denied:` line: how many of this month's whole-file reads the hook actually denied, and the median length of the ones it did. That is the measured answer beside the predicted one, and the two disagree in a useful way — a project can hold long files the model never reads.
+While the [event log](events.md) is on, `doctor` also prints a `denied:` line: how many of this month's whole-file reads the hook could judge it actually denied, and the median length of the ones it did. That is the measured answer beside the predicted one, and the two disagree in a useful way — a project can hold long files the model never reads.
 
 ## The handoff warning
 

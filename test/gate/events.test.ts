@@ -241,7 +241,7 @@ test("a delegation leaves metadata: no key, no question, no file content, no ans
   assert.match(text, /\| external \| \[key\] \|/)
 })
 
-test("doctor counts the month's denied reads and leaves its own probe out of them", async () => {
+test("doctor counts the month's denied reads against the ones it could judge, and leaves its own probe out of them", async () => {
   const fresh = tempDir("events-denied")
   mkdirSync(join(fresh, "log"), { recursive: true, mode: 0o700 })
   chmodSync(join(fresh, "log"), 0o700)
@@ -254,6 +254,9 @@ test("doctor counts the month's denied reads and leaves its own probe out of the
   await seen({ tool_input: { file_path: LONGER } })
   await seen({ tool_input: { file_path: SOURCE } })
   await seen({ tool_input: { file_path: LONG, offset: 10 } })
+  await seen({ tool_input: { file_path: OUTSIDE } })
+  await seen({ tool_input: { file_path: join(PROJECT, "missing.txt") } })
+  await seen({ tool_input: { file_path: BLOB } })
   const before027 = { v: 1, kind: "gate", decision: "deny", reason: "lines", lines: 9_999 }
   appendFileSync(
     join(fresh, "log", `events-${monthBack(0)}.jsonl`),
