@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs"
 import { logDir, monthKey } from "../state/log.store.ts"
-import { tinted } from "../state/state.store.ts"
+import { plural, tinted } from "../state/state.store.ts"
 import { type Prices, readPrices, workerNamed } from "./prices.store.ts"
 import {
   type Band,
@@ -30,8 +30,6 @@ const SMALL_COUNT = 10_000
 const millions = (tokens: number): string =>
   tokens < SMALL_COUNT ? `${tokens}` : `${(tokens / PER_MILLION).toFixed(2)} M`
 
-const many = (count: number, one: string): string => `${count} ${one}${count === 1 ? "" : "s"}`
-
 const usd = (value: number, places: number): string =>
   `${value < 0 ? "-" : ""}$${Math.abs(value).toFixed(places)}`
 
@@ -49,9 +47,9 @@ const percentOf = (saved: number, without: number): number =>
   without > 0 ? Math.round((100 * saved) / without) : 0
 
 const countedIn = (tally: Spend): string[] => [
-  `  ${"denied".padEnd(LABEL)}${many(tally.denied, "whole-file read")}, ${millions(totalled(tally.byModel).deniedTokens)} tokens by bytes/4`,
-  `  ${"instead".padEnd(LABEL)}${many(tally.ranged, "ranged read")} while plugged, ${millions(totalled(tally.byModel).rangedTokens)} tokens`,
-  `  ${"delegated".padEnd(LABEL)}${many(tally.calls, "call")} · ${tally.external} external (${millions(tally.externalTokens)} tokens) · ${tally.paid} paid Haiku (${usd(tally.paidUsd, 4)})`,
+  `  ${"denied".padEnd(LABEL)}${plural(tally.denied, "whole-file read")}, ${millions(totalled(tally.byModel).deniedTokens)} tokens by bytes/4`,
+  `  ${"instead".padEnd(LABEL)}${plural(tally.ranged, "ranged read")} while plugged, ${millions(totalled(tally.byModel).rangedTokens)} tokens`,
+  `  ${"delegated".padEnd(LABEL)}${plural(tally.calls, "call")} · ${tally.external} external (${millions(tally.externalTokens)} tokens) · ${tally.paid} paid Haiku (${usd(tally.paidUsd, 4)})`,
 ]
 
 const savedIn = (money: Money, places: number): string => {
@@ -143,15 +141,15 @@ const followedLines = (tally: Spend): string[] => {
       ? `${millions(followed.reread)} tokens by the log`
       : "which the log did not count"
   return [
-    `  ${followed.files} of ${many(tally.paged.size, "denied file")} ${followed.files === 1 ? "was" : "were"} read by ranges after the denial, in the same session:`,
-    `  ${many(followed.reads, "read")}, each a request that re-read the whole context, ${counted}, in neither column`,
+    `  ${followed.files} of ${plural(tally.paged.size, "denied file")} ${followed.files === 1 ? "was" : "were"} read by ranges after the denial, in the same session:`,
+    `  ${plural(followed.reads, "read")}, each a request that re-read the whole context, ${counted}, in neither column`,
   ]
 }
 
 const followedCallsLine = (tally: Spend): string[] =>
   tally.denied > 0 && tally.calls > 0
     ? [
-        `  ${tally.followedCalls} of ${many(tally.calls, "call")} followed a denial in the same session, which is what the denial asks for; the log does not say which file they took`,
+        `  ${tally.followedCalls} of ${plural(tally.calls, "call")} followed a denial in the same session, which is what the denial asks for; the log does not say which file they took`,
       ]
     : []
 
@@ -180,7 +178,7 @@ const footnotes = (tally: Spend, prices: Prices, priced: boolean): string[] => [
     : []),
   ...(tally.outside > 0
     ? [
-        `  ${many(tally.outside, "denied read")} of files outside the plugged project left out, because nothing could have delegated them`,
+        `  ${plural(tally.outside, "denied read")} of files outside the plugged project left out, because nothing could have delegated them`,
       ]
     : []),
   ...(priced && orphaned(tally)

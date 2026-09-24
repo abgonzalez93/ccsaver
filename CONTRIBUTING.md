@@ -61,7 +61,7 @@ Two folds mutate what they carry, `src/saved/saved.service.ts` · `pagedAfter` a
 **1.5 NEVER comment code.** Names carry the what, the README and the pages under `docs/` carry the why. The complete list of exceptions: the one-line attribution header on a file that holds adapted third-party material (Apache-2.0 asks for it; [NOTICE](NOTICE) names the files), and one line inside a `catch` that is empty on purpose, saying why (`src/state/log.store.ts` · `record`).
 Guard: `test/repo/conventions.test.ts`.
 
-**1.6 NEVER leave dead code, PREFER the helper that exists.** `attempt` for a call whose failure is an expected answer, `parsed` for JSON text, `isRecord` to open an unknown object, `messageOf` for a caught error, `real` and `isUnder` for paths, `isSecretPlace` for a folder that holds credentials, whether a file is leaving it or a root is being plugged, `linesIn` and `tokensIn` for bytes weighed against a limit, `readKey`, `readWorker` and `foldMonth` as the only readers of their files, with one exception: `src/saved/prices.store.ts` · `workerNamed` reads `worker.json` on its own, because a broken `worker.json` must not stop a report whose worker name is decoration. One export is a test seam and nothing else: `src/saved/saved.service.ts` · `tallied`, fed rows by hand; the report folds a month through `foldMonth` without holding its rows.
+**1.6 NEVER leave dead code, PREFER the helper that exists.** `attempt` for a call whose failure is an expected answer, `parsed` for JSON text, `isRecord` to open an unknown object, `messageOf` for a caught error, `real` and `isUnder` for paths, `isSecretPlace` for a folder that holds credentials, whether a file is leaving it or a root is being plugged, `linesIn` and `tokensIn` for bytes weighed against a limit, `plural` for a count and its noun, `codeOf` for the `code` of a caught error, `privateDir` for a folder of the state folder, `readKey`, `readWorker` and `foldMonth` as the only readers of their files, with one exception: `src/saved/prices.store.ts` · `workerNamed` reads `worker.json` on its own, because a broken `worker.json` must not stop a report whose worker name is decoration. One export is a test seam and nothing else: `src/saved/saved.service.ts` · `tallied`, fed rows by hand; the report folds a month through `foldMonth` without holding its rows.
 Guard: `noUnusedLocals`, `noUnusedParameters`, Biome `noUnusedImports`, `noUnusedVariables`; an unused export and a duplicated helper are *convention*.
 
 **1.7 PREFER a function a reader holds in their head: cognitive complexity 15 or less.**
@@ -77,7 +77,7 @@ Guard: `test/repo/conventions.test.ts`.
 | File | Owns | Imports |
 | --- | --- | --- |
 | `src/state/state.store.ts` | the state folder, the key, the guards, what a terminal may be shown (`scrubbed`, `tinted`, `marked`) and what a shell may be handed (`quoted`), `Refusal` | `node:` only |
-| `src/state/log.store.ts` | the event log, its switch and its reader | `state.store` |
+| `src/state/log.store.ts` | the event log, its switch, its reader, and the version that stamps each line | `state.store` |
 | `src/state/config.store.ts` | what the user configured: the plugged roots, the adapters, and how a file is weighed against a limit | `log.store`, `state.store` |
 | `src/state/handoff.store.ts` | `handoff.json`, the switch and the limit of the context warning, and the `handoff/` folder | `config.store`, `log.store`, `state.store` |
 | `src/delegation/worker.store.ts` | `worker.json`: the url, the model, the pinned binary and the fallback switch | `log.store`, `state.store` |
@@ -118,12 +118,6 @@ Guard: *convention*.
 
 **2.4 ALWAYS pass a dependency as a parameter.** The seams the tests use are a parameter (`worker` in `src/delegation/worker.client.ts` · `invokeExternal`), a default parameter (`src/state/log.store.ts` · `logFile` takes `now = new Date()`), an environment variable (`CCSAVER_HOME`, `CLAUDE_CODE_EXECPATH`) and a file in the state folder.
 
-```ts
-// ❌ reads its collaborator from a global registry
-const answer = await container.get("worker").ask(message)
-// ✅ `src/delegation/worker.client.ts` · `invokeExternal`
-export const invokeExternal = async (mode: string, system: string, message: string, worker: Worker | undefined): Promise<string | undefined> => { … }
-```
 
 Guard: *convention*. Revisit when a test needs to replace something that no parameter, variable or state file reaches, or when a seam gets a second implementation.
 
@@ -160,7 +154,7 @@ if (text === undefined) continue
 
 Guard: *convention*.
 
-**3.3 ALWAYS validate at the boundary, by hand, and return a typed value built from the checked fields.** The boundaries are `worker.json` (`readWorker`), the `plugged` file (`src/state/config.store.ts` · `readPlugged`, which drops a line that is not an absolute path), an adapter file (`adapterOf`, which also rejects unknown keys), the hook's stdin (`src/read-gate.hook.ts` · `gate`), the tail of the session transcript Claude Code names on it (`src/state/config.store.ts` · `lastAssistantOf`, which reads whole JSON lines rather than matching text, so a model named in the conversation is not read as the one in force), the worker's HTTP response (`src/delegation/worker.client.ts` · `contentOf`), the fallback's stdout (`invokeClaude`), the month's own log lines when `doctor` adds it up (`src/doctor/spent.service.ts` · `into`) and when `ccsaver saved` adds up the whole log (`src/saved/saved.service.ts` · `tallied`, which reads every field through `numberAt`), `prices.json` (`src/saved/prices.store.ts` · `readPrices`) and `package.json` when it prints the version (`src/ccsaver.cli.ts` · `version`). Every `JSON.parse` lands in a `const` typed `unknown`, or goes through `parsed`.
+**3.3 ALWAYS validate at the boundary, by hand, and return a typed value built from the checked fields.** The boundaries are `worker.json` (`readWorker`), the `plugged` file (`src/state/config.store.ts` · `readPlugged`, which drops a line that is not an absolute path), an adapter file (`adapterOf`, which also rejects unknown keys), the hook's stdin (`src/read-gate.hook.ts` · `gate`), the tail of the session transcript Claude Code names on it (`src/state/config.store.ts` · `lastAssistantOf`, which reads whole JSON lines rather than matching text, so a model named in the conversation is not read as the one in force), the worker's HTTP response (`src/delegation/worker.client.ts` · `contentOf`), the fallback's stdout (`invokeClaude`), the month's own log lines when `doctor` adds it up (`src/doctor/spent.service.ts` · `into`) and when `ccsaver saved` adds up the whole log (`src/saved/saved.service.ts` · `tallied`, which reads every field through `numberAt`), `prices.json` (`src/saved/prices.store.ts` · `readPrices`) and `package.json` when it prints the version (`src/state/log.store.ts` · `ownVersion`). Every `JSON.parse` lands in a `const` typed `unknown`, or goes through `parsed`.
 
 ```ts
 // ❌ trusts the shape of a response from the network

@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.31.3 - 2026-09-24
+
+refactor: one plural, one codeOf, one privateDir and one ownVersion where four copies were
+
+- the pluralizer lived in saved.reporter.ts and handoff.store.ts, the reader of the version in package.json in log.store.ts and launcher.service.ts, the private folder (mkdir 700 then chmod 700) four times over, and the code of a caught error three times; each is now one helper of the store everyone already imports, so the hooks gain no module
+- the CLI keeps its own ending in tooMany: importing plural wraps its import over eight lines and takes the file past 350
+- the hook measured 26.7 / 27.9 / 26.0 ms before against 27.0 / 28.2 / 25.8 after on a 100-line file let through, three rounds of 30 paired runs on one disk
+
 ## 0.31.2 - 2026-09-24
 
 refactor: the gate and the external call come under the complexity ceiling of 15

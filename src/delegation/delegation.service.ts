@@ -11,8 +11,8 @@ import { type Adapter, loadAdapter, pluggedRootOf } from "../state/config.store.
 import { record } from "../state/log.store.ts"
 import {
   attempt,
+  codeOf,
   hidden,
-  isRecord,
   isUnder,
   marked,
   messageOf,
@@ -253,7 +253,7 @@ const codeWrite = async (
   try {
     writeFileSync(target, code, { flag: "wx" })
   } catch (error) {
-    const reason = isRecord(error) ? error["code"] : undefined
+    const reason = codeOf(error)
     fail(
       reason === "EEXIST"
         ? `refusing to overwrite ${wanted}: move or delete it first`

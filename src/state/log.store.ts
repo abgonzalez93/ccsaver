@@ -1,6 +1,6 @@
-import { appendFileSync, chmodSync, existsSync, mkdirSync, readFileSync, renameSync } from "node:fs"
+import { appendFileSync, existsSync, readFileSync, renameSync } from "node:fs"
 import { join } from "node:path"
-import { attempt, hidden, isRecord, parsed, Refusal, stateHome } from "./state.store.ts"
+import { attempt, hidden, isRecord, parsed, privateDir, Refusal, stateHome } from "./state.store.ts"
 
 export type Row = Record<PropertyKey, unknown>
 
@@ -23,6 +23,8 @@ const versionOf = (): string => {
 }
 
 const BY = versionOf()
+
+export const ownVersion = (): string => BY
 
 export const logDir = (): string => join(stateHome(), "log")
 
@@ -99,8 +101,7 @@ export const setLog = (on: boolean): boolean => {
   if (on === existsSync(dir)) return false
   if (on) {
     if (existsSync(aside)) renameSync(aside, dir)
-    mkdirSync(dir, { recursive: true, mode: 0o700 })
-    chmodSync(dir, 0o700)
+    privateDir(dir)
   } else if (existsSync(aside))
     throw new Refusal(`${aside} already exists: move it away, then run ccsaver log off again`)
   record("config", { action: "log", on })

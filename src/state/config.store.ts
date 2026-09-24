@@ -1,9 +1,7 @@
 import {
-  chmodSync,
   closeSync,
   existsSync,
   fstatSync,
-  mkdirSync,
   openSync,
   readFileSync,
   readSync,
@@ -21,6 +19,7 @@ import {
   isUnder,
   parsed,
   pluggedFile,
+  privateDir,
   Refusal,
   real,
   stateHome,
@@ -244,8 +243,7 @@ export const writeLimits = (name: string, limits: Partial<Limits>): Written => {
   const after: Adapter = { ...before, ...limits }
   const place = adapterPlace(name)
   if (JSON.stringify(after) === JSON.stringify(before)) return { place, changed: false }
-  mkdirSync(adaptersDir(), { recursive: true, mode: 0o700 })
-  chmodSync(adaptersDir(), 0o700)
+  privateDir(adaptersDir())
   writePrivate(place, `${JSON.stringify(after, null, 2)}\n`)
   record("config", { action: "adapter limits", adapter: name, ...limits })
   return { place, changed: true }

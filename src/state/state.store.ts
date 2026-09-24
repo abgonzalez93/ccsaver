@@ -46,6 +46,11 @@ export const messageOf = (error: unknown): string =>
 export const isRecord = (value: unknown): value is Record<PropertyKey, unknown> =>
   typeof value === "object" && value !== null
 
+export const codeOf = (error: unknown): unknown => (isRecord(error) ? error["code"] : undefined)
+
+export const plural = (count: number, noun: string): string =>
+  `${count} ${noun}${count === 1 ? "" : "s"}`
+
 export const parsed = (text: string): unknown => attempt<unknown>(() => JSON.parse(text))
 
 export const stateHome = (): string => {
@@ -140,12 +145,15 @@ export const isEncrypted = (url: string): boolean => {
   )
 }
 
+export const privateDir = (path: string): void => {
+  mkdirSync(path, { recursive: true, mode: 0o700 })
+  chmodSync(path, 0o700)
+}
+
 export const writePrivate = (path: string, text: string): void => {
-  const home = stateHome()
   const fresh = `${path}.${process.pid}.new`
   try {
-    mkdirSync(home, { recursive: true, mode: 0o700 })
-    chmodSync(home, 0o700)
+    privateDir(stateHome())
     writeFileSync(fresh, text, { mode: 0o600 })
     chmodSync(fresh, 0o600)
     renameSync(fresh, path)

@@ -10,15 +10,14 @@ import {
 } from "node:fs"
 import { homedir } from "node:os"
 import { dirname, join } from "node:path"
-import { record } from "../state/log.store.ts"
-import { attempt, isRecord, messageOf, parsed, Refusal, real } from "../state/state.store.ts"
+import { ownVersion, record } from "../state/log.store.ts"
+import { attempt, codeOf, messageOf, Refusal, real } from "../state/state.store.ts"
 import type { Finding, Fix } from "./finding.model.ts"
 
 const MARK = "# ccsaver launcher "
 const RUN_TIMEOUT_MS = 15_000
 const VERSION_SHAPE = /^\d+\.\d+\.\d+$/
 const RELOAD = "a session keeps the version it loaded until /reload-plugins"
-const PACKAGE = join(import.meta.dirname, "..", "..", "package.json")
 export const PROFILE_LINE = 'export PATH="$HOME/.local/bin:$PATH"'
 
 const PIECES = join(import.meta.dirname, "..", "..", "launcher")
@@ -37,16 +36,9 @@ export interface Placing {
   advice: string[]
 }
 
-export const ownVersion = (): string => {
-  const raw = parsed(attempt(() => readFileSync(PACKAGE, "utf8")) ?? "")
-  return isRecord(raw) && typeof raw["version"] === "string" ? raw["version"] : "unknown"
-}
-
 export const launcherPlace = (): string => join(homedir(), ".local", "bin", "ccsaver")
 
 export const isLauncher = (text: string): boolean => text.split("\n")[1]?.startsWith(MARK) === true
-
-const codeOf = (error: unknown): unknown => (isRecord(error) ? error["code"] : undefined)
 
 const cannotWrite = (place: string, error: unknown): Refusal =>
   new Refusal(`${place} cannot be written: ${messageOf(error)}`)

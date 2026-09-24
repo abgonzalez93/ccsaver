@@ -1,7 +1,7 @@
 // Portions of this file are adapted from a third-party Apache-2.0 work and were modified; see NOTICE.
 import { spawnSync } from "node:child_process"
 import { tmpdir } from "node:os"
-import { isRecord, messageOf, parsed } from "../state/state.store.ts"
+import { codeOf, isRecord, messageOf, parsed } from "../state/state.store.ts"
 import {
   CHARS_PER_TOKEN,
   type Delegation,
@@ -39,7 +39,7 @@ const reasonOf = (raw: unknown): string | undefined => {
 }
 
 export const troubleOf = (error: unknown): string | undefined => {
-  const code = isRecord(error) ? error["code"] : undefined
+  const code = codeOf(error)
   if (code === "ETIMEDOUT") return `fallback worker timed out after ${FALLBACK_TIMEOUT_MS / 1000} s`
   if (code === "EPIPE" || error === undefined) return undefined
   return `fallback worker could not run: ${messageOf(error)}`

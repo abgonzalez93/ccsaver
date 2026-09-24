@@ -1,16 +1,17 @@
-import {
-  chmodSync,
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  statSync,
-  unlinkSync,
-} from "node:fs"
+import { existsSync, readdirSync, readFileSync, statSync, unlinkSync } from "node:fs"
 import { join } from "node:path"
 import { BYTES_PER_TOKEN, DEFAULT_LIMITS, linesIn } from "./config.store.ts"
 import { record } from "./log.store.ts"
-import { attempt, isRecord, parsed, Refusal, stateHome, writePrivate } from "./state.store.ts"
+import {
+  attempt,
+  isRecord,
+  parsed,
+  plural,
+  privateDir,
+  Refusal,
+  stateHome,
+  writePrivate,
+} from "./state.store.ts"
 
 export interface Handoff {
   on: boolean
@@ -75,11 +76,6 @@ const nameOf = (session: string): string => session.replace(UNSAFE, "-").slice(0
 
 const markerOf = (session: string): string => join(handoffDir(), `${nameOf(session)}.tier`)
 
-const privateDir = (): void => {
-  mkdirSync(handoffDir(), { recursive: true, mode: 0o700 })
-  chmodSync(handoffDir(), 0o700)
-}
-
 export const readTier = (session: string): number | undefined => {
   const text = attempt(() => readFileSync(markerOf(session), "utf8"))
   const tier = Number(text)
@@ -96,7 +92,7 @@ const swept = (keep: string, now: number): void => {
 }
 
 export const writeTier = (session: string, tier: number, now = Date.now()): void => {
-  privateDir()
+  privateDir(handoffDir())
   writePrivate(markerOf(session), `${tier}\n`)
   swept(`${nameOf(session)}.tier`, now)
 }
@@ -108,8 +104,6 @@ export interface Kept {
   replaced: boolean
 }
 
-const counted = (count: number, noun: string): string => `${count} ${noun}${count === 1 ? "" : "s"}`
-
 export const keepHandoff = (text: string, session: string | undefined): Kept => {
   if (text.trim() === "") throw new Refusal("an empty handoff, nothing was written")
   const body = text.endsWith("\n") ? text : `${text}\n`
@@ -117,11 +111,11 @@ export const keepHandoff = (text: string, session: string | undefined): Kept => 
   const lines = linesIn(Buffer.from(body))
   if (lines > DEFAULT_LIMITS.maxLines || bytes > MAX_BYTES)
     throw new Refusal(
-      `a handoff has to fit one whole Read, ${DEFAULT_LIMITS.maxLines} lines and ${MAX_BYTES} bytes; this one has ${counted(lines, "line")} and ${counted(bytes, "byte")}`,
+      `a handoff has to fit one whole Read, ${DEFAULT_LIMITS.maxLines} lines and ${MAX_BYTES} bytes; this one has ${plural(lines, "line")} and ${plural(bytes, "byte")}`,
     )
   const name =
     session === undefined ? new Date().toISOString().replaceAll(":", "-") : nameOf(session)
-  privateDir()
+  privateDir(handoffDir())
   const place = join(handoffDir(), `${name}.md`)
   const replaced = existsSync(place)
   writePrivate(place, body)
