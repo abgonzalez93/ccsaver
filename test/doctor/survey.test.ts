@@ -8,7 +8,7 @@ import {
   proposalOf,
   surveyFor,
 } from "../../src/doctor/survey.service.ts"
-import { DEFAULT_LIMITS } from "../../src/state/config.store.ts"
+import { DEFAULT_LIMITS } from "../../src/measure/measure.helpers.ts"
 import { HAS_PTY, jsonOf, LAUNCHER, type Ran, run, tempDir } from "../test.helpers.ts"
 
 const YELLOW = "\u001b[33m"

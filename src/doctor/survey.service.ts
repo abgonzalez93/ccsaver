@@ -10,7 +10,7 @@ import {
   linesIn,
   SCAN_CEILING,
   tokensIn,
-} from "../state/config.store.ts"
+} from "../measure/measure.helpers.ts"
 import { attempt } from "../state/state.store.ts"
 
 const PRUNED = [

@@ -5,9 +5,9 @@ import { marked, scrubbed, shown } from "../cli/terminal.reporter.ts"
 import { CLAUDE_ON_PATH, claudeBin } from "../delegation/fallback.client.ts"
 import { fellOf, postJson, rejectionOf, requestOf } from "../delegation/worker.client.ts"
 import { readWorker, type Worker } from "../delegation/worker.store.ts"
+import type { Limits } from "../measure/measure.helpers.ts"
 import {
   adapterFor,
-  type Limits,
   limitsFrom,
   type Plugged,
   plug,

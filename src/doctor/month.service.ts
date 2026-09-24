@@ -1,4 +1,4 @@
-import { NEVER_DENIED } from "../state/config.store.ts"
+import { NEVER_DENIED } from "../measure/measure.helpers.ts"
 import { foldMonth, monthKey, numberAt, type Row } from "../state/log.store.ts"
 import { messageOf } from "../state/state.store.ts"
 import type { Finding } from "./finding.reporter.ts"

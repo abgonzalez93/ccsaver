@@ -15,6 +15,7 @@ import { setClaude, setFallback, writeWorker } from "./delegation/worker.store.t
 import { doctor } from "./doctor/doctor.service.ts"
 import { writeLauncher } from "./doctor/environment.service.ts"
 import { proposalOf, surveyFor } from "./doctor/survey.service.ts"
+import type { Limits } from "./measure/measure.helpers.ts"
 import {
   listedPrices,
   MODEL_NAME,
@@ -26,7 +27,6 @@ import {
 import { report } from "./saved/saved.reporter.ts"
 import {
   LIMIT_CEILING,
-  type Limits,
   limitsFor,
   plug,
   readPlugged,

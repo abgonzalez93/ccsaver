@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import { existsSync, readdirSync, readFileSync } from "node:fs"
 import { dirname, join, relative } from "node:path"
 import { test } from "node:test"
-import { DEFAULT_LIMITS } from "../../src/state/config.store.ts"
+import { DEFAULT_LIMITS } from "../../src/measure/measure.helpers.ts"
 import { isRecord, parsed } from "../../src/state/state.store.ts"
 import { REPO } from "../test.helpers.ts"
 
@@ -55,12 +55,13 @@ test("src imports node: built-ins and its own files, and the package declares no
   )
 })
 
-test("the hook starts with the three files of the state folder, the boundary guard, and nothing else of ours", () => {
+test("the hook starts with the three stores of the state folder, the boundary guard, the measure of a file, and nothing else of ours", () => {
   const ours = importsOf(join(REPO, "src", "read-gate.hook.ts")).filter((name) =>
     name.startsWith("."),
   )
   assert.deepEqual(ours, [
     "./boundary/boundary.guard.ts",
+    "./measure/measure.helpers.ts",
     "./state/config.store.ts",
     "./state/log.store.ts",
     "./state/state.store.ts",
@@ -215,7 +216,7 @@ test("every symbol CONTRIBUTING cites lives in the file it names", () => {
 })
 
 const ROW = /^\| `(src\/[^`]+\.ts)` \| [^|]* \| ([^|]*) \|$/gm
-const MODULE = /`([a-z-]+\.(?:store|service|client|guard|validator|model|reporter))`/g
+const MODULE = /`([a-z-]+\.(?:store|service|client|guard|validator|model|reporter|helpers))`/g
 
 const importsNamedIn = (file: string): string[] =>
   [...readFileSync(join(REPO, file), "utf8").matchAll(/from "(\.[^"]+)\.ts"/g)]

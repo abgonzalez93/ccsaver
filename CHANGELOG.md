@@ -4,6 +4,15 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.33.19 - 2026-09-24
+
+refactor: how a file is weighed is src/measure/measure.helpers.ts, and config.store.ts is what the user configured
+
+- `Limits`, `DEFAULT_LIMITS`, `BYTES_PER_TOKEN`, `SCAN_CEILING`, `HEAD_BYTES`, `tokensIn`, `linesIn`, `isBinary`, `headOf`, `Reason` and `NEVER_DENIED` were put in `config.store.ts` by three commits so that the hook gained no module; four of its ten importers took only those, and the map's row for it named six things; they are now `src/measure/measure.helpers.ts`, the first file of `src/measure/`, and `config.store.ts` keeps the plugged roots, the adapters and their limits, importing the two it needs
+- eight importers and three tests change a line; `handoff.store.ts` no longer loads 308 lines of configuration for the three symbols it used; the hook's import list in `test/repo/conventions.test.ts` gains the module, and the map's regex the `helpers` role
+- 2.5 says where the files every feature imports go, 1.8 that the number decides what leaves a hooked file and never the line count, 2.6 what `helpers` is in `src/`, 4.4 what each hook now imports, and the law of CLAUDE.md the same as 2.5
+- measured paired on one disk, log on, a 300 KB transcript, 30 runs per arm: a 100-line file let through 25.0 / 24.4 / 25.0 and 24.6 / 24.9 / 24.9 ms before against 27.2 / 26.0 / 26.4 and 26.1 / 26.6 / 26.6 ms after, the 500-line file denied 27.7 / 26.8 / 28.3 and 26.8 / 27.4 / 28.3 against 28.8 / 28.1 / 29.6 and 29.0 / 28.8 / 29.4 ms, the handoff hook 23.5 / 23.5 / 23.3 against 23.7 / 23.8 / 23.2 ms; two identical trees sat 0.1–0.7 ms apart the same day: 1.1–2.2 ms per Read that reaches Node, more than the 0.7–1.0 ms measured for the same split earlier the same day, and nothing on the handoff hook or on the path the sh gate answers alone
+
 ## 0.33.18 - 2026-09-24
 
 refactor: finding.model.ts is finding.reporter.ts, named after what it does

@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync, statSync, unlinkSync } from "node:fs"
 import { join } from "node:path"
-import { BYTES_PER_TOKEN, DEFAULT_LIMITS, linesIn } from "./config.store.ts"
+import { BYTES_PER_TOKEN, DEFAULT_LIMITS, linesIn } from "../measure/measure.helpers.ts"
 import { record } from "./log.store.ts"
 import {
   attempt,

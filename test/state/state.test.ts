@@ -14,13 +14,12 @@ import { join } from "node:path"
 import { after, test } from "node:test"
 import { scrubbed } from "../../src/cli/terminal.reporter.ts"
 import { readWorker, setFallback, writeWorker } from "../../src/delegation/worker.store.ts"
+import { linesIn, tokensIn } from "../../src/measure/measure.helpers.ts"
 import {
-  linesIn,
   loadAdapter,
   plug,
   pluggedRootOf,
   readPlugged,
-  tokensIn,
   unplug,
   writeLimits,
 } from "../../src/state/config.store.ts"
