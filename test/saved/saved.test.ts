@@ -28,6 +28,7 @@ test("doctor's own probe is left out of the reads it counts", () => {
   const tally = tallied([
     denialRow(40_000),
     { ...denialRow(999_999), tool_use_id: "doctor" },
+    { ...denialRow(999_999), kind: "doctor", tool_use_id: "doctor" },
     { kind: "note", text: "ignored" },
   ])
   assert.deepEqual([tally.denied, totalled(tally.byModel).deniedTokens], [1, 10_000])

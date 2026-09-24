@@ -118,6 +118,10 @@ const spokenOf = (call: Record<PropertyKey, unknown>): Record<string, unknown> =
 }
 
 const limitsOf = (name: string | undefined): Limits => limitsFrom(adapterOrDefaults(name))
+
+const kindOf = (call: Record<PropertyKey, unknown>): string =>
+  call["tool_use_id"] === "doctor" ? "doctor" : "gate"
+
 const gate = (root: string, adapterName: string | undefined): void => {
   const input: unknown = JSON.parse(readFileSync(0, "utf8"))
   const call = isRecord(input) ? input : {}
@@ -128,7 +132,7 @@ const gate = (root: string, adapterName: string | undefined): void => {
   if (ranged && !logging) return
   const seen = (fields: Record<string, unknown>): void => {
     const ms = Number(performance.now().toFixed(1))
-    record("gate", { root, ...fields, ...idsOf(call), ms }, call["session_id"])
+    record(kindOf(call), { root, ...fields, ...idsOf(call), ms }, call["session_id"])
   }
   if (typeof given !== "string") {
     seen({ decision: "allow", reason: "malformed" })

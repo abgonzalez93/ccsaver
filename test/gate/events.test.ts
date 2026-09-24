@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { chmodSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs"
+import { appendFileSync, chmodSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { after, before, test } from "node:test"
 import {
@@ -10,6 +10,7 @@ import {
   HOOK,
   LAUNCHER,
   logged,
+  monthBack,
   type Ran,
   run,
   startServer,
@@ -251,6 +252,11 @@ test("doctor counts the month's denied reads and leaves its own probe out of the
   await seen({ tool_input: { file_path: LONGER } })
   await seen({ tool_input: { file_path: SOURCE } })
   await seen({ tool_input: { file_path: LONG, offset: 10 } })
+  const before027 = { v: 1, kind: "gate", decision: "deny", reason: "lines", lines: 9_999 }
+  appendFileSync(
+    join(fresh, "log", `events-${monthBack(0)}.jsonl`),
+    `${JSON.stringify({ ...before027, tool_use_id: "doctor" })}\n`,
+  )
   const out = await run(LAUNCHER, ["doctor"], { CCSAVER_HOME: fresh, CLAUDE_CODE_EXECPATH: FAKE })
   assert.match(
     out.stdout,
@@ -296,7 +302,15 @@ test("doctor says whether the log is on, records its tally and marks its own pro
       `\n\n${lines.length} checks: ${count("ok")} ok, ${count("warn")} warn, ${count("FAIL")} FAIL\n`,
     ),
   )
-  assert.equal(seen.at(-2)?.["tool_use_id"], "doctor")
+  const probe = seen.at(-2) ?? NONE
+  assert.deepEqual(
+    [probe["kind"], probe["tool_use_id"], probe["decision"], probe["reason"]],
+    ["doctor", "doctor", "deny", "lines"],
+  )
+  assert.equal(
+    seen.filter(({ kind, tool_use_id }) => kind === "gate" && tool_use_id === "doctor").length,
+    0,
+  )
   chmodSync(LOG, 0o755)
   assert.match((await ccsaver(["doctor"])).stdout, /FAIL log: /)
   chmodSync(LOG, 0o700)

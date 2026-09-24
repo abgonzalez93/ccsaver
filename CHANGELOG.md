@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.27.0 - 2026-09-24
+
+feat: doctor's probe is a doctor line in the log, never a gate line
+
+- the hook records the read `doctor` sends it, marked `"tool_use_id": "doctor"`, under `kind: "doctor"`, so the `gate` lines hold the session's reads and none of `doctor`'s: 52 of the 649 lines of one month were probes
+- `saved` and `doctor` still leave out a probe written as a `gate` line before 0.27, and the tests pin both shapes
+- the hook measured the same before and after: 28.1 / 28.5 / 28.4 against 26.2 / 27.4 / 27.5 ms on a file let through
+
 ## 0.26.3 - 2026-09-24
 
 docs: CONTRIBUTING names the two folds that mutate what they carry

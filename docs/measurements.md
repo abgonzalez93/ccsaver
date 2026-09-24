@@ -74,6 +74,8 @@ The launcher taking the name of the hook it starts, so that a second hook shares
 
 Sharing the 1 MB ceiling between the hook and the survey as one export of `config.store.ts`, `SCAN_CEILING`, costs nothing the harness can see, because the hook already imported that module: a 100-line file let through, 27.6 / 28.2 / 28.9 ms before against 26.8 / 26.8 / 27.1 ms after; a 500-line, 23 KB file denied by lines, 30.2 / 29.2 / 29.0 against 30.5 / 28.3 / 28.3 ms. Three rounds of 30 runs per arm, paired, log on, a 300 KB transcript; two identical trees measured the same way sat 1.8 ms apart on the allow path and 0.1 ms on the deny path, which is the floor of the harness.
 
+Recording `doctor`'s probe under its own kind, one string comparison on the `tool_use_id` before the line is written, costs nothing the harness can see either: a 100-line file let through, 28.1 / 28.5 / 28.4 ms before against 26.2 / 27.4 / 27.5 ms after; the 500-line file denied by lines, 29.6 / 29.5 / 30.4 against 29.1 / 28.8 / 29.5 ms. Three rounds of 30 runs per arm, paired, log on, a 300 KB transcript.
+
 Folders cost it nothing either. When `src/` regrouped by feature and the hook's three imports moved into `src/state/`: 21.3 / 20.6 / 21.0 ms flat against 21.4 / 20.6 / 20.4 ms in folders, three rounds of 30 runs per arm, paired, both trees on the same disk. A first pair with the flat copy on `tmpfs` read 2 ms in favour of the folders, which was the disk and not the layout: what the hook pays for is a module, never the depth of its path.
 
 ## The handoff hook per turn
