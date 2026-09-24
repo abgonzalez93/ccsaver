@@ -249,24 +249,39 @@ const SEAMS = [
 ]
 const TESTS = filesUnder(join(REPO, "test"))
 
-const namesIn = (text: string, name: string): boolean => new RegExp(`\\b${name}\\b`).test(text)
+const IMPORTED = /import\s+(?:type\s+)?\{([^}]*)\}\s+from\s+"[^"]+"/g
 
-const importedElsewhere = (name: string, own: string, files: string[]): boolean =>
-  files.some((path) => path !== own && namesIn(readFileSync(path, "utf8"), name))
+const importedNames = (path: string): Set<string> =>
+  new Set(
+    [...readFileSync(path, "utf8").matchAll(IMPORTED)].flatMap(([, list = ""]) =>
+      list
+        .split(",")
+        .map((name) => name.trim().replace(/^type\s+/, ""))
+        .filter((name) => name !== ""),
+    ),
+  )
 
-test("every export of src and scripts is imported by another file of theirs, or is a named test seam a test uses", () => {
+const importsOfAll = (files: string[]): Map<string, Set<string>> =>
+  new Map(files.map((path) => [path, importedNames(path)]))
+
+const importedElsewhere = (name: string, own: string, imports: Map<string, Set<string>>): boolean =>
+  [...imports].some(([path, names]) => path !== own && names.has(name))
+
+test("every export of src and scripts is imported by another file of theirs, or is a named test seam a test imports", () => {
   const files = [...SRC, ...SCRIPTS]
+  const ours = importsOfAll(files)
+  const theirs = importsOfAll(TESTS)
   const odd = files.flatMap((path) =>
     [...readFileSync(path, "utf8").matchAll(/^export (?:const|class) ([A-Za-z_]+)/gm)].flatMap(
       ([, name = ""]) => {
         const seam = SEAMS.includes(name)
-        if (importedElsewhere(name, path, files))
+        if (importedElsewhere(name, path, ours))
           return seam ? [`${named(path)} · ${name} is listed as a seam but src imports it`] : []
         if (!seam)
           return [`${named(path)} · ${name} is exported and no other file of src imports it`]
-        return importedElsewhere(name, path, TESTS)
+        return importedElsewhere(name, path, theirs)
           ? []
-          : [`${named(path)} · ${name} is a seam no test uses`]
+          : [`${named(path)} · ${name} is a seam no test imports`]
       },
     ),
   )

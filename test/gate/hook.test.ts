@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process"
 import { mkdirSync, rmSync, symlinkSync, truncateSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { after, test } from "node:test"
-import { HOOK, type Ran, run, tempDir, writeHome } from "../test.helpers.ts"
+import { HOOK, pdfOf, type Ran, run, tempDir, writeHome } from "../test.helpers.ts"
 
 const HOME = tempDir("hook-home")
 const WORK = tempDir("hook-work")
@@ -34,7 +34,7 @@ const EDGE = fileOf("edge.txt", 350)
 const HEAVY = join(PROJECT, "heavy.md")
 writeFileSync(HEAVY, `${"word ".repeat(8000)}\n`)
 const PDF = join(PROJECT, "spec.pdf")
-writeFileSync(PDF, `%PDF-1.4\n${"BT /F1 12 Tf 72 700 Td (x) Tj ET\n".repeat(1200)}%%EOF\n`)
+writeFileSync(PDF, pdfOf(1200))
 const ROOMY_LONG = fileOf("long.txt", 351, ROOMY)
 const ROOMY_HEAVY = join(ROOMY, "heavy.md")
 writeFileSync(ROOMY_HEAVY, `${"word ".repeat(8000)}\n`)

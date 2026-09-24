@@ -236,6 +236,9 @@ export const monthBack = (back: number): string => {
     .slice(0, 7)
 }
 
+export const pdfOf = (lines: number): string =>
+  `%PDF-1.4\n${"BT /F1 12 Tf 72 700 Td (x) Tj ET\n".repeat(lines)}%%EOF\n`
+
 export const gateRow = (fields: Record<string, unknown>): Record<PropertyKey, unknown> => ({
   kind: "gate",
   decision: "allow",

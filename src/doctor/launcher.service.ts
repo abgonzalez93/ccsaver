@@ -23,7 +23,7 @@ const PROFILE_LINE = 'export PATH="$HOME/.local/bin:$PATH"'
 const PIECES = join(import.meta.dirname, "..", "..", "launcher")
 const PLACEHOLDER = "__INSTALLED_JS__"
 
-export const launcher = (): string =>
+const launcher = (): string =>
   readFileSync(join(PIECES, "ccsaver.sh"), "utf8").replace(PLACEHOLDER, () =>
     readFileSync(join(PIECES, "installed.js"), "utf8").trimEnd(),
   )

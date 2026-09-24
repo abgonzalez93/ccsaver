@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import { chmodSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { after, test } from "node:test"
-import { GATE, HOOK, type Ran, run, tempDir, writeHome } from "../test.helpers.ts"
+import { GATE, HOOK, pdfOf, type Ran, run, tempDir, writeHome } from "../test.helpers.ts"
 
 const HOME = tempDir("gate-home")
 const OFF_HOME = tempDir("gate-off")
@@ -36,7 +36,7 @@ writeFileSync(EDGE, "x\n".repeat(350))
 writeFileSync(AT_BYTES, ROW.repeat(320))
 writeFileSync(PAST_BYTES, `${ROW.repeat(320)}x`)
 writeFileSync(BRACED, "x\n".repeat(100))
-writeFileSync(PDF, `%PDF-1.4\n${"BT /F1 12 Tf 72 700 Td (x) Tj ET\n".repeat(1200)}%%EOF\n`)
+writeFileSync(PDF, pdfOf(1200))
 writeFileSync(join(FAKE_BIN, "node"), `#!/bin/sh\n: > "${MARKER}"\n`)
 chmodSync(join(FAKE_BIN, "node"), 0o755)
 writeHome(HOME, { plugged: [["", "strict-ts"], [join(WORK, "unrelated")], [PLUGGED, "strict-ts"]] })

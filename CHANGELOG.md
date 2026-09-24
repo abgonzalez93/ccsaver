@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.33.8 - 2026-09-24
+
+test: the export guard reads import lists, the PDF fixture is one helper, and the answer test sits with its module
+
+- the guard took any word of the name in another file as a use, so an export called like a common word passed unimported: launcher in launcher.service.ts was one, and goes private
+- the NUL-free PDF was written twice, once per test file; pdfOf in test.helpers.ts writes it
+- answer.validator.ts moved to src/boundary/ and its test follows
+
 ## 0.33.7 - 2026-09-24
 
 refactor: the reasons of the gate are one type, and the ones doctor never counts as deniable are one list beside it
