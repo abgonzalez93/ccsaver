@@ -39,7 +39,7 @@ import {
 } from "../state/state.store.ts"
 import { type Finding, type Level, offer, painted, TONE } from "./finding.model.ts"
 import { launcherFindings } from "./launcher.service.ts"
-import { monthFindings } from "./spent.service.ts"
+import { monthFindings } from "./month.service.ts"
 import {
   adapterNameOf,
   fixOf,
