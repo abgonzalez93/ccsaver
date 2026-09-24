@@ -13,7 +13,6 @@ import {
   run,
   SHELL_PATH,
   tempDir,
-  writeHome,
 } from "../test.helpers.ts"
 
 const HOME = tempDir("terminal-home")
@@ -137,66 +136,6 @@ test("a launcher that finds no installed plugin fails the check with its own wor
       "m",
     ),
   )
-})
-
-test("doctor says whether the two Bash(ccsaver …) rules are in permissions.allow, and when it cannot tell", async () => {
-  const settings = join(CONFIG, "settings.json")
-  const allowing = (allow: string[]): void => {
-    writeFileSync(settings, JSON.stringify({ permissions: { allow } }))
-  }
-  const none = await doctor()
-  assert.match(
-    none.stdout,
-    /^warn permissions: \S+settings\.json is not there or cannot be read, so the two Bash\(ccsaver …\) rules could not be checked$/m,
-  )
-  allowing(["Bash(ccsaver bulk-read *)", "Read"])
-  const half = await doctor()
-  assert.match(
-    half.stdout,
-    /^warn permissions: Bash\(ccsaver code-write \*\) not in permissions\.allow of \S+settings\.json: Claude asks before every delegation, and refuses one in print mode$/m,
-  )
-  assert.equal(half.code, 0)
-  allowing(["Bash(ccsaver bulk-read *)", "Bash(ccsaver code-write *)"])
-  assert.match(
-    (await doctor()).stdout,
-    /^ok {3}permissions: the ccsaver rules are in \S+settings\.json$/m,
-  )
-  allowing(["Bash(ccsaver *)"])
-  assert.match((await doctor()).stdout, /^ok {3}permissions: /m)
-  writeFileSync(settings, "{")
-  assert.match(
-    (await doctor()).stdout,
-    /^warn permissions: \S+settings\.json is not JSON, so the two Bash\(ccsaver …\) rules could not be checked$/m,
-  )
-  rmSync(settings)
-})
-
-test("the rules count in the .claude settings of a plugged project, where don't ask again writes them, and in the :* spelling", async () => {
-  const home = tempDir("terminal-rules-home")
-  const project = tempDir("terminal-rules-project")
-  writeHome(home, { plugged: [[project]] })
-  mkdirSync(join(project, ".claude"), { recursive: true })
-  const local = join(project, ".claude", "settings.local.json")
-  const user = join(WORK, "no-config", "settings.json")
-  const allowing = (allow: string[]): void => {
-    writeFileSync(local, JSON.stringify({ permissions: { allow } }))
-  }
-  const checked = (): Promise<Ran> =>
-    doctor({ CCSAVER_HOME: home, CLAUDE_CONFIG_DIR: join(WORK, "no-config") })
-  allowing(["Bash(ccsaver bulk-read:*)", "Bash(ccsaver code-write *)"])
-  assert.match(
-    (await checked()).stdout,
-    new RegExp(`^ok {3}permissions: the ccsaver rules are in ${local}$`, "m"),
-  )
-  allowing(["Bash(ccsaver bulk-read *)"])
-  assert.match(
-    (await checked()).stdout,
-    new RegExp(
-      `^warn permissions: Bash\\(ccsaver code-write \\*\\) not in permissions\\.allow of ${user} nor of a plugged project: Claude asks`,
-      "m",
-    ),
-  )
-  for (const dir of [home, project]) rmSync(dir, { recursive: true, force: true })
 })
 
 test("a launcher that runs another version than this doctor says so", async () => {

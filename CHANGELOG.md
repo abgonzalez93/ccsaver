@@ -4,6 +4,13 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.33.14 - 2026-09-24
+
+test: the launcher tests get test/launcher, doctor.test.ts is split into the state folder and the worker, and spent.test.ts is month.test.ts
+
+- doctor.test.ts had reached 349 lines and test/doctor had five files; the two tests of the terminal launcher move to test/launcher/, the checks of the key, the probe and the fallback to test/doctor/worker.test.ts, and the two tests of the permission rules join the checks of the state folder
+- month.test.ts is named after month.service.ts, whose lines it tests
+
 ## 0.33.13 - 2026-09-24
 
 test: the events a delegation leaves are tested beside the log, and events.test.ts is back under 250 lines
