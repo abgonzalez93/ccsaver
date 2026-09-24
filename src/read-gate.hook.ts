@@ -93,6 +93,19 @@ const rangeOf = (offset: unknown, limit: unknown): Record<string, unknown> => ({
   ...(typeof limit === "number" ? { limit } : {}),
 })
 
+const idsOf = (call: Record<PropertyKey, unknown>): Record<string, unknown> =>
+  Object.fromEntries(
+    IDS.flatMap((name) => (typeof call[name] === "string" ? [[name, call[name]]] : [])),
+  )
+
+const spokenOf = (call: Record<PropertyKey, unknown>): Record<string, unknown> => {
+  const spoken =
+    typeof call["agent_id"] === "string"
+      ? undefined
+      : lastAssistantOf(call["transcript_path"], TRANSCRIPT_TAIL)
+  return { model: spoken?.model ?? null, context: spoken?.context ?? null }
+}
+
 const limitsOf = (name: string | undefined): Limits => limitsFrom(adapterOrDefaults(name))
 const gate = (root: string, adapterName: string | undefined): void => {
   const input: unknown = JSON.parse(readFileSync(0, "utf8"))
@@ -103,9 +116,8 @@ const gate = (root: string, adapterName: string | undefined): void => {
   const logging = existsSync(logDir())
   if (ranged && !logging) return
   const seen = (fields: Record<string, unknown>): void => {
-    const ids = IDS.flatMap((name) => (typeof call[name] === "string" ? [[name, call[name]]] : []))
     const ms = Number(performance.now().toFixed(1))
-    record("gate", { root, ...fields, ...Object.fromEntries(ids), ms }, call["session_id"])
+    record("gate", { root, ...fields, ...idsOf(call), ms }, call["session_id"])
   }
   if (typeof given !== "string") {
     seen({ decision: "allow", reason: "malformed" })
@@ -125,10 +137,7 @@ const gate = (root: string, adapterName: string | undefined): void => {
     bytes: measured.bytes,
     ...limits,
     adapter: adapterName ?? null,
-    model:
-      typeof call["agent_id"] === "string"
-        ? null
-        : (lastAssistantOf(call["transcript_path"], TRANSCRIPT_TAIL)?.model ?? null),
+    ...spokenOf(call),
     decision: denied ? "deny" : "allow",
     reason,
   })

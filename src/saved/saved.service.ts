@@ -15,12 +15,18 @@ export interface Read {
   rangedTokens: number
 }
 
+export interface Paging {
+  reads: number
+  reread: number
+}
+
 export interface Spend {
   denied: number
   outside: number
   ranged: number
   uncounted: number
   byModel: Record<string, Read>
+  paged: Record<string, Paging>
   calls: number
   paid: number
   paidUsd: number
@@ -49,6 +55,7 @@ export const NOTHING_SPENT: Spend = {
   ranged: 0,
   uncounted: 0,
   byModel: {},
+  paged: {},
   calls: 0,
   paid: 0,
   paidUsd: 0,
@@ -93,6 +100,28 @@ export const totalled = (byModel: Record<string, Read>): Read =>
     NO_READ,
   )
 
+const pagingKey = (row: Row): string | undefined => {
+  const session = row["session"]
+  const path = row["path"]
+  return typeof session === "string" && typeof path === "string" ? `${session}\t${path}` : undefined
+}
+
+const pagedAfter = (
+  paged: Record<string, Paging>,
+  row: Row,
+  denied: boolean,
+): Record<string, Paging> => {
+  const key = pagingKey(row)
+  if (key === undefined) return paged
+  if (denied) return { ...paged, [key]: { reads: 0, reread: 0 } }
+  const open = paged[key]
+  if (open === undefined) return paged
+  return {
+    ...paged,
+    [key]: { reads: open.reads + 1, reread: open.reread + numberAt(row, "context") },
+  }
+}
+
 const gateInto = (sum: Spend, row: Row): Spend => {
   const tokens = tokensIn(numberAt(row, "bytes"))
   const model = modelOf(row)
@@ -102,14 +131,17 @@ const gateInto = (sum: Spend, row: Row): Spend => {
       ...sum,
       denied: sum.denied + 1,
       byModel: withRead(sum.byModel, model, { deniedTokens: tokens, rangedTokens: 0 }),
+      paged: pagedAfter(sum.paged, row, true),
     }
   }
   if (row["reason"] !== "range") return sum
   const lines = numberAt(row, "lines")
-  if (lines <= 0) return { ...sum, ranged: sum.ranged + 1, uncounted: sum.uncounted + 1 }
+  const paged = pagedAfter(sum.paged, row, false)
+  if (lines <= 0) return { ...sum, paged, ranged: sum.ranged + 1, uncounted: sum.uncounted + 1 }
   const part = partOf(lines, numberAt(row, "offset"), numberAt(row, "limit"))
   return {
     ...sum,
+    paged,
     ranged: sum.ranged + 1,
     byModel: withRead(sum.byModel, model, {
       deniedTokens: 0,

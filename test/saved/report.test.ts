@@ -285,6 +285,27 @@ test("a model that denied nothing is not asked for a price that would change not
   assert.doesNotMatch(out.stdout, new RegExp(`ccsaver price ${FABLE}`))
 })
 
+test("denials that ranged reads followed are counted at the foot, with the context their requests re-read", async () => {
+  const paged = { session: "s1", path: "a.ts", bytes: 40_000, lines: 1000 }
+  const home = homeWith("paged", [
+    [
+      ...twentyDenials(),
+      { ...denialRow(40_000), ...paged, context: 100_000 },
+      gateRow({ ...paged, reason: "range", offset: 1, limit: 100, context: 100_000 }),
+      gateRow({ ...paged, reason: "range", offset: 101, limit: 100, context: 110_000 }),
+    ],
+  ])
+  await priced(home, [OPUS, "5"])
+  const out = await saved(home)
+  assert.equal(out.code, 0)
+  assert.match(
+    out.stdout,
+    /1 of 21 denials was followed by ranged reads of the same file in the same session,\n {2}2 reads whose requests each re-read the whole context: 0\.21 M tokens by the log, in neither column/,
+  )
+  const quiet = await saved(homeWith("paged-quiet", [twentyDenials()]))
+  assert.equal(quiet.stdout.includes("followed by ranged reads"), false)
+})
+
 test("a denied read of a file outside the plugged project is left out, and the foot says so", async () => {
   const home = homeWith("outside", [[...twentyDenials(), { ...denialRow(40_000), inside: false }]])
   await priced(home, [OPUS, "5"])

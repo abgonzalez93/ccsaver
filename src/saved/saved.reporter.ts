@@ -134,6 +134,36 @@ const orphaned = (tally: Spend): boolean =>
 
 const readBack = (tally: Spend): number => tally.denied * DENIAL_TOKENS + tally.answerTokens
 
+interface Followed {
+  denials: number
+  reads: number
+  reread: number
+}
+
+const UNFOLLOWED: Followed = { denials: 0, reads: 0, reread: 0 }
+
+const followedIn = (tally: Spend): Followed =>
+  Object.values(tally.paged).reduce<Followed>(
+    (sum, { reads, reread }) =>
+      reads === 0
+        ? sum
+        : { denials: sum.denials + 1, reads: sum.reads + reads, reread: sum.reread + reread },
+    UNFOLLOWED,
+  )
+
+const followedLines = (tally: Spend): string[] => {
+  const followed = followedIn(tally)
+  if (followed.denials === 0) return []
+  const counted =
+    followed.reread > 0
+      ? `${millions(followed.reread)} tokens by the log`
+      : "a count the log does not hold for them"
+  return [
+    `  ${followed.denials} of ${many(tally.denied, "denial")} ${followed.denials === 1 ? "was" : "were"} followed by ranged reads of the same file in the same session,`,
+    `  ${many(followed.reads, "read")} whose requests each re-read the whole context: ${counted}, in neither column`,
+  ]
+}
+
 const footnotes = (tally: Spend, prices: Prices, priced: boolean): string[] => [
   ...(priced ? [rateIn(tally, prices)] : []),
   `  a real Read measured ${REAL_LOW}-${REAL_HIGH}x the bytes/4 estimate, and that band is the whole spread here`,
@@ -143,6 +173,7 @@ const footnotes = (tally: Spend, prices: Prices, priced: boolean): string[] => [
         `  of denial messages (~${DENIAL_TOKENS} each) and worker answers, all of it against ccsaver`,
       ]
     : []),
+  ...followedLines(tally),
   ...(tally.estimated > 0
     ? [
         `  ${tally.estimated} of ${tally.external} external calls reported no usage and were counted at chars/4`,

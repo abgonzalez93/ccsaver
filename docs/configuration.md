@@ -140,51 +140,6 @@ On a terminal `doctor` offers to run it, one `warn` at a time, reading your whol
 
 While the [event log](events.md) is on, `doctor` also prints a `denied:` line: how many of this month's whole-file reads the hook actually denied, and the median length of the ones it did. That is the measured answer beside the predicted one, and the two disagree in a useful way — a project can hold long files the model never reads.
 
-## saved
-
-`ccsaver saved` adds up [the event log](events.md) and says what the month cost against what it would have cost without the plugin. `/ccsaver:saved` runs it from a session and reads the answer back with every caveat the foot of the report carries, the part a summary drops first. It is the long form of doctor's `spent:` line, reads the log only, never calls a worker and writes nothing but the price you set.
-
-```
-ccsaver saved            # the month in course
-ccsaver saved 2026-08    # that month
-ccsaver saved all        # every month the log still holds, one line in memory at a time
-```
-
-It needs prices, in dollars per million input tokens, because ccsaver cannot see what your session pays. **A price belongs to a model, not to the month**, because the model changes and the rates are far apart:
-
-```bash
-ccsaver price claude-opus-5 5.00      # what your session model charges
-ccsaver price claude-fable-5-1 10.00  # and any other you work on
-ccsaver price worker 0.10             # the cheap worker, or 0 when its tier is free
-ccsaver price                         # what is set, one to a line
-```
-
-The hook records which model was running for every read it sees ([the event log](events.md)), so the report prices each model's reads at that model's own rate, never one number over a month that changed model. A model that turns up in the log with no price of its own is **named, with the command that gives it one, and its tokens are left out of the sum** — a rate borrowed from another model would be a number without a source. Reads the hook could not name a model for are counted apart in the same way. When that leaves no denied read with a price at all, the report draws no bars and says there is no `without` side to draw: an empty column set against a full one reads as a loss, and a missing rate is not a loss.
-
-They live in `~/.config/ccsaver/prices.json` (600), apart from `worker.json` so that the file holding the `fallback` switch gains no surface. A model price must be above zero, and the worker's may be `0`, which is the free tier of a provider said out loud: the report then writes *the worker is free* instead of asking for a number that does not exist. Wherever the worker is named, the list, the price confirmation, the foot of the report, the model from `worker.json` rides in brackets beside it, so `worker` alone never stands in for an endpoint you pointed elsewhere months ago. No price is shipped: one would go stale, and a number without a source is what this project refuses to print. With no model priced the report counts tokens and stops there. A `prices.json` that is there but malformed or unreadable stops the command, as `worker.json` does, and so does a month's log file that cannot be read: a report that counted it as an empty month would be the one lie this command cannot afford. A `prices.json` carrying the single `main` price of 0.13 and earlier is refused rather than read as the rate for every model.
-
-Adding a month up never holds it in memory: the reader hands the tally [one row at a time](measurements.md#adding-up-a-month-of-the-log), so `all` over a year costs what the longest month costs to read, not what the year weighs.
-
-**The numbers are a band, never a point.** A real `Read` measured [1.9–2.8× the bytes/4 estimate](measurements.md#the-hooks-token-estimate-vs-a-real-read), so both columns carry that multiplier. It is the same unknown on both sides, so the two arms pair low with low: the dollars swing by half, and the percentage barely moves. Read the percentage.
-
-```
-ccsaver saved · 2026-09
-
-  denied     181 whole-file reads, 1.83 M tokens by bytes/4
-  instead    63 ranged reads while plugged, 0.08 M tokens
-  delegated  112 calls · 98 external (1.13 M tokens) · 14 paid Haiku ($0.2019)
-
-  without    $10.45 - $15.40    ██████████████████████
-  with       $0.76 - $0.97      █·····················
-  saved      $9.69 - $14.43     93 % - 94 %
-
-  at $5/M for claude-opus-5 and $0.1/M for the worker (gemini-flash-lite-latest)
-```
-
-`instead` is the line that keeps the rest honest: a denial is not a saving, because the model then reads the file by ranges and pays for those. It counts every ranged read in a plugged project, not only the ones a denial caused, which errs towards charging ccsaver for reads it never provoked. Each one is weighed by the share of the file its `offset` and `limit` cover, so a hundred lines of a thousand count as a tenth of the file. A denial of a file outside the plugged project (recorded before 0.24.13) is left out of `without` and counted at the foot: nothing could have delegated it. A ranged read of a file past the byte limit is the exception: the hook never counts its lines ([the event log](events.md) holds `null` there), so the log cannot say what share a range covered, and the report counts the read in `instead` but leaves its tokens out rather than charging the whole file to a hundred lines; the foot says how many there were. A month where the delegations cost more than the reads they replaced prints a negative saving, in red, with no percentage beside it; a month whose band crosses zero, a loss at the low end of the 1.9–2.8× multiplier and a saving at the high end, says so in words and is painted no colour, because neither would be true.
-
-Five things it cannot see, and says so at the foot when they bite: the gate watches the `Read` tool only, so a `Grep` or a `cat` that replaced a denied read is in neither column; an endpoint that returns no `usage` block is counted at chars/4, and the report says how many calls that was; a month whose denied reads have nothing recorded against them is named as the most flattering reading there is; a ranged read of a file past the byte limit has no line count to weigh it by, so its tokens are left out of `instead`; and neither column holds the tokens the session itself read because of ccsaver — [~94 per denial message](measurements.md#what-ccsaver-adds-to-the-sessions-own-context) plus every worker answer it read back — which the foot counts and leaves out of the sum, because the log never says which model was running when an answer came home. All five lean the same way, towards flattering ccsaver, which is why they are printed rather than folded in. There is no floor on the sample: the bars are drawn from the first denied read onwards and the three counts over them are what they rest on; a band from two denials is as wide on the page as one from two hundred, and reading it as two is yours to do. A month with no denied read and no ranged read has nothing to set side by side, and says that where the bars would go.
-
 ## The handoff warning
 
 Every request of a session carries the whole conversation, so a long session pays for its history on every turn. ccsaver watches the size of that history, says when it is time to hand the work to a new session, and has the session write the handoff itself.

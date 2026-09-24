@@ -4,6 +4,16 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.25.0 - 2026-09-24
+
+feat: the gate records the context beside the model, and saved counts the denials that ranged reads followed
+
+- every gate line carries `context`, the input, cache-creation and cache-read tokens of the session's last request, from the transcript line the model already came from; null under the same conditions as the model
+- `saved` keeps, per denial inside the root, the ranged reads of the same file that followed it in the same session, and prints at the foot how many denials were followed, how many reads that was, and the context their requests re-read, in neither column
+- six days of transcripts measured 37 denials, and 8 follow-up requests inside the root that re-read 1.57 M tokens of context, 969 k of them on one CHANGELOG.md no skill could take: the note is in measurements.md and the row in the README's honest limits
+- the `saved` section moves from configuration.md, which sat 49 bytes under the 32 KB gate, to the end of events.md, the page it adds up
+- the hook does not move: 28.1 / 27.5 / 28.0 ms before against 27.9 / 29.5 / 27.0 ms after, three rounds of 30 runs, paired, log on
+
 ## 0.24.19 - 2026-09-23
 
 test: the version-hook tests remove the repositories and patch folders they make

@@ -16,6 +16,7 @@ Carry back every line the foot prints, because each one is a limit on the number
 - *the gate watches the Read tool only* — a `Grep` or a `cat` that replaced a denied read is in neither column, so the comparison is narrower than it looks.
 - *N of M ranged reads were on files past the byte limit* — the hook never counted their lines, so the log cannot say what share of the file each range covered; their tokens are left out of `instead`, and the true `with` side is higher than the bar shows.
 - *neither column holds what the session read back* — the denial messages and the worker answers the session itself paid to read are counted there and left out of both columns, so the true `with` side is higher than the bar shows.
+- *N of M denials were followed by ranged reads of the same file* — each of those reads was one more request carrying the whole conversation, which costs far more than the read's own tokens, and none of it is in either column. Say the count, and say the other side too: a denial the model let go is the one that pays, and the report cannot count that either.
 
 A band that crosses zero is an answer too: say that the month may have cost more than it saved and that the data cannot tell which, never round it to a win. A negative saving is a real answer, not an error: report that the delegations cost more than the reads they replaced, and suggest raising the limits with `ccsaver adapter <name> maxLines=<n>` (a limit set too low is what makes a session slower rather than cheaper) or `ccsaver fallback off`.
 

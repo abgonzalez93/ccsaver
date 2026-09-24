@@ -64,6 +64,8 @@ That 24 ms was 22 ms while the state folder, the log and the configuration lived
 
 Reading the last 256 KB of the transcript for the model instead of 64 KB, so that one tool result longer than 64 KB no longer hides the assistant line before it, costs nothing the harness can see: 23.3 / 22.7 / 23.3 ms before against 22.1 / 22.1 / 22.4 ms after, three rounds of 30 runs per arm, log on, an 824 KB transcript of 2 KB lines, compile cache on. The tail is read once and parsed line by line; what the hook waits on is Node's start-up.
 
+Recording the context beside the model, from the `usage` of the same transcript line, costs nothing the harness can see either: 28.1 / 27.5 / 28.0 ms before against 27.9 / 29.5 / 27.0 ms after, three rounds of 30 runs per arm, paired, log on, a 300 KB transcript, on a 100-line file let through.
+
 Moving `worker.json` out of `config.store.ts` into `worker.store.ts` costs the hook nothing, because the hook never imported those 77 lines and gains no module: 30.1 / 30.4 ms whole against 31.4 / 30.0 ms split, two rounds of 30 runs per arm, paired, on a machine whose own floor for the harness is 4.2 ms. The two arms sit inside each other's spread, so the split is free, not faster — the only thing that moves a hook import list is a hook import.
 
 The launcher taking the name of the hook it starts, so that a second hook shares it instead of copying it, costs nothing either: 26.2 / 25.8 / 24.8 ms before against 26.4 / 25.9 / 25.1 ms after in a plugged project, and 1.8 against 1.7–1.8 ms unplugged, three rounds of 30 runs per arm, paired.
@@ -135,6 +137,16 @@ The instruction used to say "the way `grep -n` prints it", and for one file that
 ## What ccsaver adds to the session's own context
 
 The denial message the hook writes is 376 characters for a path of 44, so ~94 tokens at chars/4: 330 of them are the fixed text and the rest is the path and the three numbers. The session reads one per denied `Read`, and it reads the worker's answer back on every delegation, which the event log records as `answerChars`. `ccsaver saved` adds both up at the foot of the report and puts neither in a column, because nothing in the log says which model was running when the answer came back.
+
+## What a denial costs after the message
+
+Six days of session transcripts of one machine, 2026-09-18 to 24, Claude Code 2.1.274 to 2.1.281, read on 2026-09-24 by a script that prints counts and names and nothing else. Each denial is taken from the hook's own message inside a tool result, `<path> has N lines`, because 59 of the 96 tool results that hold the text quote the hook's code or its tests. 37 denials: 16 to the main thread, all in the `auto` permission mode, and 21 to subagents; 12 inside the plugged root (`pnpm-lock.yaml` ten times, `src/worker.ts`, `CHANGELOG.md`) and 25 outside it, before 0.24.13 stopped those.
+
+- What followed: nothing 24 times (65 %), paging with `sed`, `head` or `grep` in Bash 7 times, ranged `Read`s 4, a delegation 2, both in test sessions. A follow-up is a later request whose tools touched the same file; the request that receives the denial is not counted, because it would have run either way.
+- What it cost: 37 follow-up requests, re-reading 3,005,632 tokens of context, at a median context of 120,403 tokens when denied. The 12 inside the root drew 8 requests and 1,571,318 tokens, 969,172 of them on `CHANGELOG.md` alone: denied at 283,157 tokens of context, then refused by `bulk-read` for the private-key header its own text quotes, three requests for a file that never arrived. `src/worker.ts`, 405 lines, was read whole in two ranges, two requests on top of the file. One request at that context is about 12,000 tokens at input price, with cache reads at a tenth of it: fifty to ninety times the message, which the same tokenizer puts at 114 tokens for the 376 characters the section below describes.
+- What it saved: the 8 reads of `pnpm-lock.yaml` nobody came back for, 3,900 tokens by bytes/4 each and 1.9–2.8× that as a `Read`, plus what a file that never entered the context is not re-read for by every later request of the session, which no log counts; the sessions of those six days made 112 requests each at the mean.
+
+`saved` prints the first count at the foot, from the `context` the hook records on every line and the ranged reads that follow a denial of the same file in the same session ([saved](events.md#saved)). It cannot see the `sed` and `cat` follow-ups, 7 of the 13 here, so it undercounts; two ranged reads made in one request count that request twice, so it overcounts; and no column holds the second count.
 
 ## The hook's token estimate vs a real Read
 

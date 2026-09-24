@@ -121,6 +121,7 @@ test("one gate event per decision, with the ids of the call", async () => {
       maxTokens: 8000,
       adapter: null,
       model: null,
+      context: null,
       decision: "deny",
       reason: "lines",
       ...ids,

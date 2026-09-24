@@ -39,6 +39,7 @@ Measured on one TypeScript monorepo with Claude Code 2.1, small samples of 1–4
 | Hook, task = a judgement question, limit set below the file | [no saving, **3.6× slower**](docs/measurements.md#the-hook-on-a-judgement-question) |
 | Delegated writing of a ~110-line test file | [**break-even**](docs/measurements.md#delegated-writing-of-a-test-file) |
 | Files where delegation starts to pay | [roughly **2,000–3,000 lines** and up](docs/measurements.md#where-delegation-starts-to-pay) |
+| A denial the model then pages through by ranges | [one request per read, each re-reading the whole context: **1.57 M tokens for 12 denials** in 6 days](docs/measurements.md#what-a-denial-costs-after-the-message) |
 | Fixed cost of the two skill descriptions | [**~188 tokens per session, in every project**](docs/measurements.md#the-fixed-cost-of-the-skill-descriptions) |
 | Hook overhead per `Read` | [**1–3 ms** unplugged, **≈ 24 ms** plugged](docs/measurements.md#hook-overhead-per-read) |
 
@@ -95,7 +96,7 @@ Invoking a skill is itself a permissioned action, `Skill(ccsaver:bulk-reader)` i
 | `ccsaver log on\|off` | record events, metadata only, in a local file; off by default |
 | `ccsaver handoff on\|off\|<tokens>` | warn at the end of a turn whose context passed this many tokens, on by default at 200,000; with nothing after it, what is set and what is kept |
 | `ccsaver handoff write` | what `/ccsaver:handoff` runs: keep a handoff read from stdin, private, for the next session |
-| `ccsaver saved [month\|all]` | what the log says it cost, and what it would have cost without |
+| `ccsaver saved [month\|all]` | [what the log says it cost](docs/events.md#saved), and what it would have cost without |
 | `ccsaver price [<model>\|worker <usd>]` | dollars per million input tokens for one model, so `saved` can show money; with nothing after it, what is set |
 | `ccsaver doctor` | check permissions, key, worker, fallback, the launcher and projects |
 | `ccsaver version` | print the version |

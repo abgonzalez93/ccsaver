@@ -56,6 +56,25 @@ test("a read under the limit is neither denied nor counted as a range", () => {
   assert.deepEqual([tally.denied, tally.ranged, totalled(tally.byModel).deniedTokens], [0, 0, 0])
 })
 
+test("a denial that ranged reads of the same file follow in the same session keeps them, with the context they carried", () => {
+  const first = { session: "s1", path: "a.ts" }
+  const range = { reason: "range", bytes: 40_000, lines: 1000, limit: 100 }
+  const tally = tallied([
+    { ...denialRow(40_000), ...first, context: 100_000 },
+    gateRow({ ...range, ...first, offset: 1, context: 110_000 }),
+    gateRow({ ...range, ...first, offset: 101, context: 120_000 }),
+    gateRow({ ...range, session: "s2", path: "a.ts", offset: 1, context: 5 }),
+    { ...denialRow(40_000), session: "s1", path: "b.ts", context: 100_000 },
+    gateRow({ ...range, session: "s1", path: "c.ts", offset: 1, context: 5 }),
+    { ...denialRow(40_000), path: "d.ts" },
+  ])
+  assert.deepEqual(tally.paged, {
+    "s1\ta.ts": { reads: 2, reread: 230_000 },
+    "s1\tb.ts": { reads: 0, reread: 0 },
+  })
+  assert.deepEqual([tally.denied, tally.ranged], [3, 4])
+})
+
 test("an external call that reports its usage is counted from that, not from chars/4", () => {
   const tally = tallied([
     { kind: "delegate", answered: "external", chars: 40_000 },

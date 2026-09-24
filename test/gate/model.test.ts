@@ -57,3 +57,28 @@ test("a subagent's read records no model, and one tool result over 64 KB does no
     [null, "claude-opus-5"],
   )
 })
+
+test("the gate records the context the session's last request carried beside the model, and none for a subagent", async () => {
+  const transcript = join(WORK, "counted.jsonl")
+  const usage = {
+    input_tokens: 7,
+    cache_creation_input_tokens: 1_000,
+    cache_read_input_tokens: 119_000,
+    output_tokens: 50,
+  }
+  writeFileSync(transcript, `${said("assistant", { model: "claude-opus-5", usage })}\n`)
+  const before = events(HOME).length
+  await hook({ tool_input: { file_path: LONG }, transcript_path: transcript })
+  await hook({ agent_id: "agent-7", tool_input: { file_path: LONG }, transcript_path: transcript })
+  await hook({ tool_input: { file_path: LONG } })
+  assert.deepEqual(
+    events(HOME)
+      .slice(before)
+      .map(({ model, context }) => [model, context]),
+    [
+      ["claude-opus-5", 120_007],
+      [null, null],
+      [null, null],
+    ],
+  )
+})
