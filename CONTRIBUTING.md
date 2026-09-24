@@ -52,7 +52,7 @@ Guard: Biome `useConst`; the rest is *convention*.
 ```ts
 // ❌ the tally is counted up inside the map that rewrites the rows
 tally[verdictOf(line, claimed)] += 1
-// ✅ `src/delegation/answer.validator.ts` · `counted`, folded over the rows the map returns
+// ✅ `src/boundary/answer.validator.ts` · `counted`, folded over the rows the map returns
 verdict === undefined ? tally : { ...tally, [verdict]: tally[verdict] + 1 }
 ```
 
@@ -72,7 +72,7 @@ Guard: `test/repo/conventions.test.ts`.
 
 ## 2. Architecture
 
-**2.1 ALWAYS respect the map.** Twenty files in four folders and three entry points, one reason to change each, arrows that never turn back. `src/state/` holds the four files of the state folder, which everything else imports; `src/delegation/` the two flows, their ways out and what may leave the machine; `src/saved/` the report and its prices; `src/doctor/` the checks, what they report, the survey and the launcher. `src/ccsaver.cli.ts`, `src/read-gate.hook.ts` and `src/handoff.hook.ts` stay at the top, where `bin/ccsaver` and `hooks/gate` find them.
+**2.1 ALWAYS respect the map.** Twenty-one files in five folders and three entry points, one reason to change each, arrows that never turn back. `src/state/` holds the four files of the state folder, which everything else imports; `src/boundary/` what may leave the machine and what comes back from it; `src/delegation/` the two flows and their two ways out; `src/saved/` the report and its prices; `src/doctor/` the checks, what they report, the survey and the launcher. `src/ccsaver.cli.ts`, `src/read-gate.hook.ts` and `src/handoff.hook.ts` stay at the top, where `bin/ccsaver` and `hooks/gate` find them.
 
 | File | Owns | Imports |
 | --- | --- | --- |
@@ -82,16 +82,17 @@ Guard: `test/repo/conventions.test.ts`.
 | `src/state/handoff.store.ts` | `handoff.json`, the switch and the limit of the context warning, and the `handoff/` folder | `config.store`, `log.store`, `state.store` |
 | `src/delegation/worker.store.ts` | `worker.json`: the url, the model, the pinned binary and the fallback switch | `log.store`, `state.store` |
 | `src/doctor/survey.service.ts` | how long a project's files are, and what limit that asks for | `config.store`, `state.store` |
-| `src/delegation/answer.validator.ts` | pure text work on the worker's answer | nothing |
-| `src/delegation/boundary.guard.ts` | what may leave the machine | `state.store` |
-| `src/delegation/worker.client.ts` | the two ways out: `fetch` to the worker, spawn of the fallback | `log.store`, `state.store`, the `Worker` type of `worker.store`, the `Tally` type of `answer.validator` |
-| `src/delegation/delegation.service.ts` | the `bulk-read` and `code-write` flows | `answer.validator`, `boundary.guard`, `config.store`, `log.store`, `state.store`, `worker.client`, `worker.store` |
+| `src/boundary/answer.validator.ts` | pure text work on the worker's answer | nothing |
+| `src/boundary/boundary.guard.ts` | what may leave the machine | `state.store` |
+| `src/delegation/worker.client.ts` | the way out to the worker, `fetch`, what a call records (`delegation`) and how it stops or notes (`fail`, `note`) | `log.store`, `state.store`, the `Worker` type of `worker.store`, the `Tally` type of `answer.validator` |
+| `src/delegation/fallback.client.ts` | the other way out: the spawn of a bare, bounded `claude -p` | `state.store`, `worker.client`, the `Worker` type of `worker.store` |
+| `src/delegation/delegation.service.ts` | the `bulk-read` and `code-write` flows | `answer.validator`, `boundary.guard`, `config.store`, `fallback.client`, `log.store`, `state.store`, `worker.client`, `worker.store` |
 | `src/saved/prices.store.ts` | `prices.json`: one price per model, one for the worker, and the worker's name beside a price, its own lenient read of `worker.json` | `log.store`, `state.store` |
 | `src/saved/saved.service.ts` | what the log says was spent, added up month by month | `config.store`, `log.store`, `prices.store`, `state.store` |
 | `src/saved/saved.reporter.ts` | what `ccsaver saved` prints, and every caveat under it | `log.store`, `prices.store`, `saved.service`, `state.store` |
 | `src/doctor/finding.model.ts` | what a check reports: a level, a text and the fix it offers, and how a line is painted | `state.store` |
 | `src/doctor/spent.service.ts` | the two lines that add the month's log up, `denied:` and `spent:`, folded one row at a time | `finding.model`, `log.store`, `state.store` |
-| `src/doctor/doctor.service.ts` | every check `doctor` runs and the level each one reports | `config.store`, `finding.model`, `handoff.store`, `launcher.service`, `log.store`, `spent.service`, `state.store`, `survey.service`, `worker.client`, `worker.store` |
+| `src/doctor/doctor.service.ts` | every check `doctor` runs and the level each one reports | `config.store`, `fallback.client`, `finding.model`, `handoff.store`, `launcher.service`, `log.store`, `spent.service`, `state.store`, `survey.service`, `worker.client`, `worker.store` |
 | `src/doctor/launcher.service.ts` | the launcher of your own terminal: `launcher/ccsaver.sh` with `launcher/installed.js` inlined, its place, and what stands before it on the `PATH` | `finding.model`, `log.store`, `state.store` |
 | `src/ccsaver.cli.ts` | arguments and the exit code | `config.store`, `delegation.service`, `doctor.service`, `handoff.store`, `launcher.service`, `log.store`, `prices.store`, `saved.reporter`, `state.store`, `survey.service`, `worker.store` |
 | `src/read-gate.hook.ts` | the `Read` gate | `boundary.guard`, `config.store`, `log.store`, `state.store` |
@@ -175,12 +176,12 @@ Guard: `test/repo/conventions.test.ts` for `JSON.parse`; `noPropertyAccessFromIn
 **3.4 NEVER read a broken config as an absent one.** Absent means defaults; present and malformed stops the call. `readWorker` once read a stray comma as "no worker", which quietly turned the paid fallback back on, and `writeLimits` once read a malformed adapter as none and wrote one limit over the `rules` and the `format` of a project. `src/state/config.store.ts` · `findAdapter` tells absent from broken, and only absent starts from `{}`. Unreadable belongs with broken, not with absent: `readWorker` asks `existsSync` before it reports no worker, the way `src/state/state.store.ts` · `keyIsStored` tells a key it cannot read from one never stored (3.5), `src/state/log.store.ts` · `textAt` asks it before handing back a month with no rows, because a month read as empty is a report that lies, `findAdapter` asks it before moving on to the bundled adapter, because a private one skipped in silence changes the rules and the limits, and `writeLimits` would write the bundled one over it, and `src/state/config.store.ts` · `readPlugged` asks it before handing back an empty list, because `plug` and `unplug` write it back and would replace every root you plugged with the one just typed. The hook never gets there: `hooks/gate` asks `[ -r ]` of the same file before Node starts.
 Guard: `test/state/state.test.ts`, "a worker.json that is there but wrong is an error, never the same as no worker".
 
-**3.5 NEVER let one failure hide another.** Name the cause. `fellOf` tells a timeout from a body that is not JSON from a dead host. `src/delegation/worker.client.ts` · `troubleOf` reads the `code` of a failed spawn: an `EPIPE` is a child that stopped reading and no error at all, an `ETIMEDOUT` is the 85 s running out and says so rather than showing `spawnSync claude ETIMEDOUT`. `invokeClaude` then reports the reason the child printed, which is all a spent budget leaves behind, before its exit and stderr. A key that is present but unreadable is told from a key that was never stored, in the note and in `doctor`, by `src/state/state.store.ts` · `keyIsStored`; reading the first as the second sent the call to the paid worker under a message that said the opposite. A worker's answer cut at an output limit falls as `length`, never as `incomplete`. Every fall to the paid worker says why on stderr first.
+**3.5 NEVER let one failure hide another.** Name the cause. `fellOf` tells a timeout from a body that is not JSON from a dead host. `src/delegation/fallback.client.ts` · `troubleOf` reads the `code` of a failed spawn: an `EPIPE` is a child that stopped reading and no error at all, an `ETIMEDOUT` is the 85 s running out and says so rather than showing `spawnSync claude ETIMEDOUT`. `invokeClaude` then reports the reason the child printed, which is all a spent budget leaves behind, before its exit and stderr. A key that is present but unreadable is told from a key that was never stored, in the note and in `doctor`, by `src/state/state.store.ts` · `keyIsStored`; reading the first as the second sent the call to the paid worker under a message that said the opposite. A worker's answer cut at an output limit falls as `length`, never as `incomplete`. Every fall to the paid worker says why on stderr first.
 
 ```ts
 // ❌ past 64 KB of input the real error hides behind `spawnSync … EPIPE`
 if (run.error) return fail(`fallback worker could not run: ${run.error.message}`)
-// ✅ `src/delegation/worker.client.ts` · `invokeClaude`
+// ✅ `src/delegation/fallback.client.ts` · `invokeClaude`
 const trouble = troubleOf(run.error)
 if (trouble !== undefined) return fail(trouble)
 const raw = parsed(run.stdout)
@@ -216,7 +217,7 @@ Guard: `test/delegation/transport.test.ts`, which also adds up the three waits; 
 **4.3 ALWAYS await or return every promise**, with `async`/`await` and no `.then` chains. `src/ccsaver.cli.ts` sets `process.exitCode` from `await main()`; the only `process.exit` lives inside `fail`.
 Guard: Biome `noFloatingPromises`, `noMisusedPromises`, `useAwaitThenable`.
 
-**4.4 ALWAYS treat a hook as the hot path: `read-gate` runs on every `Read`, `handoff` at the end of every turn.** The `sh` gate leaves an unplugged project, a switched-off warning, and, with the log off and no adapter, a ranged read or a file under the limits, before Node starts; `test/gate/gate.test.ts` holds it to the hook's answer. Otherwise the cost is Node's start-up, so `src/read-gate.hook.ts` imports the three stores of `src/state/`, `src/delegation/boundary.guard.ts` and `node:` built-ins, nothing else, and `src/handoff.hook.ts` the three stores and its own; it counts lines on the bytes. Touching a hook means measuring it before and after, as `docs/development.md` does: mean of 30 runs, spawn included. Each import costs about 0.85 ms of that, measured when `state.store.ts` became three files.
+**4.4 ALWAYS treat a hook as the hot path: `read-gate` runs on every `Read`, `handoff` at the end of every turn.** The `sh` gate leaves an unplugged project, a switched-off warning, and, with the log off and no adapter, a ranged read or a file under the limits, before Node starts; `test/gate/gate.test.ts` holds it to the hook's answer. Otherwise the cost is Node's start-up, so `src/read-gate.hook.ts` imports the three stores of `src/state/`, `src/boundary/boundary.guard.ts` and `node:` built-ins, nothing else, and `src/handoff.hook.ts` the three stores and its own; it counts lines on the bytes. Touching a hook means measuring it before and after, as `docs/development.md` does: mean of 30 runs, spawn included. Each import costs about 0.85 ms of that, measured when `state.store.ts` became three files.
 Guard: the import list by `test/repo/conventions.test.ts`; the measurement is *convention*.
 
 **4.5 NEVER optimise, or claim a saving, without a number.** A number in the README or under `docs/` carries its sample size, and `docs/measurements.md` or `docs/development.md` carries the note.

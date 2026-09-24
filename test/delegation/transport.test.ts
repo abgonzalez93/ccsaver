@@ -102,7 +102,7 @@ test("the three waits of a delegation fit inside the 120 s the Bash tool gives a
         ?.replaceAll("_", ""),
     )
   const external = msOf("worker.client.ts", "EXTERNAL_TIMEOUT_MS")
-  const fallback = msOf("worker.client.ts", "FALLBACK_TIMEOUT_MS")
+  const fallback = msOf("fallback.client.ts", "FALLBACK_TIMEOUT_MS")
   const formatter = msOf("delegation.service.ts", "FORMAT_TIMEOUT_MS")
   const budget = msOf("delegation.service.ts", "BASH_BUDGET_MS")
   const floor = msOf("delegation.service.ts", "FORMAT_FLOOR_MS")

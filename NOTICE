@@ -6,6 +6,7 @@ This product includes material adapted from spotify/portal-ai-plugins
 licensed under the Apache License, Version 2.0.
 
 The adapted material was modified. It lives in the worker instructions and
-the framing of the message of src/delegation/delegation.service.ts, in the usage note of
-src/delegation/worker.client.ts, in the structure of the hook message of src/read-gate.hook.ts and in
-parts of skills/bulk-reader/SKILL.md and skills/code-writer/SKILL.md.
+the framing of the message of src/delegation/delegation.service.ts, in the usage notes of
+src/delegation/worker.client.ts and src/delegation/fallback.client.ts, in the structure of the
+hook message of src/read-gate.hook.ts and in parts of skills/bulk-reader/SKILL.md and
+skills/code-writer/SKILL.md.

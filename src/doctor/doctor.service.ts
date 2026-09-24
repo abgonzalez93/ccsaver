@@ -2,13 +2,8 @@ import { spawnSync } from "node:child_process"
 import { existsSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs"
 import { homedir } from "node:os"
 import { join } from "node:path"
-import {
-  CLAUDE_ON_PATH,
-  claudeBin,
-  fellOf,
-  postJson,
-  requestOf,
-} from "../delegation/worker.client.ts"
+import { CLAUDE_ON_PATH, claudeBin } from "../delegation/fallback.client.ts"
+import { fellOf, postJson, requestOf } from "../delegation/worker.client.ts"
 import { readWorker, type Worker } from "../delegation/worker.store.ts"
 import {
   adapterFor,

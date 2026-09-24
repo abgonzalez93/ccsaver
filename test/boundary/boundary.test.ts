@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
-import { contentRefusal, pathRefusal, targetRefusal } from "../../src/delegation/boundary.guard.ts"
+import { contentRefusal, pathRefusal, targetRefusal } from "../../src/boundary/boundary.guard.ts"
 
 const ROOT = "/work/project"
 const STATE = "/home/me/.config/ccsaver"

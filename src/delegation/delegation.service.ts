@@ -5,6 +5,8 @@ import { randomBytes } from "node:crypto"
 import { lstatSync, readFileSync, type Stats, statSync, writeFileSync } from "node:fs"
 import { basename, dirname, join, relative, resolve } from "node:path"
 import { parseArgs } from "node:util"
+import { checked, risky, unwrapped } from "../boundary/answer.validator.ts"
+import { contentRefusal, pathRefusal, targetRefusal } from "../boundary/boundary.guard.ts"
 import { type Adapter, loadAdapter, pluggedRootOf } from "../state/config.store.ts"
 import { record } from "../state/log.store.ts"
 import {
@@ -19,16 +21,8 @@ import {
   scrubbed,
   stateHome,
 } from "../state/state.store.ts"
-import { checked, risky, unwrapped } from "./answer.validator.ts"
-import { contentRefusal, pathRefusal, targetRefusal } from "./boundary.guard.ts"
-import {
-  type Delegation,
-  delegation,
-  fail,
-  invokeClaude,
-  invokeExternal,
-  note,
-} from "./worker.client.ts"
+import { invokeClaude } from "./fallback.client.ts"
+import { type Delegation, delegation, fail, invokeExternal, note } from "./worker.client.ts"
 import { readWorker, type Worker } from "./worker.store.ts"
 
 const MODES = {

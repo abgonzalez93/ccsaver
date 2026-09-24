@@ -1,7 +1,7 @@
 // Portions of this file are adapted from a third-party Apache-2.0 work and were modified; see NOTICE.
 import { existsSync, readFileSync, statSync } from "node:fs"
 import { relative } from "node:path"
-import { contentRefusal, pathRefusal } from "./delegation/boundary.guard.ts"
+import { contentRefusal, pathRefusal } from "./boundary/boundary.guard.ts"
 import {
   type Adapter,
   BYTES_PER_TOKEN,

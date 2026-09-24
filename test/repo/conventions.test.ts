@@ -60,7 +60,7 @@ test("the hook starts with the three files of the state folder, the boundary gua
     name.startsWith("."),
   )
   assert.deepEqual(ours, [
-    "./delegation/boundary.guard.ts",
+    "./boundary/boundary.guard.ts",
     "./state/config.store.ts",
     "./state/log.store.ts",
     "./state/state.store.ts",

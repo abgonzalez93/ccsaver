@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
-import { checked, risky, unwrapped } from "../../src/delegation/answer.validator.ts"
+import { checked, risky, unwrapped } from "../../src/boundary/answer.validator.ts"
 
 const CITED = {
   label: "cited.ts",
