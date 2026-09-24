@@ -117,6 +117,7 @@ test("the fallback runs bare and bounded, whatever the session has configured", 
     "CLAUDE_CODE_EFFORT_LEVEL",
     "CLAUDE_CODE_DISABLE_TERMINAL_TITLE",
     "CLAUDE_CODE_PROMPT_CACHE_TTL",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC",
   ]
   writeFileSync(
     echo,
@@ -129,6 +130,7 @@ test("the fallback runs bare and bounded, whatever the session has configured", 
     MAX_THINKING_TOKENS: "31999",
     CLAUDE_CODE_EFFORT_LEVEL: "max",
     CLAUDE_CODE_PROMPT_CACHE_TTL: "1h",
+    CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "0",
   })
   assert.ok(
     out.stdout.includes('--tools  --strict-mcp-config --mcp-config {"mcpServers":{}} --disable-'),
@@ -137,13 +139,13 @@ test("the fallback runs bare and bounded, whatever the session has configured", 
   assert.ok(out.stdout.includes("--no-session-persistence --max-budget-usd 0.5 "), out.stdout)
   assert.ok(
     out.stdout.includes(
-      '--settings {"disableAllHooks":true,"env":{"MAX_THINKING_TOKENS":"0","CLAUDE_CODE_EFFORT_LEVEL":"low","CLAUDE_CODE_DISABLE_TERMINAL_TITLE":"1","CLAUDE_CODE_PROMPT_CACHE_TTL":"5m"}} ',
+      '--settings {"disableAllHooks":true,"env":{"MAX_THINKING_TOKENS":"0","CLAUDE_CODE_EFFORT_LEVEL":"low","CLAUDE_CODE_DISABLE_TERMINAL_TITLE":"1","CLAUDE_CODE_PROMPT_CACHE_TTL":"5m","CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC":"1"}} ',
     ),
     out.stdout,
   )
   assert.ok(
     out.stdout.includes(
-      "MAX_THINKING_TOKENS=0 CLAUDE_CODE_EFFORT_LEVEL=low CLAUDE_CODE_DISABLE_TERMINAL_TITLE=1 CLAUDE_CODE_PROMPT_CACHE_TTL=5m",
+      "MAX_THINKING_TOKENS=0 CLAUDE_CODE_EFFORT_LEVEL=low CLAUDE_CODE_DISABLE_TERMINAL_TITLE=1 CLAUDE_CODE_PROMPT_CACHE_TTL=5m CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1",
     ),
     out.stdout,
   )

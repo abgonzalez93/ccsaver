@@ -118,6 +118,8 @@ For the same read: 4–8 s and 0.03–0.07 $ for the one-shot worker, against 26
 
 This README with line numbers, Claude Code 2.1.274, subscription login, one run per arm: 0.0257 $ → 0.0128 $ once the fallback stopped asking for a session title, a second hidden request that carried the whole file again, and wrote a 5-minute cache instead of a 1-hour one. A follow-up question on the same file read 0 tokens from that cache either way.
 
+Around the request rather than in it: Claude Code 2.1.281, the fallback's exact flags, a 2.6k-token prompt, Haiku, three runs per arm on 2026-09-24. As shipped, 2,983 / 2,673 / 2,649 and 2,733 / 2,818 / 2,597 ms of wall clock for 1,435–1,657 ms of `duration_ms`, at 0.0031 $ a call; `--debug-file` puts the rest in an update check, a request for claude.ai's MCP servers made under `--strict-mcp-config`, and a telemetry batch posted after the answer, about 0.6 s of it before the first debug line, which is loading the binary and has no flag. With `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1` in the child's environment and its `--settings`: **1,658 / 1,899 / 1,845 ms**, `duration_api_ms` unchanged at 1,413–1,657, 113 fewer input tokens, 0.0029–0.0030 $. `--bare`, the documented way to a lighter start, answered `Not logged in` in 679 ms: it does not read a subscription login. `--safe-mode` and `--setting-sources user` moved nothing.
+
 ## Adding up a month of the log
 
 A synthetic month of 200,000 `gate` lines, 66.6 MB, added up by `ccsaver saved 2026-08`: **0.39-0.44 s and 219 MB of peak RSS**, against 0.59 s and 317 MB while the reader built an array of every row of the month first. The fold holds one row at a time, so what is left is the month's own text, read whole with `readFileSync`.

@@ -49,11 +49,13 @@ ccsaver key set < ~/my-key.txt && rm ~/my-key.txt
 
 ## The fallback
 
-The fallback spends your Claude usage, so it is as bare as the worker: no built-in tools, no MCP servers, none of your hooks, no thinking, no session title and the lowest effort level (`--tools ""`, `--strict-mcp-config`, `disableAllHooks`, `MAX_THINKING_TOKENS=0`, `CLAUDE_CODE_DISABLE_TERMINAL_TITLE=1`, `CLAUDE_CODE_EFFORT_LEVEL=low`), whatever your Claude Code has configured. A session running at `max` does not drag the fallback up with it.
+The fallback spends your Claude usage, so it is as bare as the worker: no built-in tools, no MCP servers, none of your hooks, no thinking, no session title, the lowest effort level and none of the traffic a one-shot call never needs (`--tools ""`, `--strict-mcp-config`, `disableAllHooks`, `MAX_THINKING_TOKENS=0`, `CLAUDE_CODE_DISABLE_TERMINAL_TITLE=1`, `CLAUDE_CODE_EFFORT_LEVEL=low`, `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1`), whatever your Claude Code has configured. A session running at `max` does not drag the fallback up with it.
 
 Every one of them is set both in the child's environment and in `--settings`, because the `env` of a settings file wins over the environment: with `MAX_THINKING_TOKENS=0` in the environment alone and 4,000 in a settings file, a two-character answer took 184 output tokens instead of 5 (one run each).
 
 Left alone, Claude Code titles the session with a second request that carries every file again, and on a subscription login writes the whole call to a 1-hour cache at twice the input price that no follow-up reads, because files and question travel as one block. The fallback turns the title off and asks for the 5-minute cache (`CLAUDE_CODE_PROMPT_CACHE_TTL=5m`), which took [the measured call](measurements.md#the-haiku-fallback-on-one-8230-token-call) from 0.0257 $ to 0.0128 $.
+
+Left alone as well, the binary spends a third of the call around the request rather than in it: it checks for an update, asks claude.ai for MCP servers although `--strict-mcp-config` says there are none, and posts telemetry after the answer, before it exits. `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1` turns all of that off in that one child, [0.9 s of a 2.7 s call](measurements.md#the-haiku-fallback-on-one-8230-token-call) with the API's own time unchanged; it turns off the child's error reports and its auto-update too, which a one-shot child never needs.
 
 One user-level `SessionStart` hook measured 1,987 input tokens against 590 for the same one-line prompt (one run each), its text landing in the worker's context: hence `disableAllHooks`.
 
@@ -167,4 +169,4 @@ The default limit comes from [175 sessions of one machine](measurements.md#where
 | `CLAUDE_CONFIG_DIR` | the launcher | where Claude Code keeps `plugins/`; the default is `~/.claude` |
 | `NO_COLOR`, `TERM` | everything | whether a line is painted: only on a terminal, with `NO_COLOR` unset and `TERM` other than `dumb`, each stream judged on its own, so an error on stderr is painted while stdout goes to a pipe. What is painted is the mark that opens a line, `✓` for a change, `→` for a repeat, `!` for a warning, `✗` for an error, the level label of `doctor`, and the `saved` band; the launcher paints its `key set` lines by the same rule. The colour never carries the meaning: `ok`, `warn` or `FAIL` is always beside the level, `Error:` and `warn:` open their lines painted or not, the sign is always before the band, and a band that crosses zero says so in words |
 
-ccsaver sets `NODE_COMPILE_CACHE` (the `cache/` folder of the state folder) for the hook and the command, and four for the fallback: `MAX_THINKING_TOKENS=0`, `CLAUDE_CODE_EFFORT_LEVEL=low`, `CLAUDE_CODE_DISABLE_TERMINAL_TITLE=1` and `CLAUDE_CODE_PROMPT_CACHE_TTL=5m`.
+ccsaver sets `NODE_COMPILE_CACHE` (the `cache/` folder of the state folder) for the hook and the command, and five for the fallback: `MAX_THINKING_TOKENS=0`, `CLAUDE_CODE_EFFORT_LEVEL=low`, `CLAUDE_CODE_DISABLE_TERMINAL_TITLE=1`, `CLAUDE_CODE_PROMPT_CACHE_TTL=5m` and `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1`.

@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.27.1 - 2026-09-24
+
+perf: the fallback skips the traffic a one-shot call never needs
+
+- CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1 joins BARE_ENV, so the child no longer checks for an update, asks claude.ai for MCP servers under --strict-mcp-config or posts telemetry before it exits
+- measured on Claude Code 2.1.281 with the fallback's exact flags: 2.6-3.0 s a call to 1.7-1.9 s, the API's own time unchanged, three runs per arm
+- --bare was measured and discarded: it does not read a subscription login
+
 ## 0.27.0 - 2026-09-24
 
 feat: doctor's probe is a doctor line in the log, never a gate line
