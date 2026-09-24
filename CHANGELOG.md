@@ -4,6 +4,15 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.33.15 - 2026-09-24
+
+docs: the map says what src/state holds, the config row names the transcript, and a store is one thing of the state folder
+
+- 2.1 said `src/state/` holds the four files of the state folder, which everything else imports: `worker.json` and `prices.json` are files of the state folder whose stores live in `delegation/` and `saved/`, and three files import `handoff.store.ts`; it now says the three stores every feature imports, and the handoff's
+- the row of `config.store.ts` now names the last line of the session's transcript, which it has read since 0.22.0 and the row did not say
+- 2.6 defined `store` as the reader and writer of one file of the state folder, and no store fits that to the letter: the config store reads `plugged` and the adapters, the log store a folder of months; it is now one thing of the state folder, a file or a folder of them
+- +64 bytes; nothing moves, no import changes, both hooks import what they did
+
 ## 0.33.14 - 2026-09-24
 
 test: the launcher tests get test/launcher, doctor.test.ts is split into the state folder and the worker, and spent.test.ts is month.test.ts

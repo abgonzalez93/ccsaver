@@ -72,13 +72,13 @@ Guard: `test/repo/conventions.test.ts`.
 
 ## 2. Architecture
 
-**2.1 ALWAYS respect the map.** Twenty-two files in six folders and three entry points, one reason to change each, arrows that never turn back. `src/state/` holds the four files of the state folder, which everything else imports; `src/boundary/` what may leave the machine and what comes back from it; `src/delegation/` the two flows and their two ways out; `src/saved/` the report and its prices; `src/doctor/` the checks, what they report, the survey, and what surrounds ccsaver on the machine. `src/ccsaver.cli.ts`, `src/read-gate.hook.ts` and `src/handoff.hook.ts` stay at the top, where `bin/ccsaver` and `hooks/gate` find them.
+**2.1 ALWAYS respect the map.** Twenty-two files in six folders and three entry points, one reason to change each, arrows that never turn back. `src/state/` holds the three stores every feature imports, and the handoff's; `src/boundary/` what may leave the machine and what comes back from it; `src/delegation/` the two flows and their two ways out; `src/saved/` the report and its prices; `src/doctor/` the checks, what they report, the survey, and what surrounds ccsaver on the machine. `src/ccsaver.cli.ts`, `src/read-gate.hook.ts` and `src/handoff.hook.ts` stay at the top, where `bin/ccsaver` and `hooks/gate` find them.
 
 | File | Owns | Imports |
 | --- | --- | --- |
 | `src/state/state.store.ts` | the state folder, the key, the guards, what a terminal may be shown (`scrubbed`, `tinted`, `marked`) and what a shell may be handed (`quoted`), `Refusal` | `node:` only |
 | `src/state/log.store.ts` | the event log, its switch, its reader, and the version that stamps each line | `state.store` |
-| `src/state/config.store.ts` | what the user configured: the plugged roots, the adapters, and how a file is weighed against a limit | `log.store`, `state.store` |
+| `src/state/config.store.ts` | what the user configured: the plugged roots, the adapters, how a file is weighed against a limit, and the last line of the session's transcript | `log.store`, `state.store` |
 | `src/state/handoff.store.ts` | `handoff.json`, the switch and the limit of the context warning, and the `handoff/` folder | `config.store`, `log.store`, `state.store` |
 | `src/delegation/worker.store.ts` | `worker.json`: the url, the model, the pinned binary and the fallback switch | `log.store`, `state.store` |
 | `src/doctor/survey.service.ts` | how long a project's files are, and what limit that asks for | `config.store`, `state.store` |
@@ -125,7 +125,7 @@ Guard: *convention*. Revisit when a test needs to replace something that no para
 **2.5 NEVER let a directory reach six files.** The sixth file is the signal to regroup by feature: what changes together lives together, the files everything imports go in a folder of their own, and the entry points stay where the launcher and the gate find them. A directory splits by feature the way a file splits by responsibility (1.8), and a new concept is still a new file on the map of 2.1. The root is excused: its files are the ones the tools look for there.
 Guard: `test/repo/conventions.test.ts`.
 
-**2.6 ALWAYS name a directory in kebab-case and a file `name.role.ts`.** Below the root a name is lowercase letters, digits, hyphens and dots; the root is excused as in 2.5, and so is `SKILL.md`. The name is the noun, the role is the kind of module: `store` for the reader and writer of one file of the state folder, `service` for a flow, `client` for a way out of the machine, `guard` for what refuses before anything leaves, `validator` for what checks an answer that came back, `model` for a shape, `reporter` for what a command prints, `cli` and `hook` for what `bin/ccsaver` and a hook launcher start, `helpers` for what the tests share and `test` for one behaviour, named after the behaviour and not the module. A new role lands here and in the guard in the same commit.
+**2.6 ALWAYS name a directory in kebab-case and a file `name.role.ts`.** Below the root a name is lowercase letters, digits, hyphens and dots; the root is excused as in 2.5, and so is `SKILL.md`. The name is the noun, the role is the kind of module: `store` for the reader and writer of one thing of the state folder, a file or a folder of them, `service` for a flow, `client` for a way out of the machine, `guard` for what refuses before anything leaves, `validator` for what checks an answer that came back, `model` for a shape, `reporter` for what a command prints, `cli` and `hook` for what `bin/ccsaver` and a hook launcher start, `helpers` for what the tests share and `test` for one behaviour, named after the behaviour and not the module. A new role lands here and in the guard in the same commit.
 Guard: `test/repo/conventions.test.ts`.
 
 ## 3. Robustness
