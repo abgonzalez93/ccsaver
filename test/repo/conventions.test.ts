@@ -55,11 +55,12 @@ test("src imports node: built-ins and its own files, and the package declares no
   )
 })
 
-test("the hook starts with the three files of the state folder and nothing else of ours", () => {
+test("the hook starts with the three files of the state folder, the boundary guard, and nothing else of ours", () => {
   const ours = importsOf(join(REPO, "src", "read-gate.hook.ts")).filter((name) =>
     name.startsWith("."),
   )
   assert.deepEqual(ours, [
+    "./delegation/boundary.guard.ts",
     "./state/config.store.ts",
     "./state/log.store.ts",
     "./state/state.store.ts",

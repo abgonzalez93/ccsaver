@@ -31,6 +31,7 @@ const LONGER = join(PROJECT, "deep", "longer.txt")
 const HEAVY = join(PROJECT, "heavy.md")
 const BLOB = join(PROJECT, "blob.bin")
 const OUTSIDE = join(WORK, "outside.txt")
+const KEYED = join(PROJECT, "keyed.txt")
 const FAKE = fakeClaude(WORK)
 const WHOLE = { tool_input: { file_path: LONG } }
 const NONE: Record<PropertyKey, unknown> = {}
@@ -67,6 +68,7 @@ before(async () => {
   writeFileSync(HEAVY, `${"word ".repeat(8000)}\n`)
   writeFileSync(BLOB, Buffer.from([120, 10, 0]))
   writeFileSync(OUTSIDE, "x\n")
+  writeFileSync(KEYED, `${"x\n".repeat(351)}-----BEGIN RSA PRIVATE KEY-----\n`)
   writeFileSync(join(HOME, "adapters", "broken.json"), JSON.stringify({ maxLines: "abc" }))
   writeHome(HOME, { plugged: [[PROJECT]], worker: { url: server.url, model: KEY }, key: KEY })
   mkdirSync(LOG, { recursive: true, mode: 0o700 })
@@ -95,6 +97,7 @@ test("one gate event per decision, with the ids of the call", async () => {
     [{ file_path: join(PROJECT, "missing.txt") }, "allow", "unreadable"],
     ["nope", "allow", "malformed"],
     [{ file_path: OUTSIDE }, "allow", "outside"],
+    [{ file_path: KEYED }, "allow", "untakeable"],
   ]
   const before = events(HOME).length
   for (const [tool_input] of cases) await hook({ ...call, tool_input })

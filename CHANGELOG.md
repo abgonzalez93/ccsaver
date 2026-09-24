@@ -4,6 +4,15 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.25.1 - 2026-09-24
+
+fix: the gate never denies a file that bulk-read would refuse to send
+
+- a whole-file Read over the limits of a secrets file by name or place, of a file holding a private-key header at the start of a line or an access token, or of a binary its first 8 KB did not reveal, is let through with the reason `untakeable`: a denial nothing can delegate only costs, and one measured on the 23rd drew three requests at 283,000 tokens of context for a CHANGELOG.md that never arrived
+- the hook asks the guard the delegation asks, `pathRefusal` and `contentRefusal` of boundary.guard.ts, so the two can never disagree; the import list the conventions test pins and CONTRIBUTING 2.1 and 4.4 carry the fourth file
+- a file past the byte limit that is about to be denied is read once for the check, up to 1 MB; past that it is denied unread, as before
+- measured paired, three rounds of 30 runs, log on: the allow path does not move, the deny path pays about half a millisecond
+
 ## 0.25.0 - 2026-09-24
 
 feat: the gate records the context beside the model, and saved counts the denials that ranged reads followed

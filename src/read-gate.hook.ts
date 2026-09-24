@@ -1,6 +1,7 @@
 // Portions of this file are adapted from a third-party Apache-2.0 work and were modified; see NOTICE.
 import { existsSync, readFileSync, statSync } from "node:fs"
 import { relative } from "node:path"
+import { contentRefusal, pathRefusal } from "./delegation/boundary.guard.ts"
 import {
   type Adapter,
   BYTES_PER_TOKEN,
@@ -15,15 +16,17 @@ import {
   tokensIn,
 } from "./state/config.store.ts"
 import { crashed, logDir, record } from "./state/log.store.ts"
-import { attempt, isRecord, isUnder, real } from "./state/state.store.ts"
+import { attempt, isRecord, isUnder, real, stateHome } from "./state/state.store.ts"
 
 const IDS = ["tool_use_id", "agent_id", "agent_type", "permission_mode"]
 const TRANSCRIPT_TAIL = 262_144
+const SCAN_CEILING = 1_000_000
 
 interface Measured {
   lines?: number
   bytes: number
   blind?: "binary" | "unreadable"
+  held?: Buffer
 }
 
 const measure = (path: string, maxBytes: number): Measured => {
@@ -38,8 +41,17 @@ const measure = (path: string, maxBytes: number): Measured => {
   if (bytes === undefined) return { lines: 0, bytes: 0, blind: "unreadable" }
   return isBinary(bytes)
     ? { lines: 0, bytes: bytes.length, blind: "binary" }
-    : { lines: linesIn(bytes), bytes: bytes.length }
+    : { lines: linesIn(bytes), bytes: bytes.length, held: bytes }
 }
+
+const untakeable = (given: string, at: string, root: string, measured: Measured): boolean => {
+  if (pathRefusal(given, at, root, real(stateHome())) !== undefined) return true
+  const held =
+    measured.held ?? (measured.bytes <= SCAN_CEILING ? attempt(() => readFileSync(at)) : undefined)
+  return held !== undefined && contentRefusal(held.toString("utf8")) !== undefined
+}
+
+const isOver = (reason: string): boolean => reason === "lines" || reason === "tokens"
 
 const adapterOrDefaults = (name: string | undefined): Adapter => {
   if (name === undefined) return {}
@@ -65,8 +77,9 @@ const deny = (reason: string): void => {
   )
 }
 
-const reasonOf = (measured: Measured, ranged: boolean, limits: Limits): string => {
+const reasonOf = (measured: Measured, inside: boolean, ranged: boolean, limits: Limits): string => {
   if (ranged) return "range"
+  if (!inside) return "outside"
   if (measured.blind !== undefined) return measured.blind
   if (measured.lines === undefined) return "tokens"
   return measured.lines > limits.maxLines ? "lines" : "under"
@@ -83,10 +96,8 @@ interface Place {
   path?: string
 }
 
-const placeOf = (given: string, root: string): Place => {
-  const path = real(given)
-  return isUnder(path, root) ? { inside: true, path: relative(root, path) } : { inside: false }
-}
+const placeOf = (at: string, root: string): Place =>
+  isUnder(at, root) ? { inside: true, path: relative(root, at) } : { inside: false }
 
 const rangeOf = (offset: unknown, limit: unknown): Record<string, unknown> => ({
   ...(typeof offset === "number" ? { offset } : {}),
@@ -124,10 +135,12 @@ const gate = (root: string, adapterName: string | undefined): void => {
     return
   }
   const limits = limitsOf(adapterName)
-  const place = placeOf(given, root)
+  const at = real(given)
+  const place = placeOf(at, root)
   const measured = measure(given, limits.maxTokens * BYTES_PER_TOKEN)
-  const reason = place.inside || ranged ? reasonOf(measured, ranged, limits) : "outside"
-  const denied = reason === "lines" || reason === "tokens"
+  const over = reasonOf(measured, place.inside, ranged, limits)
+  const reason = isOver(over) && untakeable(given, at, root, measured) ? "untakeable" : over
+  const denied = isOver(reason)
   if (denied) deny(denial(given, measured, limits))
   if (!logging) return
   seen({

@@ -178,3 +178,18 @@ test("without CLAUDE_PROJECT_DIR the hook judges from the working directory", as
   assert.match(here.stdout, /"permissionDecision":"deny"/)
   assert.equal((await run("node", [HOOK], env, input, UNPLUGGED)).stdout, "")
 })
+
+test("lets through a file over the limits that bulk-read would refuse, up to a megabyte, because denying it could only cost", async () => {
+  const secretName = fileOf("id_rsa", 351)
+  const keyed = join(PROJECT, "keyed.txt")
+  const tokened = join(PROJECT, "tokened.txt")
+  const wideKeyed = join(PROJECT, "wide-keyed.md")
+  const hugeKeyed = join(PROJECT, "huge-keyed.md")
+  writeFileSync(keyed, `${"x\n".repeat(351)}-----BEGIN RSA PRIVATE KEY-----\n`)
+  writeFileSync(tokened, `${"x\n".repeat(351)}key = AKIAABCDEFGHIJKLMNOP\n`)
+  writeFileSync(wideKeyed, `${"word ".repeat(9000)}\n-----BEGIN PGP PRIVATE KEY BLOCK-----\n`)
+  writeFileSync(hugeKeyed, `${"word ".repeat(210_000)}\n-----BEGIN RSA PRIVATE KEY-----\n`)
+  for (const path of [secretName, keyed, tokened, wideKeyed])
+    assert.equal(await denied({ tool_input: { file_path: path } }), false, path)
+  assert.equal(await denied({ tool_input: { file_path: hugeKeyed } }), true)
+})
