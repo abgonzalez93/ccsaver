@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs"
-import { lastAssistantOf } from "./state/config.store.ts"
+import { lastAssistantOf } from "./measure/transcript.reader.ts"
 import { readHandoff, readTier, writeTier } from "./state/handoff.store.ts"
 import { crashed, record } from "./state/log.store.ts"
 import { isRecord } from "./state/state.store.ts"

@@ -1,13 +1,4 @@
-import {
-  closeSync,
-  existsSync,
-  fstatSync,
-  openSync,
-  readFileSync,
-  readSync,
-  realpathSync,
-  statSync,
-} from "node:fs"
+import { existsSync, readFileSync, realpathSync, statSync } from "node:fs"
 import { homedir } from "node:os"
 import { basename, join, resolve } from "node:path"
 import { DEFAULT_LIMITS, type Limits } from "../measure/measure.helpers.ts"
@@ -42,62 +33,6 @@ export interface Adapter {
 }
 
 export const LIMIT_CEILING = 1_000_000
-
-const tailOf = (path: string, bytes: number): Buffer | undefined => {
-  const fd = attempt(() => openSync(path, "r"))
-  if (fd === undefined) return undefined
-  const size = attempt(() => fstatSync(fd).size) ?? 0
-  const tail = Buffer.alloc(Math.min(bytes, size))
-  const read = attempt(() => readSync(fd, tail, 0, tail.length, Math.max(0, size - bytes)))
-  attempt(() => closeSync(fd))
-  return read === undefined ? undefined : tail.subarray(0, read)
-}
-
-export interface Spoken {
-  model: string | undefined
-  context: number | undefined
-}
-
-const SYNTHETIC = "<synthetic>"
-const CONTEXT_PARTS = ["input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens"]
-
-const contextOf = (usage: unknown): number | undefined => {
-  if (!isRecord(usage) || typeof usage["input_tokens"] !== "number") return undefined
-  return CONTEXT_PARTS.reduce((sum, part) => {
-    const held = usage[part]
-    return sum + (typeof held === "number" ? held : 0)
-  }, 0)
-}
-
-const spokenIn = (text: string): Spoken | undefined => {
-  let said: Spoken | undefined
-  for (const line of text.split("\n")) {
-    const row = parsed(line)
-    if (!isRecord(row) || row["isSidechain"] === true) continue
-    const message = row["message"]
-    if (!isRecord(message) || message["role"] !== "assistant") continue
-    const model = message["model"]
-    if (model === SYNTHETIC) continue
-    said = {
-      model: typeof model === "string" ? model : undefined,
-      context: contextOf(message["usage"]),
-    }
-  }
-  return said
-}
-
-const NEAR_TAIL = 16_384
-
-const spokenAt = (transcript: string, bytes: number): Spoken | undefined => {
-  const tail = tailOf(transcript, bytes)
-  return tail === undefined ? undefined : spokenIn(tail.toString("utf8"))
-}
-
-export const lastAssistantOf = (transcript: unknown, bytes: number): Spoken | undefined => {
-  if (typeof transcript !== "string") return undefined
-  if (bytes <= NEAR_TAIL) return spokenAt(transcript, bytes)
-  return spokenAt(transcript, NEAR_TAIL) ?? spokenAt(transcript, bytes)
-}
 
 const ADAPTER_KEYS = ["rules", "format", "after", "maxLines", "maxTokens", "rewrite"]
 const ADAPTER_NAME = /^[a-z0-9][a-z0-9-]*$/

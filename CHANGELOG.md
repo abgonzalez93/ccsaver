@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.33.20 - 2026-09-24
+
+refactor: the transcript reader is src/measure/transcript.reader.ts, a reader of a file that is not ours
+
+- `lastAssistantOf` and the five private functions under it read the tail of Claude Code's session transcript for the model and the context of its last assistant line; `c0bec1b` put them in `config.store.ts` so that the hooks gained no module, and the map's row never named them; they are now `src/measure/transcript.reader.ts`, with `reader` as the role of what reads a file that is not ours and never writes it, in 2.6 and in `ROLES`
+- the two hooks and one test change a line; the handoff hook no longer imports `config.store.ts` at all; the citation of 3.3, the map and 4.4 follow
+- measured paired on one disk, log on, a 300 KB transcript, 30 runs per arm: a 100-line file let through 27.0 / 26.4 / 27.3 and 27.6 / 27.4 / 26.5 ms before against 26.3 / 26.3 / 26.2 and 27.2 / 26.7 / 26.1 ms after, the 500-line file denied 28.5 / 28.9 / 28.6 and 28.9 / 28.6 / 28.2 against 29.1 / 28.8 / 29.1 and 28.7 / 28.2 / 27.9 ms, the handoff hook 24.5 / 23.6 / 23.7 against 24.6 / 23.4 / 23.8 ms: every pair inside the 0.1–0.7 ms floor of two identical trees, so the module the gate gains and the 65 lines it no longer parses cancel to nothing the harness can see
+
 ## 0.33.19 - 2026-09-24
 
 refactor: how a file is weighed is src/measure/measure.helpers.ts, and config.store.ts is what the user configured

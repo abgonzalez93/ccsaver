@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import { rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { after, test } from "node:test"
-import { lastAssistantOf } from "../../src/state/config.store.ts"
+import { lastAssistantOf } from "../../src/measure/transcript.reader.ts"
 import { tempDir } from "../test.helpers.ts"
 
 const WORK = tempDir("transcript-work")
