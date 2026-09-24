@@ -7,6 +7,14 @@ import { fellOf, postJson, rejectionOf, requestOf } from "../delegation/worker.c
 import { readWorker, type Worker } from "../delegation/worker.store.ts"
 import type { Limits } from "../measure/measure.helpers.ts"
 import {
+  adapterNameOf,
+  fixOf,
+  overshoots,
+  proposalOf,
+  raiseOf,
+  surveyFor,
+} from "../measure/survey.service.ts"
+import {
   adapterFor,
   limitsFrom,
   type Plugged,
@@ -35,14 +43,6 @@ import {
 import { launcherFindings, permissionRules } from "./environment.service.ts"
 import { type Finding, type Level, offer, painted, TONE } from "./finding.reporter.ts"
 import { monthFindings } from "./month.service.ts"
-import {
-  adapterNameOf,
-  fixOf,
-  overshoots,
-  proposalOf,
-  raiseOf,
-  surveyFor,
-} from "./survey.service.ts"
 
 const PROBE_TIMEOUT_MS = 30_000
 const GATE = join(import.meta.dirname, "..", "..", "hooks", "gate")

@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.33.21 - 2026-09-24
+
+refactor: the survey moves to src/measure/, beside the measure of a file
+
+- `surveyFor` measures a project's files the way the gate measures one, with the eight symbols of `measure.helpers.ts` and nothing of `doctor/`; `plug` runs it as much as `doctor` does, and in 11 commits it changed beside `config.store.ts` seven times, `read-gate.hook.ts` six and never beside `environment.service.ts`, `month.service.ts` or `finding.reporter.ts`; it fell into `doctor/` in `9a85ba5` because that was the folder there was
+- `git mv`, two importers and one test change a line, its own import of `measure.helpers.ts` shortens; the map and its intro follow; `src/doctor/` keeps four files and `src/measure/` holds three; no hook imports it, so nothing was measured
+- the pointer to the slash commands in 2.1 loses eight words, which leaves `CONTRIBUTING.md` 51 bytes under its own gate
+
 ## 0.33.20 - 2026-09-24
 
 refactor: the transcript reader is src/measure/transcript.reader.ts, a reader of a file that is not ours

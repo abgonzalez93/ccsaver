@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs"
 import { basename, join } from "node:path"
 import { quoted } from "../cli/terminal.reporter.ts"
+import { attempt } from "../state/state.store.ts"
 import {
   DEFAULT_LIMITS,
   HEAD_BYTES,
@@ -10,8 +11,7 @@ import {
   linesIn,
   SCAN_CEILING,
   tokensIn,
-} from "../measure/measure.helpers.ts"
-import { attempt } from "../state/state.store.ts"
+} from "./measure.helpers.ts"
 
 const PRUNED = [
   "node_modules",

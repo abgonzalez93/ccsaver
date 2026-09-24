@@ -72,7 +72,7 @@ Guard: `test/repo/conventions.test.ts`.
 
 ## 2. Architecture
 
-**2.1 ALWAYS respect the map.** Twenty-six files in seven folders and three entry points, one reason to change each, arrows that never turn back. `src/state/` holds the three stores every feature imports, and the handoff's; `src/measure/` how a file is weighed against the limits, and the session's context in its transcript; `src/cli/` what a command prints; `src/boundary/` what may leave the machine and what comes back from it; `src/delegation/` the two flows and their two ways out; `src/saved/` the report and its prices; `src/doctor/` the checks, what they report, the survey, and what surrounds ccsaver on the machine. `src/ccsaver.cli.ts`, `src/read-gate.hook.ts` and `src/handoff.hook.ts` stay at the top, where `bin/ccsaver` and `hooks/gate` find them.
+**2.1 ALWAYS respect the map.** Twenty-six files in seven folders and three entry points, one reason to change each, arrows that never turn back. `src/state/` holds the three stores every feature imports, and the handoff's; `src/measure/` what ccsaver weighs: a file, a project's files and the session's context in its transcript; `src/cli/` what a command prints; `src/boundary/` what may leave the machine and what comes back from it; `src/delegation/` the two flows and their two ways out; `src/saved/` the report and its prices; `src/doctor/` the checks, what they report, and what surrounds ccsaver on the machine. `src/ccsaver.cli.ts`, `src/read-gate.hook.ts` and `src/handoff.hook.ts` stay at the top, where `bin/ccsaver` and `hooks/gate` find them.
 
 | File | Owns | Imports |
 | --- | --- | --- |
@@ -83,7 +83,7 @@ Guard: `test/repo/conventions.test.ts`.
 | `src/measure/measure.helpers.ts` | how a file is weighed against a limit, and the reasons the gate gives | `state.store` |
 | `src/measure/transcript.reader.ts` | the last assistant line of the session's transcript: its model and its context | `state.store` |
 | `src/delegation/worker.store.ts` | `worker.json`: the url, the model, the pinned binary and the fallback switch | `log.store`, `state.store` |
-| `src/doctor/survey.service.ts` | how long a project's files are, and what limit that asks for | `measure.helpers`, `state.store`, `terminal.reporter` |
+| `src/measure/survey.service.ts` | how long a project's files are, and what limit that asks for | `measure.helpers`, `state.store`, `terminal.reporter` |
 | `src/boundary/answer.validator.ts` | pure text work on the worker's answer | nothing |
 | `src/boundary/boundary.guard.ts` | what may leave the machine | `state.store` |
 | `src/delegation/delegation.model.ts` | what a call records (`delegation`), and how a message is weighed | the `Tally` type of `answer.validator` |
@@ -109,7 +109,7 @@ Off the map: `scripts/version.hook.ts`, the git hook of 5.3: nothing in `src/` i
 
 Off the map too: `bin/ccsaver`, the POSIX `sh` launcher, which holds `key set` and `setup`, because only a shell can turn a terminal's echo off and the key must never reach a Node argument list. `setup` asks for the four settings, hands each to the CLI and shares `store_key` with `key set`, so the key file keeps one writer. It also stops a `node` under the floors `package.json` declares before `setup`, `doctor` and `plug`, the three a person types before anything works, and no others: the check is a second process start and [costs 14 ms](docs/development.md#the-cost-of-the-node-version-check) that the delegation commands would pay on every call. The launcher appends one event of its own, the `key set` line, in shell: the line format of `src/state/log.store.ts` · `LOG_VERSION` has two writers, and a change to it touches both or the month's file holds two shapes.
 
-Off the map as well: `commands/`, the five markdown files behind the slash commands, prompts for Claude and not code, [one per flow that needs judgement and never one per command](docs/development.md#the-slash-commands), held to the CLI by `test/repo/skills.test.ts`.
+Off the map as well: `commands/`, the five prompts behind the slash commands, not code, [one per flow that needs judgement and never one per command](docs/development.md#the-slash-commands), held to the CLI by `test/repo/skills.test.ts`.
 
 **2.2 ALWAYS import from the file that owns the symbol**, by relative path with the real extension. No barrel, no `export *`, no default export.
 Guard: Biome `useImportExtensions`, `allowImportingTsExtensions`; barrels are *convention*.
@@ -193,7 +193,7 @@ Guard: `test/delegation/transport.test.ts`, which also adds up the three waits; 
 **4.3 ALWAYS await or return every promise**, with `async`/`await` and no `.then` chains. `src/ccsaver.cli.ts` sets `process.exitCode` from `await main()`; the only `process.exit` lives inside `fail`.
 Guard: Biome `noFloatingPromises`, `noMisusedPromises`, `useAwaitThenable`.
 
-**4.4 ALWAYS treat a hook as the hot path: `read-gate` runs on every `Read`, `handoff` at the end of every turn.** The `sh` gate leaves an unplugged project, a switched-off warning, and, with the log off and no adapter, a ranged read or a file under the limits, before Node starts; `test/gate/gate.test.ts` holds it to the hook's answer. Otherwise the cost is Node's start-up, so `src/read-gate.hook.ts` imports the three stores of `src/state/`, the two files of `src/measure/`, `src/boundary/boundary.guard.ts` and `node:` built-ins, nothing else, and `src/handoff.hook.ts` two of those stores, its own, `transcript.reader.ts` and, through its store, `measure.helpers.ts`; it counts lines on the bytes. Touching a hook means measuring it before and after, as `docs/development.md` does: mean of 30 runs, spawn included. Each import costs about a millisecond of that: 0.85 ms when `state.store.ts` became three files, 1.1–2.2 when the measure of a file left `config.store.ts`.
+**4.4 ALWAYS treat a hook as the hot path: `read-gate` runs on every `Read`, `handoff` at the end of every turn.** The `sh` gate leaves an unplugged project, a switched-off warning, and, with the log off and no adapter, a ranged read or a file under the limits, before Node starts; `test/gate/gate.test.ts` holds it to the hook's answer. Otherwise the cost is Node's start-up, so `src/read-gate.hook.ts` imports the three stores of `src/state/`, two of the three files of `src/measure/`, `src/boundary/boundary.guard.ts` and `node:` built-ins, nothing else, and `src/handoff.hook.ts` two of those stores, its own, `transcript.reader.ts` and, through its store, `measure.helpers.ts`; it counts lines on the bytes. Touching a hook means measuring it before and after, as `docs/development.md` does: mean of 30 runs, spawn included. Each import costs about a millisecond of that: 0.85 ms when `state.store.ts` became three files, 1.1–2.2 when the measure of a file left `config.store.ts`.
 Guard: the import list by `test/repo/conventions.test.ts`; the measurement is *convention*.
 
 **4.5 NEVER optimise, or claim a saving, without a number.** A number in the README or under `docs/` carries its sample size, and `docs/measurements.md` or `docs/development.md` carries the note.

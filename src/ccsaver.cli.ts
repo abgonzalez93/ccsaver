@@ -14,8 +14,8 @@ import { isMode, runWorker } from "./delegation/delegation.service.ts"
 import { setClaude, setFallback, writeWorker } from "./delegation/worker.store.ts"
 import { doctor } from "./doctor/doctor.service.ts"
 import { writeLauncher } from "./doctor/environment.service.ts"
-import { proposalOf, surveyFor } from "./doctor/survey.service.ts"
 import type { Limits } from "./measure/measure.helpers.ts"
+import { proposalOf, surveyFor } from "./measure/survey.service.ts"
 import {
   listedPrices,
   MODEL_NAME,
