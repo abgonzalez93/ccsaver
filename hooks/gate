@@ -13,7 +13,7 @@ while IFS='	' read -r root adapter <&3; do
 done 3< "$home/plugged"
 [ -n "$best" ] || exit 0
 start() {
-  NODE_COMPILE_CACHE="$home/cache"
+  NODE_COMPILE_CACHE="${NODE_COMPILE_CACHE:-$home/cache}"
   export NODE_COMPILE_CACHE
   exec node "$(dirname "$0")/../src/$1.hook.ts"
 }

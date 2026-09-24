@@ -27,7 +27,7 @@ case $home in
 esac
 
 if [ -d "$home" ]; then
-  NODE_COMPILE_CACHE="$home/cache"
+  NODE_COMPILE_CACHE="${NODE_COMPILE_CACHE:-$home/cache}"
   export NODE_COMPILE_CACHE
 fi
 

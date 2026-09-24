@@ -4,6 +4,13 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.33.1 - 2026-09-24
+
+perf: the launchers keep a compile cache the environment already names
+
+- bin/ccsaver and hooks/gate replaced NODE_COMPILE_CACHE with the state folder's cache/ whenever the folder existed, so every test that started them with a state folder of its own compiled cold although pnpm test names one shared cache; the state folder's cache is now the default, not the override
+- pnpm test went from 29.4 / 29.2 / 30.2 s of user CPU to 28.5 / 26.8 / 26.5 s, and from 7.39 / 7.39 / 7.54 s of wall clock to 7.49 / 7.25 / 7.24 s, three runs per arm
+
 ## 0.33.0 - 2026-09-24
 
 feat: behind a proxy, the launcher lets fetch use it

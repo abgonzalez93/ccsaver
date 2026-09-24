@@ -100,13 +100,21 @@ test("key set refuses an empty key and keeps the stored one", async () => {
   assert.equal(readFileSync(join(HOME, "api-key"), "utf8"), `${OLD_KEY}\n`)
 })
 
-test("the launcher works through a symlink", async () => {
+test("the launcher works through a symlink, and compiles into the state folder when nothing names a cache", async () => {
   const link = join(WORK, "ccsaver-link")
   symlinkSync(LAUNCHER, link)
-  const out = await run(link, ["list"], { CCSAVER_HOME: HOME })
+  const out = await run(link, ["list"], { CCSAVER_HOME: HOME, NODE_COMPILE_CACHE: "" })
   assert.equal(out.code, 0)
   assert.equal(out.stdout, "nothing is plugged in\n")
   assert.equal(existsSync(join(HOME, "cache")), true)
+  const shared = join(WORK, "shared-cache")
+  const other = tempDir("launcher-cache")
+  assert.equal(
+    (await run(link, ["list"], { CCSAVER_HOME: other, NODE_COMPILE_CACHE: shared })).code,
+    0,
+  )
+  assert.deepEqual([existsSync(shared), existsSync(join(other, "cache"))], [true, false])
+  rmSync(other, { recursive: true, force: true })
 })
 
 test("setup asks for the four settings, keeps the key off the terminal, puts the launcher in place and ends with doctor", async () => {

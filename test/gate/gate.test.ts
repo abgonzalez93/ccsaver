@@ -105,11 +105,18 @@ after(() => {
 })
 
 test("a plugged project is denied, and the hook input reaches node through the gate", async () => {
-  const out = await gate(PLUGGED)
+  const out = await gate(PLUGGED, { NODE_COMPILE_CACHE: "" })
   assert.equal(out.code, 0)
   assert.match(out.stdout, /"permissionDecision":"deny"/)
   assert.ok(out.stdout.includes(LONG))
   assert.equal(existsSync(join(HOME, "cache")), true)
+})
+
+test("node compiles into the cache the environment names, and into the state folder only without one", async () => {
+  const shared = join(WORK, "shared-cache")
+  const out = await asked(read(LONG), ON_HOME, { NODE_COMPILE_CACHE: shared })
+  assert.match(out.stdout, /"permissionDecision":"deny"/)
+  assert.deepEqual([existsSync(shared), existsSync(join(ON_HOME, "cache"))], [true, false])
 })
 
 test("a subfolder of a plugged project is denied", async () => {
