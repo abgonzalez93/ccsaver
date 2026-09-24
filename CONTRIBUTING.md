@@ -72,7 +72,7 @@ Guard: `test/repo/conventions.test.ts`.
 
 ## 2. Architecture
 
-**2.1 ALWAYS respect the map.** Twenty-one files in five folders and three entry points, one reason to change each, arrows that never turn back. `src/state/` holds the four files of the state folder, which everything else imports; `src/boundary/` what may leave the machine and what comes back from it; `src/delegation/` the two flows and their two ways out; `src/saved/` the report and its prices; `src/doctor/` the checks, what they report, the survey, and what surrounds ccsaver on the machine. `src/ccsaver.cli.ts`, `src/read-gate.hook.ts` and `src/handoff.hook.ts` stay at the top, where `bin/ccsaver` and `hooks/gate` find them.
+**2.1 ALWAYS respect the map.** Twenty-two files in six folders and three entry points, one reason to change each, arrows that never turn back. `src/state/` holds the four files of the state folder, which everything else imports; `src/boundary/` what may leave the machine and what comes back from it; `src/delegation/` the two flows and their two ways out; `src/saved/` the report and its prices; `src/doctor/` the checks, what they report, the survey, and what surrounds ccsaver on the machine. `src/ccsaver.cli.ts`, `src/read-gate.hook.ts` and `src/handoff.hook.ts` stay at the top, where `bin/ccsaver` and `hooks/gate` find them.
 
 | File | Owns | Imports |
 | --- | --- | --- |
@@ -94,7 +94,8 @@ Guard: `test/repo/conventions.test.ts`.
 | `src/doctor/month.service.ts` | the two lines that add the month's log up, `denied:` and `spent:`, folded one row at a time | `config.store`, `finding.model`, `log.store`, `state.store` |
 | `src/doctor/doctor.service.ts` | every check `doctor` runs and the level each one reports | `config.store`, `environment.service`, `fallback.client`, `finding.model`, `handoff.store`, `log.store`, `month.service`, `state.store`, `survey.service`, `worker.client`, `worker.store` |
 | `src/doctor/environment.service.ts` | what surrounds ccsaver on the machine: the launcher of your own terminal, `launcher/ccsaver.sh` with `launcher/installed.js` inlined, its place and what stands before it on the `PATH`, and the two rules in Claude Code's settings | `config.store`, `finding.model`, `log.store`, `state.store` |
-| `src/ccsaver.cli.ts` | arguments and the exit code | `config.store`, `delegation.service`, `doctor.service`, `environment.service`, `handoff.store`, `log.store`, `prices.store`, `saved.reporter`, `state.store`, `survey.service`, `worker.store` |
+| `src/cli/usage.reporter.ts` | the usage table, and how a mistake on the command line is answered with the row of its own command | `log.store`, `state.store` |
+| `src/ccsaver.cli.ts` | arguments and the exit code | `config.store`, `delegation.service`, `doctor.service`, `environment.service`, `handoff.store`, `log.store`, `prices.store`, `saved.reporter`, `state.store`, `survey.service`, `usage.reporter`, `worker.store` |
 | `src/read-gate.hook.ts` | the `Read` gate | `boundary.guard`, `config.store`, `log.store`, `state.store` |
 | `src/handoff.hook.ts` | the context warning at the end of a turn | `config.store`, `handoff.store`, `log.store`, `state.store` |
 
@@ -108,7 +109,7 @@ Off the map as well: `commands/`, the five markdown files behind `/ccsaver:setup
 
 There is one per flow that needs judgement, **never one per command**. `key set`, `worker set`, `fallback` and `launcher write` live inside `setup.md` because they need the warnings around them; `unplug` and `list` are a line each in `plug.md`; `price` lives inside `saved.md`, because a price with no report is meaningless; `bulk-read` and `code-write` are the skills' own. A new one earns its place by carrying what a summary would drop first: `saved` its band, `handoff` its eight parts and the size a `Read` takes. Each pays for its place in a description every session loads, ~266 tokens with the skill descriptions in `docs/measurements.md`.
 
-Guard: `test/repo/skills.test.ts` pins that every `ccsaver …` a prompt of ours names is a command the CLI answers, reading the list out of `USAGE` in `src/ccsaver.cli.ts`, and that each file carries the description the plugin menu shows.
+Guard: `test/repo/skills.test.ts` pins that every `ccsaver …` a prompt of ours names is a command the CLI answers, reading the list out of `USAGE` in `src/cli/usage.reporter.ts`, and that each file carries the description the plugin menu shows.
 
 **2.2 ALWAYS import from the file that owns the symbol**, by relative path with the real extension. No barrel, no `export *`, no default export.
 Guard: Biome `useImportExtensions`, `allowImportingTsExtensions`; barrels are *convention*.
@@ -129,7 +130,7 @@ Guard: `test/repo/conventions.test.ts`.
 
 ## 3. Robustness
 
-**3.1 ALWAYS end a stop the user can fix the same way:** one `Error: …` line on stderr, one `fail` event, exit code 1, nothing sent. That line leaves through `writeSync` and not through the stream (`src/delegation/worker.client.ts` · `said`), because `process.exit` drops what a stream has queued and Node queues a pipe on macOS. State code throws a `Refusal`, caught once at the bottom of `src/ccsaver.cli.ts`; the worker path calls `fail`, which returns `never` (`src/delegation/worker.client.ts` · `fail`); a command handed arguments it cannot take returns the complaint as a string instead of an exit code, and `src/ccsaver.cli.ts` · `mistake` prints it as the `Error:` line with the command's own row of the usage table under it, so the reason and the remedy arrive together. Anything else that throws is a bug and is recorded as a `crash`.
+**3.1 ALWAYS end a stop the user can fix the same way:** one `Error: …` line on stderr, one `fail` event, exit code 1, nothing sent. That line leaves through `writeSync` and not through the stream (`src/delegation/worker.client.ts` · `said`), because `process.exit` drops what a stream has queued and Node queues a pipe on macOS. State code throws a `Refusal`, caught once at the bottom of `src/ccsaver.cli.ts`; the worker path calls `fail`, which returns `never` (`src/delegation/worker.client.ts` · `fail`); a command handed arguments it cannot take returns the complaint as a string instead of an exit code, and `src/cli/usage.reporter.ts` · `mistake` prints it as the `Error:` line with the command's own row of the usage table under it, so the reason and the remedy arrive together. Anything else that throws is a bug and is recorded as a `crash`.
 
 Every line a person reads goes through `src/state/state.store.ts` · `marked`, which puts a mark and a colour in front of it on a terminal and nothing at all on a pipe, `NO_COLOR` or `TERM=dumb`: the words carry the meaning, the paint only repeats it. Untrusted text is `scrubbed` first and painted second, because `scrubbed` would escape the paint. A command that finds its setting already so says `already` and returns 0 without writing or recording anything: `src/state/log.store.ts` · `setLog`, `src/delegation/worker.store.ts` · `setFallback`, `src/state/config.store.ts` · `plug` and their siblings answer whether anything changed, and the wording lives in `src/ccsaver.cli.ts`.
 Guard: every `throw new` in `src/` throws a `Refusal`, by `test/repo/conventions.test.ts`; `test/state/log.test.ts` pins that a mistake on the command line is a `fail`, never a `crash`.

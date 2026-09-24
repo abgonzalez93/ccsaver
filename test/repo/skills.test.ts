@@ -57,7 +57,7 @@ const USAGE_BLOCK = /const USAGE = `([\s\S]*?)`\n/
 const NAMED = /(?:^|`)ccsaver ([a-z-]+)/gm
 
 const answered = (): Set<string> => {
-  const source = readFileSync(join(REPO, "src", "ccsaver.cli.ts"), "utf8")
+  const source = readFileSync(join(REPO, "src", "cli", "usage.reporter.ts"), "utf8")
   const usage = USAGE_BLOCK.exec(source)?.[1] ?? ""
   return new Set(usage.split("\n").flatMap((line) => /^ {2}([a-z-]+)/.exec(line)?.[1] ?? []))
 }
