@@ -4,6 +4,13 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.28.5 - 2026-09-24
+
+docs: measurements.md keeps what a session sees, and the notes behind ccsaver's own milliseconds move to development.md
+
+- measurements.md stood 500 bytes under the 32 KB gate; it splits by responsibility (1.8): what a session saves or pays stays, and the ten notes on what ccsaver's own machinery costs, the hook on every Read, the handoff hook, the launcher, the fallback's start-up, adding up the log, measuring a repository and the test run, join the harness they were measured with in development.md, which keeps docs/ at five files (2.5)
+- every link into a moved section now names development.md, and the two pages point at each other from their first paragraph
+
 ## 0.28.4 - 2026-09-24
 
 perf: with the log off and no adapter, the sh gate answers a small file and a ranged read without starting Node
