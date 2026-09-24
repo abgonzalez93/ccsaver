@@ -4,6 +4,16 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.28.4 - 2026-09-24
+
+perf: with the log off and no adapter, the sh gate answers a small file and a ranged read without starting Node
+
+- a file under 350 line breaks and 32,000 bytes by wc -lc, or a Read with an offset or a limit, is let through in sh: 4.4 ms instead of 23.8 for the file and 2.1 instead of 23.0 for the range, three rounds of 30 runs per arm; the denial pays 2.7 ms more, for the pipe that hands Node the input
+- the log on, or an adapter, still sends every Read to Node, and nothing moves there: 25.1 against 25.1 ms let through, 27.8 against 27.5 denied, 1.8 unplugged
+- anything sh is not sure of goes to Node whole: a path with a brace or a backslash, a null range, a file at exactly 350 breaks or past 32,000 bytes, a relative path, a folder, a missing file, a tool_input that is not an object
+- the gate now picks the longest plugged root, as pluggedRootOf does, so a nested root with an adapter is never answered by the outer one
+- test/gate/gate.test.ts gives 17 inputs to sh and to the hook and asks for the same answer, and checks which ones never start node
+
 ## 0.28.3 - 2026-09-24
 
 docs: the one-shot worker measured at 1.0-1.4 s, and the length of pnpm test is the CPU

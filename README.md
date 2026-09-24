@@ -41,7 +41,7 @@ Measured on one TypeScript monorepo with Claude Code 2.1, small samples of 1–4
 | Files where delegation starts to pay | [roughly **2,000–3,000 lines** and up](docs/measurements.md#where-delegation-starts-to-pay) |
 | A denial the model then pages through by ranges | [one request per read, each re-reading the whole context: **1.57 M tokens for 12 denials** in 6 days](docs/measurements.md#what-a-denial-costs-after-the-message) |
 | Fixed cost of the seven menu entries, two skills and five commands | [**~266 tokens per session, in every project**](docs/measurements.md#the-fixed-cost-of-the-skill-descriptions) |
-| Hook overhead per `Read` | [**1–3 ms** unplugged, **≈ 24 ms** plugged](docs/measurements.md#hook-overhead-per-read) |
+| Hook overhead per `Read` | [**1–3 ms** unplugged, **≈ 4 ms** plugged with the log off and no adapter, **≈ 24 ms** with either](docs/measurements.md#hook-overhead-per-read) |
 
 Where it does not help:
 

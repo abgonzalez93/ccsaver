@@ -6,13 +6,43 @@ home="${CCSAVER_HOME:-$HOME/.config/ccsaver}"
 if [ "$1" = handoff ] && [ -r "$home/handoff.json" ]; then
   while IFS= read -r line; do case $line in *'"on": false'*) exit 0 ;; esac; done < "$home/handoff.json"
 fi
-while IFS='	' read -r root _ <&3; do
+best=
+while IFS='	' read -r root adapter <&3; do
   [ -n "$root" ] || continue
-  case "$dir/" in "$root"/*)
-    NODE_COMPILE_CACHE="$home/cache"
-    export NODE_COMPILE_CACHE
-    exec node "$(dirname "$0")/../src/$1.hook.ts" 3<&-
-    ;;
-  esac
+  case "$dir/" in "$root"/*) [ ${#root} -gt ${#best} ] && { best=$root; deepest=$adapter; } ;; esac
 done 3< "$home/plugged"
-exit 0
+[ -n "$best" ] || exit 0
+start() {
+  NODE_COMPILE_CACHE="$home/cache"
+  export NODE_COMPILE_CACHE
+  exec node "$(dirname "$0")/../src/$1.hook.ts"
+}
+[ "$1" = read-gate ] && [ -z "$deepest" ] && [ ! -e "$home/log" ] || start "$1"
+input=
+while IFS= read -r line; do input="$input$line
+"; done
+input=$input$line
+defer() {
+  printf '%s' "$input" | start read-gate
+  exit
+}
+small() {
+  [ -f "$1" ] && [ -r "$1" ] || return 1
+  set -- $({ wc -lc < "$1"; } 2>/dev/null)
+  [ "${1:-350}" -lt 350 ] && [ "${2:-32001}" -le 32000 ]
+}
+fields=${input#*'"tool_input":{'}
+[ "$fields" != "$input" ] || defer
+fields=${fields%%\}*}
+case $fields in
+*\\* | *null*) defer ;;
+*'"offset"'* | *'"limit"'*) exit 0 ;;
+esac
+path=${fields#*'"file_path":"'}
+[ "$path" != "$fields" ] || defer
+case $path in
+/*\"*) path=${path%%\"*} ;;
+*) defer ;;
+esac
+small "$path" && exit 0
+defer

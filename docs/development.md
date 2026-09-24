@@ -21,7 +21,7 @@ Once the gate is green and the commit made, `pnpm release` pushes `main` with it
 
 Rule 4.4 of [CONTRIBUTING](../CONTRIBUTING.md) asks for a number before and after any change to what the hook imports, and [measurements.md](measurements.md#hook-overhead-per-read) keeps them. The harness behind the recent ones:
 
-- a throwaway `CCSAVER_HOME` with a `plugged` line naming a throwaway project and an empty `log/`, so the hook takes the path that writes a line; in the project, a 100-line file it lets through and a 500-line one it denies;
+- a throwaway `CCSAVER_HOME` with a `plugged` line naming a throwaway project and an empty `log/`, so the hook takes the path that writes a line, and one without it, for the path the `sh` gate answers alone; in the project, a 100-line file it lets through and a 500-line one it denies;
 - a 300 KB transcript of assistant lines carrying a `usage` block and 2 KB tool results, named in the `transcript_path` of the hook's input beside a `session_id`;
 - the tree before the change, from `git worktree add /tmp/before HEAD`, and the working tree after it;
 - `sh hooks/gate read-gate` from one tree, then from the other, 30 times in turn on the same input after three warm-up runs, the mean per arm; three such rounds per file;
