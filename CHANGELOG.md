@@ -4,6 +4,13 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.33.11 - 2026-09-24
+
+refactor: the launcher and the permission rules are one environment.service.ts, and doctor.service.ts is back under 300 lines
+
+- doctor.service.ts sat at 349 lines after the permissions check; the check and the launcher are both what surrounds ccsaver on the machine, so launcher.service.ts takes the check and the name environment.service.ts
+- CONTRIBUTING 3.5 gives up its example to keep the file under 32 KB
+
 ## 0.33.10 - 2026-09-24
 
 docs: the proxy on Node 22, the settings.json boundary in 3.3, PDF pages in the sixth caveat, and the regroup measured on one disk

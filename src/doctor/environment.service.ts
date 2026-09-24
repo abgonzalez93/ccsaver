@@ -10,8 +10,17 @@ import {
 } from "node:fs"
 import { homedir } from "node:os"
 import { dirname, join } from "node:path"
+import { readPlugged } from "../state/config.store.ts"
 import { ownVersion, record } from "../state/log.store.ts"
-import { attempt, codeOf, messageOf, Refusal, real } from "../state/state.store.ts"
+import {
+  attempt,
+  codeOf,
+  isRecord,
+  messageOf,
+  parsed,
+  Refusal,
+  real,
+} from "../state/state.store.ts"
 import type { Finding, Fix } from "./finding.model.ts"
 
 const MARK = "# ccsaver launcher "
@@ -191,4 +200,64 @@ const pathFindings = (place: string): Finding[] => {
 export const launcherFindings = (): Finding[] => {
   const place = launcherPlace()
   return [launcherState(place), ...pathFindings(place)]
+}
+
+const MODES = ["bulk-read", "code-write"]
+const RULE = /^Bash\(ccsaver(?: (bulk-read|code-write))?(?: \*|:\*)\)$/
+const UNCHECKED = "so the two Bash(ccsaver …) rules could not be checked"
+
+const settingsFiles = (): string[] => {
+  const user = join(process.env["CLAUDE_CONFIG_DIR"] || join(homedir(), ".claude"), "settings.json")
+  const ofProject = (root: string): string[] =>
+    ["settings.json", "settings.local.json"].map((name) => join(root, ".claude", name))
+  try {
+    return [user, ...readPlugged().flatMap(({ root }) => ofProject(root))]
+  } catch {
+    return [user]
+  }
+}
+
+const allowedIn = (file: string): string[] | undefined => {
+  const raw = parsed(attempt(() => readFileSync(file, "utf8")) ?? "")
+  if (!isRecord(raw)) return undefined
+  const allow = isRecord(raw["permissions"]) ? raw["permissions"]["allow"] : undefined
+  return Array.isArray(allow)
+    ? allow.flatMap((rule) => (typeof rule === "string" ? [rule] : []))
+    : []
+}
+
+const covers = (rule: string, mode: string): boolean => {
+  const found = RULE.exec(rule)
+  return found !== null && (found[1] === undefined || found[1] === mode)
+}
+
+export const permissionRules = (): Finding => {
+  const [user = "", ...ofProjects] = settingsFiles()
+  const text = attempt(() => readFileSync(user, "utf8"))
+  if (text !== undefined && !isRecord(parsed(text)))
+    return { level: "warn", text: `permissions: ${user} is not JSON, ${UNCHECKED}` }
+  const held = [user, ...ofProjects].flatMap((file) => {
+    const allow = allowedIn(file)
+    return allow === undefined ? [] : [{ file, allow }]
+  })
+  if (held.length === 0)
+    return {
+      level: "warn",
+      text: `permissions: ${user} is not there or cannot be read, ${UNCHECKED}`,
+    }
+  const where = MODES.map(
+    (mode) => held.find(({ allow }) => allow.some((rule) => covers(rule, mode)))?.file,
+  )
+  const missing = MODES.filter((_, at) => where[at] === undefined)
+  if (missing.length === 0)
+    return {
+      level: "ok",
+      text: `permissions: the ccsaver rules are in ${[...new Set(where)].join(" and ")}`,
+    }
+  const named = missing.map((mode) => `Bash(ccsaver ${mode} *)`).join(" and ")
+  const also = held.some(({ file }) => file !== user) ? " nor of a plugged project" : ""
+  return {
+    level: "warn",
+    text: `permissions: ${named} not in permissions.allow of ${user}${also}: Claude asks before every delegation, and refuses one in print mode`,
+  }
 }

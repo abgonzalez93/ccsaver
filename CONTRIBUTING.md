@@ -72,7 +72,7 @@ Guard: `test/repo/conventions.test.ts`.
 
 ## 2. Architecture
 
-**2.1 ALWAYS respect the map.** Twenty-one files in five folders and three entry points, one reason to change each, arrows that never turn back. `src/state/` holds the four files of the state folder, which everything else imports; `src/boundary/` what may leave the machine and what comes back from it; `src/delegation/` the two flows and their two ways out; `src/saved/` the report and its prices; `src/doctor/` the checks, what they report, the survey and the launcher. `src/ccsaver.cli.ts`, `src/read-gate.hook.ts` and `src/handoff.hook.ts` stay at the top, where `bin/ccsaver` and `hooks/gate` find them.
+**2.1 ALWAYS respect the map.** Twenty-one files in five folders and three entry points, one reason to change each, arrows that never turn back. `src/state/` holds the four files of the state folder, which everything else imports; `src/boundary/` what may leave the machine and what comes back from it; `src/delegation/` the two flows and their two ways out; `src/saved/` the report and its prices; `src/doctor/` the checks, what they report, the survey, and what surrounds ccsaver on the machine. `src/ccsaver.cli.ts`, `src/read-gate.hook.ts` and `src/handoff.hook.ts` stay at the top, where `bin/ccsaver` and `hooks/gate` find them.
 
 | File | Owns | Imports |
 | --- | --- | --- |
@@ -92,9 +92,9 @@ Guard: `test/repo/conventions.test.ts`.
 | `src/saved/saved.reporter.ts` | what `ccsaver saved` prints, and every caveat under it | `log.store`, `prices.store`, `saved.service`, `state.store` |
 | `src/doctor/finding.model.ts` | what a check reports: a level, a text and the fix it offers, and how a line is painted | `state.store` |
 | `src/doctor/month.service.ts` | the two lines that add the month's log up, `denied:` and `spent:`, folded one row at a time | `config.store`, `finding.model`, `log.store`, `state.store` |
-| `src/doctor/doctor.service.ts` | every check `doctor` runs and the level each one reports | `config.store`, `fallback.client`, `finding.model`, `handoff.store`, `launcher.service`, `log.store`, `month.service`, `state.store`, `survey.service`, `worker.client`, `worker.store` |
-| `src/doctor/launcher.service.ts` | the launcher of your own terminal: `launcher/ccsaver.sh` with `launcher/installed.js` inlined, its place, and what stands before it on the `PATH` | `finding.model`, `log.store`, `state.store` |
-| `src/ccsaver.cli.ts` | arguments and the exit code | `config.store`, `delegation.service`, `doctor.service`, `handoff.store`, `launcher.service`, `log.store`, `prices.store`, `saved.reporter`, `state.store`, `survey.service`, `worker.store` |
+| `src/doctor/doctor.service.ts` | every check `doctor` runs and the level each one reports | `config.store`, `environment.service`, `fallback.client`, `finding.model`, `handoff.store`, `log.store`, `month.service`, `state.store`, `survey.service`, `worker.client`, `worker.store` |
+| `src/doctor/environment.service.ts` | what surrounds ccsaver on the machine: the launcher of your own terminal, `launcher/ccsaver.sh` with `launcher/installed.js` inlined, its place and what stands before it on the `PATH`, and the two rules in Claude Code's settings | `config.store`, `finding.model`, `log.store`, `state.store` |
+| `src/ccsaver.cli.ts` | arguments and the exit code | `config.store`, `delegation.service`, `doctor.service`, `environment.service`, `handoff.store`, `log.store`, `prices.store`, `saved.reporter`, `state.store`, `survey.service`, `worker.store` |
 | `src/read-gate.hook.ts` | the `Read` gate | `boundary.guard`, `config.store`, `log.store`, `state.store` |
 | `src/handoff.hook.ts` | the context warning at the end of a turn | `config.store`, `handoff.store`, `log.store`, `state.store` |
 
@@ -146,7 +146,7 @@ throw new Refusal(`adapter ${name} not found in ${places.join(" or ")}`)
 
 Guard: *convention*.
 
-**3.3 ALWAYS validate at the boundary, by hand, and return a typed value built from the checked fields.** The boundaries are `worker.json` (`readWorker`), the `plugged` file (`src/state/config.store.ts` · `readPlugged`, which drops a line that is not an absolute path), an adapter file (`adapterOf`, which also rejects unknown keys), the hook's stdin (`src/read-gate.hook.ts` · `gate`), the tail of the session transcript Claude Code names on it (`src/state/config.store.ts` · `lastAssistantOf`, which reads whole JSON lines rather than matching text, so a model named in the conversation is not read as the one in force), the worker's HTTP response (`src/delegation/worker.client.ts` · `contentOf`), the fallback's stdout (`invokeClaude`), the month's own log lines when `doctor` adds it up (`src/doctor/month.service.ts` · `into`) and when `ccsaver saved` adds up the whole log (`src/saved/saved.service.ts` · `tallied`, which reads every field through `numberAt`), `prices.json` (`src/saved/prices.store.ts` · `readPrices`), Claude Code's `settings.json`, the user's and a plugged project's, when `doctor` looks for the two rules (`src/doctor/doctor.service.ts` · `allowedIn`), and `package.json` when it prints the version (`src/state/log.store.ts` · `ownVersion`). Every `JSON.parse` lands in a `const` typed `unknown`, or goes through `parsed`.
+**3.3 ALWAYS validate at the boundary, by hand, and return a typed value built from the checked fields.** The boundaries are `worker.json` (`readWorker`), the `plugged` file (`src/state/config.store.ts` · `readPlugged`, which drops a line that is not an absolute path), an adapter file (`adapterOf`, which also rejects unknown keys), the hook's stdin (`src/read-gate.hook.ts` · `gate`), the tail of the session transcript Claude Code names on it (`src/state/config.store.ts` · `lastAssistantOf`, which reads whole JSON lines rather than matching text, so a model named in the conversation is not read as the one in force), the worker's HTTP response (`src/delegation/worker.client.ts` · `contentOf`), the fallback's stdout (`invokeClaude`), the month's own log lines when `doctor` adds it up (`src/doctor/month.service.ts` · `into`) and when `ccsaver saved` adds up the whole log (`src/saved/saved.service.ts` · `tallied`, which reads every field through `numberAt`), `prices.json` (`src/saved/prices.store.ts` · `readPrices`), Claude Code's `settings.json`, the user's and a plugged project's, when `doctor` looks for the two rules (`src/doctor/environment.service.ts` · `allowedIn`), and `package.json` when it prints the version (`src/state/log.store.ts` · `ownVersion`). Every `JSON.parse` lands in a `const` typed `unknown`, or goes through `parsed`.
 
 ```ts
 // ❌ trusts the shape of a response from the network
@@ -164,17 +164,6 @@ Guard: `test/state/state.test.ts`, "a worker.json that is there but wrong is an 
 
 **3.5 NEVER let one failure hide another.** Name the cause. `fellOf` tells a timeout from a body that is not JSON from a dead host. `src/delegation/fallback.client.ts` · `troubleOf` reads the `code` of a failed spawn: an `EPIPE` is a child that stopped reading and no error at all, an `ETIMEDOUT` is the 85 s running out and says so rather than showing `spawnSync claude ETIMEDOUT`. `invokeClaude` then reports the reason the child printed, which is all a spent budget leaves behind, before its exit and stderr. A key that is present but unreadable is told from a key that was never stored, in the note and in `doctor`, by `src/state/state.store.ts` · `keyIsStored`; reading the first as the second sent the call to the paid worker under a message that said the opposite. A worker's answer cut at an output limit falls as `length`, never as `incomplete`. Every fall to the paid worker says why on stderr first.
 
-```ts
-// ❌ past 64 KB of input the real error hides behind `spawnSync … EPIPE`
-if (run.error) return fail(`fallback worker could not run: ${run.error.message}`)
-// ✅ `src/delegation/fallback.client.ts` · `invokeClaude`
-const trouble = troubleOf(run.error)
-if (trouble !== undefined) return fail(trouble)
-const raw = parsed(run.stdout)
-const reason = reasonOf(raw)
-if (reason !== undefined) return fail(`fallback worker failed: ${reason.slice(0, 400)}`)
-if (run.status !== 0) return fail(`fallback worker exited ${run.status ?? run.signal}: ${run.stderr.slice(0, 400)}`)
-```
 
 Guard: `test/delegation/transport.test.ts`.
 
