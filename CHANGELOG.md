@@ -4,6 +4,12 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.29.4 - 2026-09-24
+
+fix: saved leaves a ranged read of a file outside the plugged root out of instead
+
+- a denial of such a file was already left out of without, because nothing could have delegated it, but its ranged reads were still charged to ccsaver: 1,000 tokens for one 100-line range of a 400 KB file, and in months before 0.24.13 enough to move the sign of the month
+
 ## 0.29.3 - 2026-09-24
 
 docs: CONTRIBUTING 5.3 and 5.5 point at docs/versions.md, so the next rule has room under the 32 KB gate

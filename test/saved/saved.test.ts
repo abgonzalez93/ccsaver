@@ -214,3 +214,12 @@ test("a denial of a file outside the plugged root is counted apart, never as a s
   const spend = tallied([denialRow(40_000), { ...denialRow(40_000), inside: false }])
   assert.deepEqual([spend.denied, spend.outside], [1, 1])
 })
+
+test("a ranged read of a file outside the plugged root is left out of instead, as its denial is", () => {
+  const range = { reason: "range", bytes: 400_000, lines: 10_000, offset: 1, limit: 100 }
+  const spend = tallied([
+    gateRow({ ...range, inside: false }),
+    gateRow({ ...range, inside: true, path: "a.ts", bytes: 40_000, lines: 1_000 }),
+  ])
+  assert.deepEqual([spend.ranged, totalled(spend.byModel).rangedTokens], [1, 1_000])
+})

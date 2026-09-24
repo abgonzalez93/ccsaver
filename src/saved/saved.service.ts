@@ -136,6 +136,7 @@ const gateInto = (sum: Spend, row: Row): Spend => {
     }
   }
   if (row["reason"] !== "range" && row["decision"] !== "rewrite") return sum
+  if (row["inside"] === false) return sum
   pagedAfter(sum.paged, row, false)
   const lines = numberAt(row, "lines")
   if (lines <= 0) return { ...sum, ranged: sum.ranged + 1, uncounted: sum.uncounted + 1 }
