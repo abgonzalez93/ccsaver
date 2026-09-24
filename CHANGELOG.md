@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.26.2 - 2026-09-24
+
+docs: the default limit is a nudge below the break-even, not a saving in itself
+
+- the README stops presenting 350 as a reasonable value: it is this repository's house style, 4–7 times under the 2,000 lines where delegation pays, and a denial there pays only when the model lets the file go, which followed 8 of the 12 denials measured inside a plugged root
+- configuration.md says the same beside the defaults, with the two measurements it rests on
+- raising the floor of the limits `plug` and `doctor` propose to that break-even stays discarded, because the hook would never fire on the two repositories measured
+
 ## 0.26.1 - 2026-09-24
 
 fix: the tripwire sees a write to the disk, a process exit, a plain rm -r and a beacon
