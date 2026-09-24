@@ -4,6 +4,15 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.33.3 - 2026-09-24
+
+docs: doctor's handoff lines, the two state files the README left out, the formatter's path and the notebook limit
+
+- configuration.md § doctor now lists the handoff switch line and the handoff file and folder it checks, as the code has since 0.22.0
+- the README names launcher-root and api-key.moved among the files of the state folder
+- the formatter of an adapter is judged by its path as written, symlinks not followed, and the page says why the real path is not used: pnpm links a workspace's tools from above the root
+- a notebook is JSON to the hook, and the page says so
+
 ## 0.33.2 - 2026-09-24
 
 test: the map of CONTRIBUTING 2.1 and the definition behind every citation are guarded
