@@ -4,6 +4,13 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.25.2 - 2026-09-24
+
+docs: the fixed cost is seven entries and 266 tokens, and a Bash read leaves no trace in the log
+
+- the listing carries two skills and five slash commands, 983 bytes, measured at 266 tokens by the difference in input tokens of one `claude -p` prompt with and without it; the README said 188 for the two skills alone
+- the README no longer says the log counts a `cat`: a ranged Read is counted, a Bash read never is, and in the `auto` permission mode the harness tells the model to read with `cat`, `head` and `sed`, so there most reads never meet the gate; the note holds the session that read 1,113 lines that way and left the log empty
+
 ## 0.25.1 - 2026-09-24
 
 fix: the gate never denies a file that bulk-read would refuse to send

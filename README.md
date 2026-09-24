@@ -40,14 +40,14 @@ Measured on one TypeScript monorepo with Claude Code 2.1, small samples of 1–4
 | Delegated writing of a ~110-line test file | [**break-even**](docs/measurements.md#delegated-writing-of-a-test-file) |
 | Files where delegation starts to pay | [roughly **2,000–3,000 lines** and up](docs/measurements.md#where-delegation-starts-to-pay) |
 | A denial the model then pages through by ranges | [one request per read, each re-reading the whole context: **1.57 M tokens for 12 denials** in 6 days](docs/measurements.md#what-a-denial-costs-after-the-message) |
-| Fixed cost of the two skill descriptions | [**~188 tokens per session, in every project**](docs/measurements.md#the-fixed-cost-of-the-skill-descriptions) |
+| Fixed cost of the seven menu entries, two skills and five commands | [**~266 tokens per session, in every project**](docs/measurements.md#the-fixed-cost-of-the-skill-descriptions) |
 | Hook overhead per `Read` | [**1–3 ms** unplugged, **≈ 24 ms** plugged](docs/measurements.md#hook-overhead-per-read) |
 
 Where it does not help:
 
 - If most of your files are under 300 lines the hook rarely fires, and the honest expectation is a small saving.
 - **That 3.6× is a limit set too low, not a law of the approach.** Denying a file the model needs whole makes it page through ranges and delegate on top of that. The limit is the knob, and the two ways of being wrong are not symmetric: too high is inert, too low degrades. `plug` and `doctor` measure it for you — [Limits](docs/configuration.md#limits).
-- **The gate is a nudge, not a wall.** It watches the `Read` tool only, and only whole-file reads: a ranged `Read` that covers the whole file passes, and so does `cat` through Bash. The [event log](docs/events.md) counts how often that happens.
+- **The gate is a nudge, not a wall.** It watches the `Read` tool only, and only whole-file reads: a ranged `Read` that covers the whole file passes, and the [event log](docs/events.md) counts those; `cat` through Bash passes too and leaves no trace in it, and in Claude Code's `auto` permission mode the harness itself tells the model to read with `cat`, `head` and `sed`, so there most reads never meet the gate: [one session measured](docs/measurements.md#what-a-denial-costs-after-the-message) read 1,113 lines of five files that way and left the log empty.
 - **The context warning counts what a file of Claude Code's own says**, in a format that "changes between versions": on a release that changes it the warning falls silent, never wrong. It comes at the end of a turn, so a turn that grows a lot ends past the limit before it (one turn in ten grew more than 87,000 tokens in [175 sessions measured](docs/measurements.md#where-the-handoff-limit-comes-from)), it can trail the count by one request, because the transcript is written behind the conversation, and it never names the model's window, because the transcript does not say it.
 - **Line citations are checked, claims are not.** `bulk-read` compares each cited line with the file and tags what does not match `[unverified]`. What the worker *says* about the code is still the word of a cheap model.
 - The hook's token limit is an estimate: bytes/4 measured [1.9–2.8× under](docs/measurements.md#the-hooks-token-estimate-vs-a-real-read) the real cost of a `Read`, so the 8,000-token limit lets through reads of about 16,000 real tokens.

@@ -54,7 +54,7 @@ That is why the check guards `setup`, `doctor` and `plug` and not every command.
 
 ## The fixed cost of the skill descriptions
 
-The two skill descriptions cost about 188 tokens per session, in every project, plugged or not: ≈ 0.006 $ on a frontier model.
+Seven entries, two skills and five slash commands, 983 bytes of descriptions in the skill listing every session loads: 266 tokens, in every project, plugged or not, measured as the difference in input tokens of one `claude -p` prompt with and without the listing's text appended (32,229 against 32,495, on Haiku, one tokenizer for the family); ≈ 0.003 $ a session at a frontier model's input rate. In print mode the listing carries the names only: 28 to 38 tokens by the same method, three runs per arm with the plugin enabled and disabled. Read from cache on every request after the first, it came to 2.47 M cache-read tokens over 83 sessions and 9,291 requests in six days of one machine. The 188 given here before was the two skill descriptions alone, measured in a session.
 
 ## Hook overhead per Read
 
@@ -78,7 +78,7 @@ Folders cost it nothing either. When `src/` regrouped by feature and the hook's 
 
 Three rounds of 30 runs per arm, paired, process spawn included, on a 4 MB transcript whose last line holds the count, with the warning already given for the multiple the count sits in, which is what every turn but the crossing one costs: **1.7 / 1.7 / 1.7 ms in an unplugged project and 1.7 / 1.7 / 1.7 ms in a plugged one with the warning off**, where `hooks/gate` exits in `sh` before Node starts, and **27.2 / 27.3 / 25.9 ms with it on**: Node's start-up with four modules, the last 256 KB of the transcript parsed, and the marker read. The `Read` gate did not move when the switch line joined the launcher: 24.3 / 23.9 / 24.3 ms before against 24.0 / 24.0 / 23.7 ms after.
 
-The fifth slash command's description is 86 characters, about 22 tokens by bytes/4 on the listing every session loads, beside the ~188 the two skill descriptions measured; it has not been measured in a session of its own.
+The fifth slash command's description is one of the seven entries [measured together](#the-fixed-cost-of-the-skill-descriptions) at 266 tokens.
 
 ## Where the handoff limit comes from
 
@@ -149,6 +149,7 @@ Six days of session transcripts of one machine, 2026-09-18 to 24, Claude Code 2.
 - What followed: nothing 24 times (65 %), paging with `sed`, `head` or `grep` in Bash 7 times, ranged `Read`s 4, a delegation 2, both in test sessions. A follow-up is a later request whose tools touched the same file; the request that receives the denial is not counted, because it would have run either way.
 - What it cost: 37 follow-up requests, re-reading 3,005,632 tokens of context, at a median context of 120,403 tokens when denied. The 12 inside the root drew 8 requests and 1,571,318 tokens, 969,172 of them on `CHANGELOG.md` alone: denied at 283,157 tokens of context, then refused by `bulk-read` for a private-key header its own text quotes mid-line, which 0.24.2 stopped refusing three hours later, three requests for a file that never arrived. `src/worker.ts`, 405 lines, was read whole in two ranges, two requests on top of the file. One request at that context is about 12,000 tokens at input price, with cache reads at a tenth of it: fifty to ninety times the message, which the same tokenizer puts at 114 tokens for the 376 characters the section below describes.
 - What it saved: the 8 reads of `pnpm-lock.yaml` nobody came back for, 3,900 tokens by bytes/4 each and 1.9–2.8× that as a `Read`, plus what a file that never entered the context is not re-read for by every later request of the session, which no log counts; the sessions of those six days made 112 requests each at the mean.
+- What the log never saw: the session that ran this measurement, in the `auto` permission mode on the plugged project, read 1,113 lines of five files with `cat` and left no `gate` line, because in that mode the harness tells the model to read with `cat`, `head` and `sed`; in the 51 `auto` sessions of another project that September, before the plugin, files over 400 lines were read whole 6 times with `Read` against 12 times with `cat`, and 581 times in part through Bash.
 
 `saved` prints the first count at the foot, from the `context` the hook records on every line and the ranged reads that follow a denial of the same file in the same session ([saved](events.md#saved)). It cannot see the `sed` and `cat` follow-ups, 7 of the 13 here, so it undercounts; two ranged reads made in one request count that request twice, so it overcounts; and no column holds the second count.
 
