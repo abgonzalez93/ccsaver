@@ -143,18 +143,10 @@ throw new Refusal(`adapter ${name} not found in ${places.join(" or ")}`)
 
 **3.2 ALWAYS turn an expected failure into a value, and NEVER a refusal.** A missing file is an answer, and the caller decides what it means; a `Refusal` is a decision already made, so `src/state/state.store.ts` · `attempt` lets it through instead of turning it into `undefined`. Swallowing one turns a stop into a default, which is 3.4 by another door.
 
-```ts
-// ❌ an inline try/catch at every call site, each free to swallow something else
-let text
-try { text = readFileSync(place, "utf8") } catch {}
-// ✅ `src/state/state.store.ts` · `attempt`
-const text = attempt(() => readFileSync(place, "utf8"))
-if (text === undefined) continue
-```
 
 Guard: *convention*.
 
-**3.3 ALWAYS validate at the boundary, by hand, and return a typed value built from the checked fields.** The boundaries are `worker.json` (`readWorker`), the `plugged` file (`src/state/config.store.ts` · `readPlugged`, which drops a line that is not an absolute path), an adapter file (`adapterOf`, which also rejects unknown keys), the hook's stdin (`src/read-gate.hook.ts` · `gate`), the tail of the session transcript Claude Code names on it (`src/state/config.store.ts` · `lastAssistantOf`, which reads whole JSON lines rather than matching text, so a model named in the conversation is not read as the one in force), the worker's HTTP response (`src/delegation/worker.client.ts` · `contentOf`), the fallback's stdout (`invokeClaude`), the month's own log lines when `doctor` adds it up (`src/doctor/month.service.ts` · `into`) and when `ccsaver saved` adds up the whole log (`src/saved/saved.service.ts` · `tallied`, which reads every field through `numberAt`), `prices.json` (`src/saved/prices.store.ts` · `readPrices`) and `package.json` when it prints the version (`src/state/log.store.ts` · `ownVersion`). Every `JSON.parse` lands in a `const` typed `unknown`, or goes through `parsed`.
+**3.3 ALWAYS validate at the boundary, by hand, and return a typed value built from the checked fields.** The boundaries are `worker.json` (`readWorker`), the `plugged` file (`src/state/config.store.ts` · `readPlugged`, which drops a line that is not an absolute path), an adapter file (`adapterOf`, which also rejects unknown keys), the hook's stdin (`src/read-gate.hook.ts` · `gate`), the tail of the session transcript Claude Code names on it (`src/state/config.store.ts` · `lastAssistantOf`, which reads whole JSON lines rather than matching text, so a model named in the conversation is not read as the one in force), the worker's HTTP response (`src/delegation/worker.client.ts` · `contentOf`), the fallback's stdout (`invokeClaude`), the month's own log lines when `doctor` adds it up (`src/doctor/month.service.ts` · `into`) and when `ccsaver saved` adds up the whole log (`src/saved/saved.service.ts` · `tallied`, which reads every field through `numberAt`), `prices.json` (`src/saved/prices.store.ts` · `readPrices`), Claude Code's `settings.json`, the user's and a plugged project's, when `doctor` looks for the two rules (`src/doctor/doctor.service.ts` · `allowedIn`), and `package.json` when it prints the version (`src/state/log.store.ts` · `ownVersion`). Every `JSON.parse` lands in a `const` typed `unknown`, or goes through `parsed`.
 
 ```ts
 // ❌ trusts the shape of a response from the network

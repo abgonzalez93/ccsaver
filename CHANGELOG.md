@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.33.10 - 2026-09-24
+
+docs: the proxy on Node 22, the settings.json boundary in 3.3, PDF pages in the sixth caveat, and the regroup measured on one disk
+
+- Node 22.22 lists --use-env-proxy, so the page no longer says the 22 line ignores the variable; the 22.18 floor stays unverified
+- CONTRIBUTING 3.3 names Claude Code's settings.json among the boundaries validated by hand, and 3.2 gives up its example to make room
+- the regroup measurement had its before tree on tmpfs and its after tree on the disk; measured again with both on one disk
+
 ## 0.33.9 - 2026-09-24
 
 refactor: spent.service.ts is month.service.ts, named after what it folds
