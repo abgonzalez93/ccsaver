@@ -138,6 +138,38 @@ test("a launcher that finds no installed plugin fails the check with its own wor
   )
 })
 
+test("doctor says whether the two Bash(ccsaver …) rules are in permissions.allow, and when it cannot tell", async () => {
+  const settings = join(CONFIG, "settings.json")
+  const allowing = (allow: string[]): void => {
+    writeFileSync(settings, JSON.stringify({ permissions: { allow } }))
+  }
+  const none = await doctor()
+  assert.match(
+    none.stdout,
+    /^warn permissions: \S+settings\.json is not there or cannot be read, so the two Bash\(ccsaver …\) rules could not be checked$/m,
+  )
+  allowing(["Bash(ccsaver bulk-read *)", "Read"])
+  const half = await doctor()
+  assert.match(
+    half.stdout,
+    /^warn permissions: Bash\(ccsaver code-write \*\) not in permissions\.allow of \S+settings\.json: Claude asks before every delegation, and refuses one in print mode$/m,
+  )
+  assert.equal(half.code, 0)
+  allowing(["Bash(ccsaver bulk-read *)", "Bash(ccsaver code-write *)"])
+  assert.match(
+    (await doctor()).stdout,
+    /^ok {3}permissions: the ccsaver rules are in \S+settings\.json$/m,
+  )
+  allowing(["Bash(ccsaver *)"])
+  assert.match((await doctor()).stdout, /^ok {3}permissions: /m)
+  writeFileSync(settings, "{")
+  assert.match(
+    (await doctor()).stdout,
+    /^warn permissions: \S+settings\.json is not JSON, so the two Bash\(ccsaver …\) rules could not be checked$/m,
+  )
+  rmSync(settings)
+})
+
 test("a launcher that runs another version than this doctor says so", async () => {
   const other = join(WORK, "other-config")
   fakeInstall(other, "9.9.9", ["9.9.9"])

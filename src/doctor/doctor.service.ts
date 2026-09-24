@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process"
-import { existsSync, rmSync, statSync, writeFileSync } from "node:fs"
+import { existsSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs"
+import { homedir } from "node:os"
 import { join } from "node:path"
 import {
   CLAUDE_ON_PATH,
@@ -24,6 +25,7 @@ import {
   adaptersDir,
   attempt,
   isEncrypted,
+  isRecord,
   keyFile,
   keyIsCarriable,
   keyIsStored,
@@ -31,6 +33,7 @@ import {
   marked,
   messageOf,
   movedKeyFile,
+  parsed,
   pluggedFile,
   pricesFile,
   readKey,
@@ -61,6 +64,42 @@ const WHY = {
 } as const
 
 const NOTHING_PLUGGED: Finding = { level: "warn", text: "plugged: nothing" }
+const RULES = ["Bash(ccsaver bulk-read *)", "Bash(ccsaver code-write *)"]
+const WIDER_RULES = ["Bash(ccsaver *)", "Bash(ccsaver:*)"]
+const UNCHECKED = "so the two Bash(ccsaver …) rules could not be checked"
+
+const settingsFile = (): string =>
+  join(process.env["CLAUDE_CONFIG_DIR"] || join(homedir(), ".claude"), "settings.json")
+
+const allowedIn = (raw: unknown): string[] => {
+  const permissions = isRecord(raw) ? raw["permissions"] : undefined
+  const allow = isRecord(permissions) ? permissions["allow"] : undefined
+  return Array.isArray(allow)
+    ? allow.flatMap((rule) => (typeof rule === "string" ? [rule] : []))
+    : []
+}
+
+const permissionRules = (): Finding => {
+  const file = settingsFile()
+  const text = attempt(() => readFileSync(file, "utf8"))
+  if (text === undefined)
+    return {
+      level: "warn",
+      text: `permissions: ${file} is not there or cannot be read, ${UNCHECKED}`,
+    }
+  const raw = parsed(text)
+  if (!isRecord(raw))
+    return { level: "warn", text: `permissions: ${file} is not JSON, ${UNCHECKED}` }
+  const allow = allowedIn(raw)
+  const wider = WIDER_RULES.some((rule) => allow.includes(rule))
+  const missing = wider ? [] : RULES.filter((rule) => !allow.includes(rule))
+  return missing.length === 0
+    ? { level: "ok", text: `permissions: the ccsaver rules are in ${file}` }
+    : {
+        level: "warn",
+        text: `permissions: ${missing.join(" and ")} not in permissions.allow of ${file}: Claude asks before every delegation, and refuses one in print mode`,
+      }
+}
 
 const OTHERS = 0o077
 
@@ -271,6 +310,7 @@ export const doctor = async (): Promise<number> => {
     ...optional("adapters", adaptersDir(), 0o700),
     ...optional("handoff file", handoffFile(), 0o600),
     ...optional("handoffs", handoffDir(), 0o700),
+    permissionRules(),
     handoff(),
     log(),
     ...monthFindings(),

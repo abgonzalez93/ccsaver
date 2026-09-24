@@ -4,6 +4,13 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.30.0 - 2026-09-24
+
+feat: doctor says when the two Bash(ccsaver …) rules are missing from permissions.allow
+
+- the root cause of a session that never delegates is the grant of a skill not applying when Claude invokes it, so the two rules have to be in the user's settings.json, and doctor checked fourteen things but not that one
+- a missing rule, a missing file or one that is not JSON is a warn with the file's name; the file is Claude Code's and ccsaver never edits it
+
 ## 0.29.10 - 2026-09-24
 
 refactor: the two lines of doctor that add the month up move to spent.service.ts and fold the log one row at a time
