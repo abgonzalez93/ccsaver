@@ -2,14 +2,8 @@
 import { spawnSync } from "node:child_process"
 import { tmpdir } from "node:os"
 import { codeOf, isRecord, messageOf, parsed } from "../state/state.store.ts"
-import {
-  CHARS_PER_TOKEN,
-  type Delegation,
-  delegation,
-  fail,
-  note,
-  tokensOf,
-} from "./worker.client.ts"
+import { CHARS_PER_TOKEN, type Delegation, delegation, tokensOf } from "./delegation.model.ts"
+import { fail, note } from "./worker.client.ts"
 import type { Worker } from "./worker.store.ts"
 
 const FALLBACK_MODEL = "haiku"

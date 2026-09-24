@@ -1,6 +1,6 @@
 # Development
 
-The checks, how to measure whether ccsaver saves you anything, and the notes behind every millisecond of ccsaver's own: the hook on every `Read`, the handoff hook at the end of every turn, the launcher, the fallback's start-up, adding up the log, measuring a repository and the test run. The rules the code follows are in [CONTRIBUTING.md](../CONTRIBUTING.md), the version hook in [versions.md](versions.md).
+The checks, the slash commands, how to measure whether ccsaver saves you anything, and the notes behind every millisecond of ccsaver's own: the hook on every `Read`, the handoff hook at the end of every turn, the launcher, the fallback's start-up, adding up the log, measuring a repository and the test run. The rules the code follows are in [CONTRIBUTING.md](../CONTRIBUTING.md), the version hook in [versions.md](versions.md).
 
 ```bash
 pnpm install
@@ -16,6 +16,14 @@ The first three run in CI; the fourth is typed by hand, because a read-only CI t
 
 Once the gate is green and the commit made, `pnpm release` pushes `main` with its tags and then refreshes the plugin this machine runs, `claude plugin marketplace update abgonzalez93 && claude plugin update ccsaver@abgonzalez93`: the installed copy comes from the marketplace, never from this folder, so editing here changes nothing until that runs ([Update](../README.md#update)). The push is what makes the release workflow sweep for a `v*.*.0` tag ([versions](versions.md)).
 
+
+## The slash commands
+
+`commands/` holds the five markdown files behind `/ccsaver:setup`, `/ccsaver:plug`, `/ccsaver:doctor`, `/ccsaver:saved` and `/ccsaver:handoff`: prompts for Claude, not code: they call subcommands and hold no logic.
+
+There is one per flow that needs judgement, **never one per command**. `key set`, `worker set`, `fallback` and `launcher write` live inside `setup.md` because they need the warnings around them; `unplug` and `list` are a line each in `plug.md`; `price` lives inside `saved.md`, because a price with no report is meaningless; `bulk-read` and `code-write` are the skills' own. A new one earns its place by carrying what a summary would drop first: `saved` its band, `handoff` its eight parts and the size a `Read` takes. Each pays for its place in a description every session loads, [~266 tokens with the skill descriptions](measurements.md#the-fixed-cost-of-the-skill-descriptions).
+
+`test/repo/skills.test.ts` pins that every `ccsaver …` a prompt of ours names is a command the CLI answers, reading the list out of `USAGE` in `src/cli/usage.reporter.ts`, and that each file carries the description the plugin menu shows.
 
 ## Measure the hook
 

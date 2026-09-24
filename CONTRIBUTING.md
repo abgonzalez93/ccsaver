@@ -56,7 +56,7 @@ tally[verdictOf(line, claimed)] += 1
 verdict === undefined ? tally : { ...tally, [verdict]: tally[verdict] + 1 }
 ```
 
-Two folds mutate what they carry, `src/saved/saved.service.ts` · `pagedAfter` and `src/doctor/month.service.ts` · `gateInto`, because a copy per row is [quadratic](docs/development.md#adding-up-a-month-of-the-log). Module-level mutable state exists twice, `secret` in `src/state/state.store.ts`, read through `storedKey`, and `delegation` in `src/delegation/worker.client.ts`, because one process serves one call. Both become parameters the day a process serves two.
+Two folds mutate what they carry, `src/saved/saved.service.ts` · `pagedAfter` and `src/doctor/month.service.ts` · `gateInto`, because a copy per row is [quadratic](docs/development.md#adding-up-a-month-of-the-log). Module-level mutable state exists twice, `secret` in `src/state/state.store.ts`, read through `storedKey`, and `delegation` in `src/delegation/delegation.model.ts`, because one process serves one call. Both become parameters the day a process serves two.
 
 **1.5 NEVER comment code.** Names carry the what, the README and the pages under `docs/` carry the why. The complete list of exceptions: the one-line attribution header on a file that holds adapted third-party material (Apache-2.0 asks for it; [NOTICE](NOTICE) names the files), and one line inside a `catch` that is empty on purpose, saying why (`src/state/log.store.ts` · `record`).
 Guard: `test/repo/conventions.test.ts`.
@@ -72,7 +72,7 @@ Guard: `test/repo/conventions.test.ts`.
 
 ## 2. Architecture
 
-**2.1 ALWAYS respect the map.** Twenty-three files in six folders and three entry points, one reason to change each, arrows that never turn back. `src/state/` holds the three stores every feature imports, and the handoff's; `src/cli/` what a command prints; `src/boundary/` what may leave the machine and what comes back from it; `src/delegation/` the two flows and their two ways out; `src/saved/` the report and its prices; `src/doctor/` the checks, what they report, the survey, and what surrounds ccsaver on the machine. `src/ccsaver.cli.ts`, `src/read-gate.hook.ts` and `src/handoff.hook.ts` stay at the top, where `bin/ccsaver` and `hooks/gate` find them.
+**2.1 ALWAYS respect the map.** Twenty-four files in six folders and three entry points, one reason to change each, arrows that never turn back. `src/state/` holds the three stores every feature imports, and the handoff's; `src/cli/` what a command prints; `src/boundary/` what may leave the machine and what comes back from it; `src/delegation/` the two flows and their two ways out; `src/saved/` the report and its prices; `src/doctor/` the checks, what they report, the survey, and what surrounds ccsaver on the machine. `src/ccsaver.cli.ts`, `src/read-gate.hook.ts` and `src/handoff.hook.ts` stay at the top, where `bin/ccsaver` and `hooks/gate` find them.
 
 | File | Owns | Imports |
 | --- | --- | --- |
@@ -84,9 +84,10 @@ Guard: `test/repo/conventions.test.ts`.
 | `src/doctor/survey.service.ts` | how long a project's files are, and what limit that asks for | `config.store`, `state.store`, `terminal.reporter` |
 | `src/boundary/answer.validator.ts` | pure text work on the worker's answer | nothing |
 | `src/boundary/boundary.guard.ts` | what may leave the machine | `state.store` |
-| `src/delegation/worker.client.ts` | the way out to the worker, `fetch`, what a call records (`delegation`) and how it stops or notes (`fail`, `note`) | `log.store`, `state.store`, `terminal.reporter`, the `Worker` type of `worker.store`, the `Tally` type of `answer.validator` |
-| `src/delegation/fallback.client.ts` | the other way out: the spawn of a bare, bounded `claude -p` | `state.store`, `worker.client`, the `Worker` type of `worker.store` |
-| `src/delegation/delegation.service.ts` | the `bulk-read` and `code-write` flows | `answer.validator`, `boundary.guard`, `config.store`, `fallback.client`, `log.store`, `state.store`, `terminal.reporter`, `worker.client`, `worker.store` |
+| `src/delegation/delegation.model.ts` | what a call records (`delegation`), and how a message is weighed | the `Tally` type of `answer.validator` |
+| `src/delegation/worker.client.ts` | the way out to the worker, `fetch`, and how a call stops or notes (`fail`, `note`) | `delegation.model`, `log.store`, `state.store`, `terminal.reporter`, the `Worker` type of `worker.store` |
+| `src/delegation/fallback.client.ts` | the other way out: the spawn of a bare, bounded `claude -p` | `delegation.model`, `state.store`, `worker.client`, the `Worker` type of `worker.store` |
+| `src/delegation/delegation.service.ts` | the `bulk-read` and `code-write` flows | `answer.validator`, `boundary.guard`, `config.store`, `delegation.model`, `fallback.client`, `log.store`, `state.store`, `terminal.reporter`, `worker.client`, `worker.store` |
 | `src/saved/prices.store.ts` | `prices.json`: one price per model, one for the worker, and the worker's name beside a price, its own lenient read of `worker.json` | `log.store`, `state.store`, `terminal.reporter` |
 | `src/saved/saved.service.ts` | what the log says was spent, added up month by month | `config.store`, `log.store`, `prices.store`, `state.store` |
 | `src/saved/saved.reporter.ts` | what `ccsaver saved` prints, and every caveat under it | `log.store`, `prices.store`, `saved.service`, `state.store`, `terminal.reporter` |
@@ -106,11 +107,7 @@ Off the map: `scripts/version.hook.ts`, the git hook of 5.3: nothing in `src/` i
 
 Off the map too: `bin/ccsaver`, the POSIX `sh` launcher, which holds `key set` and `setup`, because only a shell can turn a terminal's echo off and the key must never reach a Node argument list. `setup` asks for the four settings, hands each to the CLI and shares `store_key` with `key set`, so the key file keeps one writer. It also stops a `node` under the floors `package.json` declares before `setup`, `doctor` and `plug`, the three a person types before anything works, and no others: the check is a second process start and [costs 14 ms](docs/development.md#the-cost-of-the-node-version-check) that the delegation commands would pay on every call. The launcher appends one event of its own, the `key set` line, in shell: the line format of `src/state/log.store.ts` · `LOG_VERSION` has two writers, and a change to it touches both or the month's file holds two shapes.
 
-Off the map as well: `commands/`, the five markdown files behind `/ccsaver:setup`, `/ccsaver:plug`, `/ccsaver:doctor`, `/ccsaver:saved` and `/ccsaver:handoff`: prompts for Claude, not code: they call subcommands and hold no logic.
-
-There is one per flow that needs judgement, **never one per command**. `key set`, `worker set`, `fallback` and `launcher write` live inside `setup.md` because they need the warnings around them; `unplug` and `list` are a line each in `plug.md`; `price` lives inside `saved.md`, because a price with no report is meaningless; `bulk-read` and `code-write` are the skills' own. A new one earns its place by carrying what a summary would drop first: `saved` its band, `handoff` its eight parts and the size a `Read` takes. Each pays for its place in a description every session loads, ~266 tokens with the skill descriptions in `docs/measurements.md`.
-
-Guard: `test/repo/skills.test.ts` pins that every `ccsaver …` a prompt of ours names is a command the CLI answers, reading the list out of `USAGE` in `src/cli/usage.reporter.ts`, and that each file carries the description the plugin menu shows.
+Off the map as well: `commands/`, the five markdown files behind the slash commands, prompts for Claude and not code, [one per flow that needs judgement and never one per command](docs/development.md#the-slash-commands), held to the CLI by `test/repo/skills.test.ts`.
 
 **2.2 ALWAYS import from the file that owns the symbol**, by relative path with the real extension. No barrel, no `export *`, no default export.
 Guard: Biome `useImportExtensions`, `allowImportingTsExtensions`; barrels are *convention*.

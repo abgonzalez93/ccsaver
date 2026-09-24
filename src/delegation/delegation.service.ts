@@ -19,8 +19,9 @@ import {
   real,
   stateHome,
 } from "../state/state.store.ts"
+import { type Delegation, delegation } from "./delegation.model.ts"
 import { invokeClaude } from "./fallback.client.ts"
-import { type Delegation, delegation, fail, invokeExternal, note } from "./worker.client.ts"
+import { fail, invokeExternal, note } from "./worker.client.ts"
 import { readWorker, type Worker } from "./worker.store.ts"
 
 const MODES = {

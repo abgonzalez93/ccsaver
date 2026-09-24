@@ -1,6 +1,5 @@
 // Portions of this file are adapted from a third-party Apache-2.0 work and were modified; see NOTICE.
 import { writeSync } from "node:fs"
-import type { Tally } from "../boundary/answer.validator.ts"
 import { marked, scrubbed, shown } from "../cli/terminal.reporter.ts"
 import { record } from "../state/log.store.ts"
 import {
@@ -16,41 +15,16 @@ import {
   parsed,
   readKey,
 } from "../state/state.store.ts"
+import { type Delegation, delegation, tokensOf } from "./delegation.model.ts"
 import type { Worker } from "./worker.store.ts"
 
 const EXTERNAL_TIMEOUT_MS = 30_000
 const MAX_ANSWER_TOKENS = 8192
 const BULK_READ_ANSWER_TOKENS = 2048
 const MAX_BODY_BYTES = 4 * 1024 * 1024
-export const CHARS_PER_TOKEN = 4
 const TEMPERATURE = 0.2
 
 type Fell = "timeout" | "not json" | "unreachable" | "redirect"
-
-export interface Delegation {
-  root?: string
-  adapter?: string | null
-  files?: number
-  outside?: number
-  chars?: number
-  fell?: string
-  status?: number
-  answered?: string
-  model?: string
-  answerChars?: number
-  cut?: boolean
-  inTokens?: number
-  cost?: number | null
-  externalMs?: number
-  fallbackMs?: number
-  cited?: Tally
-  target?: boolean
-  format?: string
-  written?: number
-  risky?: number
-}
-
-export const delegation: Delegation = {}
 
 const said = (text: string): void => {
   const clean = hidden(text)
@@ -67,8 +41,6 @@ export const note = (text: string, logged = text): void => {
   record("note", { text: logged })
   said(`${marked("info", "", scrubbed(`[ccsaver: ${text}]`), process.stderr)}\n`)
 }
-
-export const tokensOf = (message: string): number => Math.round(message.length / CHARS_PER_TOKEN)
 
 const answerTokensOf = (mode: string): number =>
   mode === "bulk-read" ? BULK_READ_ANSWER_TOKENS : MAX_ANSWER_TOKENS

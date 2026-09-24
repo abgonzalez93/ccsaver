@@ -4,6 +4,15 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.33.17 - 2026-09-24
+
+refactor: what a call records is delegation.model.ts, and worker.client.ts is the way out
+
+- `Delegation`, `delegation`, `tokensOf` and `CHARS_PER_TOKEN` were born beside the transport in `transport.ts` and stayed in `worker.client.ts` when the fallback left it: `fallback.client.ts` imported six of its symbols and none was the client, `doctor` four and all four were; the record of the call in course and the weighing of a message now live in `src/delegation/delegation.model.ts`, which imports the `Tally` type and nothing else, and `worker.client.ts` keeps `fetch`, `fail` and `note`
+- three importers change a line; 1.4 and the map follow; `NOTICE` does not, because the usage notes stay where they were
+- the two paragraphs of 2.1 on `commands/` move to `docs/development.md` under "The slash commands", with a pointer left in 2.1, which gives `CONTRIBUTING.md` 807 bytes of room under its own gate instead of 87
+- neither hook imports `src/delegation/`, so nothing was measured
+
 ## 0.33.16 - 2026-09-24
 
 refactor: what a terminal may be shown leaves state.store.ts for src/cli/terminal.reporter.ts
