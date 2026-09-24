@@ -4,6 +4,13 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.31.4 - 2026-09-24
+
+refactor: eight exports go private, and the test seams are named and guarded
+
+- launcherPlace, isLauncher, onPath, ccsaverAhead, pathAdvice, PROFILE_LINE, tailOf, storedKey and DEFAULT_HANDOFF were exported and used by their own file alone
+- CONTRIBUTING 1.6 said one export was a test seam while three of src and four of scripts are; the seams are listed in test/repo/conventions.test.ts, which fails on any other export no file of src imports, and on a seam no test uses
+
 ## 0.31.3 - 2026-09-24
 
 refactor: one plural, one codeOf, one privateDir and one ownVersion where four copies were

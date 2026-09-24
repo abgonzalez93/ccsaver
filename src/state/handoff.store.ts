@@ -18,7 +18,7 @@ export interface Handoff {
   limit: number
 }
 
-export const DEFAULT_HANDOFF = { on: true, limit: 200_000 } as const
+const DEFAULT_HANDOFF = { on: true, limit: 200_000 } as const
 
 const HANDOFF_KEYS = ["on", "limit"]
 const MARKER_DAYS = 7

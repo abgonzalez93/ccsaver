@@ -18,7 +18,7 @@ const MARK = "# ccsaver launcher "
 const RUN_TIMEOUT_MS = 15_000
 const VERSION_SHAPE = /^\d+\.\d+\.\d+$/
 const RELOAD = "a session keeps the version it loaded until /reload-plugins"
-export const PROFILE_LINE = 'export PATH="$HOME/.local/bin:$PATH"'
+const PROFILE_LINE = 'export PATH="$HOME/.local/bin:$PATH"'
 
 const PIECES = join(import.meta.dirname, "..", "..", "launcher")
 const PLACEHOLDER = "__INSTALLED_JS__"
@@ -36,9 +36,9 @@ export interface Placing {
   advice: string[]
 }
 
-export const launcherPlace = (): string => join(homedir(), ".local", "bin", "ccsaver")
+const launcherPlace = (): string => join(homedir(), ".local", "bin", "ccsaver")
 
-export const isLauncher = (text: string): boolean => text.split("\n")[1]?.startsWith(MARK) === true
+const isLauncher = (text: string): boolean => text.split("\n")[1]?.startsWith(MARK) === true
 
 const cannotWrite = (place: string, error: unknown): Refusal =>
   new Refusal(`${place} cannot be written: ${messageOf(error)}`)
@@ -88,12 +88,12 @@ const executable = (path: string): boolean => {
   return stat?.isFile() === true && (stat.mode & 0o111) !== 0
 }
 
-export const onPath = (dir: string): boolean => {
+const onPath = (dir: string): boolean => {
   const own = real(dir)
   return pathEntries().some((entry) => real(entry) === own)
 }
 
-export const ccsaverAhead = (place: string): string | undefined => {
+const ccsaverAhead = (place: string): string | undefined => {
   const own = real(dirname(place))
   for (const dir of pathEntries()) {
     if (real(dir) === own) return undefined
@@ -105,7 +105,7 @@ export const ccsaverAhead = (place: string): string | undefined => {
   return undefined
 }
 
-export const pathAdvice = (place: string): string[] => {
+const pathAdvice = (place: string): string[] => {
   const dir = dirname(place)
   const ahead = ccsaverAhead(place)
   return [

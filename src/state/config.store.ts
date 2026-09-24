@@ -71,7 +71,7 @@ export const headOf = (path: string): Buffer | undefined => {
   return read === undefined ? undefined : head.subarray(0, read)
 }
 
-export const tailOf = (path: string, bytes: number): Buffer | undefined => {
+const tailOf = (path: string, bytes: number): Buffer | undefined => {
   const fd = attempt(() => openSync(path, "r"))
   if (fd === undefined) return undefined
   const size = attempt(() => fstatSync(fd).size) ?? 0

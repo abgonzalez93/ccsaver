@@ -69,7 +69,7 @@ export const readKey = (): string | undefined => {
   return secret
 }
 
-export const storedKey = (): string | undefined => (looked ? secret : readKey())
+const storedKey = (): string | undefined => (looked ? secret : readKey())
 
 export const keyIsStored = (): boolean => existsSync(keyFile())
 

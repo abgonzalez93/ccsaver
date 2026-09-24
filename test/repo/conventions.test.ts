@@ -211,3 +211,38 @@ test("every symbol CONTRIBUTING cites lives in the file it names", () => {
   )
   assert.deepEqual(gone, [])
 })
+
+const SEAMS = [
+  "tallied",
+  "nothingSpent",
+  "troubleOf",
+  "levelOf",
+  "bump",
+  "sectionOf",
+  "changelogOf",
+]
+const TESTS = filesUnder(join(REPO, "test"))
+
+const namesIn = (text: string, name: string): boolean => new RegExp(`\\b${name}\\b`).test(text)
+
+const importedElsewhere = (name: string, own: string, files: string[]): boolean =>
+  files.some((path) => path !== own && namesIn(readFileSync(path, "utf8"), name))
+
+test("every export of src and scripts is imported by another file of theirs, or is a named test seam a test uses", () => {
+  const files = [...SRC, ...SCRIPTS]
+  const odd = files.flatMap((path) =>
+    [...readFileSync(path, "utf8").matchAll(/^export (?:const|class) ([A-Za-z_]+)/gm)].flatMap(
+      ([, name = ""]) => {
+        const seam = SEAMS.includes(name)
+        if (importedElsewhere(name, path, files))
+          return seam ? [`${named(path)} · ${name} is listed as a seam but src imports it`] : []
+        if (!seam)
+          return [`${named(path)} · ${name} is exported and no other file of src imports it`]
+        return importedElsewhere(name, path, TESTS)
+          ? []
+          : [`${named(path)} · ${name} is a seam no test uses`]
+      },
+    ),
+  )
+  assert.deepEqual(odd, [])
+})
