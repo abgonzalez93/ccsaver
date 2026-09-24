@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.25.5 - 2026-09-24
+
+test: the untakeable check holds by place past a megabyte, and finds a NUL past the first 8 KB
+
+- a 351-line file under `.ssh/` and a megabyte of text under it are let through by their place, the second without being read
+- a file over the byte limit whose first NUL sits past the 8 KB head is found once it is about to be denied
+- configuration.md says that past 1 MB the name and the place are still checked, only the text is not
+
 ## 0.25.4 - 2026-09-24
 
 fix: saved adds a month up in linear time, and counts what followed a denial by file

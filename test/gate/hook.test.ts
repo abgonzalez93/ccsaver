@@ -193,3 +193,17 @@ test("lets through a file over the limits that bulk-read would refuse, up to a m
     assert.equal(await denied({ tool_input: { file_path: path } }), false, path)
   assert.equal(await denied({ tool_input: { file_path: hugeKeyed } }), true)
 })
+
+test("a file where credentials live is let through by its place, past a megabyte too, and a NUL past the first 8 KB is found once the file is about to be denied", async () => {
+  mkdirSync(join(PROJECT, ".ssh"), { recursive: true })
+  const placed = fileOf(join(".ssh", "notes"), 351)
+  const hugePlaced = join(PROJECT, ".ssh", "known_hosts.md")
+  writeFileSync(hugePlaced, `${"word ".repeat(210_000)}\n`)
+  const lateNul = join(PROJECT, "late-nul.md")
+  writeFileSync(
+    lateNul,
+    Buffer.concat([Buffer.from(`${"word ".repeat(9000)}\n`), Buffer.from([0])]),
+  )
+  for (const path of [placed, hugePlaced, lateNul])
+    assert.equal(await denied({ tool_input: { file_path: path } }), false, path)
+})
