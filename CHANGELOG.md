@@ -4,6 +4,15 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.28.0 - 2026-09-24
+
+feat: bulk-read keeps an answer cut at its output limit, and says so
+
+- a bulk-read answer that came back with finish_reason length is kept, noted as cut and logged with cut: true, instead of being thrown away and paid for again through the fallback
+- code-write still falls back on a cut answer, because half a file is no file
+- in six days of the real log one delegation of 23 fell that way after 25 s with the fallback off, and one probe of five hit the 2,048 tokens in 4.8 s: a model that does not stop, which a higher limit would not fix
+- the doctor spent test makes its paid calls fall for a status instead
+
 ## 0.27.1 - 2026-09-24
 
 perf: the fallback skips the traffic a one-shot call never needs

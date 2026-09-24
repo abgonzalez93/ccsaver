@@ -53,13 +53,13 @@ test("doctor says nothing about spending while the log is off", async () => {
 test("doctor counts the month's delegations that went to paid Claude Haiku, what they cost and why", async () => {
   assert.equal((await ccsaver(["log", "on"])).code, 0)
   assert.equal((await ask(SOURCE)).code, 0)
-  server.reply.finish = "length"
+  server.reply.status = 429
   assert.equal((await ask(SOURCE)).code, 0)
   assert.equal((await ask(SOURCE)).code, 0)
   server.reset()
   assert.equal((await ask(SOURCE, NOTES)).code, 0)
   assert.match(
     (await ccsaver(["doctor"])).stdout,
-    /^ok {3}spent: 3 of 4 delegations this month went to paid Claude Haiku \(\$0\.0375\): 2 length, 1 outside$/m,
+    /^ok {3}spent: 3 of 4 delegations this month went to paid Claude Haiku \(\$0\.0375\): 2 status, 1 outside$/m,
   )
 })

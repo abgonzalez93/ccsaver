@@ -163,7 +163,7 @@ Guard: *convention*.
 ```ts
 // ❌ trusts the shape of a response from the network
 const content = (await response.json()).choices[0].message.content
-// ✅ `src/delegation/worker.client.ts` · `firstChoice`, the one guard `contentOf` and `isCutShort` open the answer with
+// ✅ `src/delegation/worker.client.ts` · `firstChoice`, the one guard `contentOf` opens the answer with
 if (!isRecord(raw) || !Array.isArray(raw["choices"])) return undefined
 const first: unknown = raw["choices"][0]
 return isRecord(first) ? first : undefined

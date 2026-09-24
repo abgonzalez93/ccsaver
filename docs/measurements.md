@@ -114,6 +114,10 @@ Since the gate stopped denying what `bulk-read` would refuse, a file past the by
 
 For the same read: 4–8 s and 0.03–0.07 $ for the one-shot worker, against 26–169 s and up to 0.14 $ for a subagent.
 
+## An answer cut at the output limit
+
+Six days of one machine's log, 2026-09-19 to 24: 23 delegations, one of them back with `finish_reason: length` after 25,237 ms, the fallback off, so a 33 KB file was sent for nothing. Five probes with a 100-line file on 2026-09-24: four answered in 73–107 tokens and 982–1,198 ms, one in 2,044 tokens and 4,794 ms, cut at the 2,048 the call asks for, because the model started writing and did not stop; the worker charges the 2,044 all the same. So `bulk-read` keeps a cut answer, with a note, and `code-write` still falls back: the first is bullets, each checked against the file, and the second is a file that has to be whole.
+
 ## The Haiku fallback on one 8,230-token call
 
 This README with line numbers, Claude Code 2.1.274, subscription login, one run per arm: 0.0257 $ → 0.0128 $ once the fallback stopped asking for a session title, a second hidden request that carried the whole file again, and wrote a 5-minute cache instead of a 1-hour one. A follow-up question on the same file read 0 tokens from that cache either way.

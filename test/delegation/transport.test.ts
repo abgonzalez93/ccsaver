@@ -8,6 +8,7 @@ import { isRecord } from "../../src/state/state.store.ts"
 import {
   AS_ROOT,
   CLI,
+  events,
   type FakeServer,
   fakeClaude,
   type Ran,
@@ -61,9 +62,31 @@ test("falls back to the Claude worker when the external model refuses", async ()
   assert.match((await bulkRead(SOURCE)).stdout, /FROM-CLAUDE/)
 })
 
-test("falls back when the external answer was cut short, and says that is why", async () => {
+test("a bulk-read answer cut at its output limit is kept and said to be cut, never paid for again", async () => {
+  const home = join(WORK, "home-cut")
+  writeHome(home, {
+    plugged: PLUGGED,
+    worker: { url: server.url, model: "cheap-1" },
+    key: "k-test",
+  })
+  mkdirSync(join(home, "log"), { mode: 0o700 })
   server.reply.finish = "length"
-  const out = await bulkRead(SOURCE)
+  const out = await bulkRead(SOURCE, { CCSAVER_HOME: home })
+  assert.equal(out.code, 0)
+  assert.match(out.stdout, /FROM-EXTERNAL/)
+  assert.equal(out.stdout.includes("FROM-CLAUDE"), false)
+  assert.match(out.stderr, /^\[ccsaver: cheap-1 hit its 2048-token limit, the answer is cut\]$/m)
+  assert.equal(out.stderr.includes("falling back"), false)
+  const delegated = events(home).find(({ kind }) => kind === "delegate")
+  assert.deepEqual(
+    [delegated?.["answered"], delegated?.["cut"], delegated?.["fell"]],
+    ["external", true, undefined],
+  )
+})
+
+test("a code-write answer cut at its output limit still falls back, and says that is why", async () => {
+  server.reply.finish = "length"
+  const out = await cli(["code-write", "--project", PROJECT, "--spec", "s", "--reference", SOURCE])
   assert.match(out.stdout, /FROM-CLAUDE/)
   assert.match(
     out.stderr,

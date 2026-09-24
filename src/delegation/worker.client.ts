@@ -58,6 +58,7 @@ export interface Delegation {
   answered?: string
   model?: string
   answerChars?: number
+  cut?: boolean
   inTokens?: number
   cost?: number | null
   externalMs?: number
@@ -218,8 +219,6 @@ const firstChoice = (raw: unknown): Record<PropertyKey, unknown> | undefined => 
   return isRecord(first) ? first : undefined
 }
 
-const isCutShort = (raw: unknown): boolean => firstChoice(raw)?.["finish_reason"] === "length"
-
 const textOf = (content: unknown): string => {
   if (typeof content === "string") return content
   if (!Array.isArray(content)) return ""
@@ -230,8 +229,7 @@ const textOf = (content: unknown): string => {
 
 const contentOf = (raw: unknown): string | undefined => {
   const first = firstChoice(raw)
-  if (first === undefined || !isRecord(first["message"]) || first["finish_reason"] === "length")
-    return undefined
+  if (first === undefined || !isRecord(first["message"])) return undefined
   const text = textOf(first["message"]["content"])
   return text.length > 0 ? text : undefined
 }
@@ -256,8 +254,7 @@ const inTokensOf = (raw: unknown): number | undefined => {
 const next = (worker: Worker): string =>
   worker.fallback === false ? "and the fallback is off" : "falling back"
 
-const gaveNothing = (worker: Worker, response: Response, raw: unknown): void => {
-  const cut = isCutShort(raw)
+const gaveNothing = (worker: Worker, response: Response, cut: boolean): void => {
   delegation.fell = response.ok ? (cut ? "length" : "incomplete") : "status"
   note(
     cut
@@ -321,9 +318,10 @@ export const invokeExternal = async (
     delegation.status = response.status
     const text = response.ok ? await bodyOf(response, MAX_BODY_BYTES) : undefined
     const raw: unknown = JSON.parse(text ?? "null")
-    const content = contentOf(raw)
+    const cut = firstChoice(raw)?.["finish_reason"] === "length"
+    const content = cut && mode !== "bulk-read" ? undefined : contentOf(raw)
     if (content === undefined) {
-      gaveNothing(worker, response, raw)
+      gaveNothing(worker, response, cut)
       return undefined
     }
     const inTokens = inTokensOf(raw)
@@ -331,8 +329,10 @@ export const invokeExternal = async (
       answered: "external",
       model: worker.model,
       answerChars: content.length,
+      ...(cut ? { cut } : {}),
       ...(inTokens === undefined ? {} : { inTokens }),
     } satisfies Delegation)
+    if (cut) note(`${worker.model} hit its ${answerTokensOf(mode)}-token limit, the answer is cut`)
     note(
       `~${tokensOf(message)} input tokens by chars/4 | external | ${worker.model} | delegated to ${mode}`,
     )
