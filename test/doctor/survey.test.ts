@@ -156,6 +156,29 @@ test("doctor warns about a project that outgrew its limits and never fails for i
   rmSync(home, { recursive: true, force: true })
 })
 
+test("doctor says what an adapter with rewrite does to a long read, and its gate line passes when the hook cuts one", async () => {
+  const home = tempDir("survey-cut-home")
+  const root = sourcesOf("cut", 40, (at) => 20 + at)
+  mkdirSync(join(home, "adapters"), { recursive: true, mode: 0o700 })
+  writeFileSync(join(home, "adapters", "cut.json"), JSON.stringify({ rewrite: true }), {
+    mode: 0o600,
+  })
+  assert.equal((await run(LAUNCHER, ["plug", root, "cut"], { CCSAVER_HOME: home })).code, 0)
+  const out = await run(LAUNCHER, ["doctor"], { CCSAVER_HOME: home })
+  assert.match(
+    out.stdout,
+    new RegExp(
+      `^ok {3}plugged: ${root} · adapter cut · reads over 350 lines or 8000 tokens are cut to their first 350 lines$`,
+      "m",
+    ),
+  )
+  assert.match(
+    out.stdout,
+    new RegExp(`^ok {3}gate: ${root} · the hook cut a 351-line read to 350$`, "m"),
+  )
+  rmSync(home, { recursive: true, force: true })
+})
+
 test("on a terminal doctor offers the fix, writes it on yes and leaves it on no", {
   skip: !HAS_PTY,
   timeout: 30_000,

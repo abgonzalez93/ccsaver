@@ -45,6 +45,22 @@ test("a ranged read counts the part of the file its offset and limit cover", () 
   assert.equal(totalled(tally.byModel).rangedTokens, 1_000 + 1_111 + 10_000)
 })
 
+test("a read rewritten into its first lines counts as the ranged read it became, never as a denial", () => {
+  const cut = {
+    decision: "rewrite",
+    reason: "lines",
+    bytes: 40_000,
+    lines: 900,
+    offset: 1,
+    limit: 90,
+  }
+  const tally = tallied([gateRow(cut)])
+  assert.deepEqual(
+    [tally.denied, tally.ranged, totalled(tally.byModel).rangedTokens],
+    [0, 1, 1_000],
+  )
+})
+
 test("a ranged read of a file whose lines the hook never counted is not counted as the whole file", () => {
   const big = gateRow({ reason: "range", bytes: 200_000, lines: null, offset: 1, limit: 100 })
   const tally = tallied([

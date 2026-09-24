@@ -11,10 +11,12 @@ const PROJECT = join(WORK, "project")
 const ROOMY = join(WORK, "roomy")
 const BROKEN = join(WORK, "broken")
 const UNPLUGGED = join(WORK, "unplugged")
+const CUT = join(WORK, "cut")
 
-for (const dir of [PROJECT, ROOMY, BROKEN, UNPLUGGED, join(HOME, "adapters")])
+for (const dir of [PROJECT, ROOMY, BROKEN, UNPLUGGED, CUT, join(HOME, "adapters")])
   mkdirSync(dir, { recursive: true })
-writeHome(HOME, { plugged: [[PROJECT], [ROOMY, "roomy"], [BROKEN, "broken"]] })
+writeHome(HOME, { plugged: [[PROJECT], [ROOMY, "roomy"], [BROKEN, "broken"], [CUT, "cut"]] })
+writeFileSync(join(HOME, "adapters", "cut.json"), JSON.stringify({ rewrite: true }))
 writeFileSync(
   join(HOME, "adapters", "roomy.json"),
   JSON.stringify({ maxLines: 1000, maxTokens: 20000 }),
@@ -36,6 +38,11 @@ const ROOMY_HEAVY = join(ROOMY, "heavy.md")
 writeFileSync(ROOMY_HEAVY, `${"word ".repeat(8000)}\n`)
 const BROKEN_LONG = fileOf("long.txt", 351, BROKEN)
 const OUTSIDE_LONG = fileOf("outside-long.txt", 351, WORK)
+const CUT_LONG = fileOf("long.txt", 351, CUT)
+const CUT_SMALL = fileOf("small.txt", 100, CUT)
+const CUT_SECRET = fileOf("id_rsa", 351, CUT)
+const CUT_HEAVY = join(CUT, "heavy.md")
+writeFileSync(CUT_HEAVY, `${"word ".repeat(8000)}\n`)
 
 const said = (input: unknown, project = PROJECT): Promise<Ran> =>
   run("node", [HOOK], { CCSAVER_HOME: HOME, CLAUDE_PROJECT_DIR: project }, JSON.stringify(input))
@@ -97,6 +104,25 @@ test("denies a short file that is heavy in tokens", async () => {
 test("takes the limits from the adapter of the project", async () => {
   assert.equal(await denied({ tool_input: { file_path: ROOMY_LONG } }, ROOMY), false)
   assert.equal(await denied({ tool_input: { file_path: ROOMY_HEAVY } }, ROOMY), false)
+})
+
+test("under an adapter with rewrite, a read the hook would deny becomes its first 350 lines with a note, and every other read is left alone", async () => {
+  const out = await said({ tool_input: { file_path: CUT_LONG } }, CUT)
+  assert.match(out.stdout, /"permissionDecision":"allow"/)
+  assert.ok(
+    out.stdout.includes(`"updatedInput":{"file_path":"${CUT_LONG}","offset":1,"limit":350}`),
+    out.stdout,
+  )
+  assert.match(
+    out.stdout,
+    /"additionalContext":"\S+ has 351 lines, ~176 tokens by bytes\/4 and about twice that as a Read \(limits 350 lines, 8000 tokens\): this Read was cut to lines 1-350\. Grep to locate, \/ccsaver:bulk-reader to understand it whole, a ranged Read with offset and limit for the rest\."/,
+  )
+  const heavy = await said({ tool_input: { file_path: CUT_HEAVY } }, CUT)
+  assert.match(heavy.stdout, /"limit":350/)
+  assert.match(heavy.stdout, /40001 bytes, too big to count its lines/)
+  for (const path of [CUT_SMALL, CUT_SECRET])
+    assert.equal((await said({ tool_input: { file_path: path } }, CUT)).stdout, "", path)
+  assert.equal((await said({ tool_input: { file_path: CUT_LONG, offset: 5 } }, CUT)).stdout, "")
 })
 
 test("keeps the default limits when the adapter is malformed", async () => {

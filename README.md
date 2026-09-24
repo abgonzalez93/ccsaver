@@ -37,6 +37,7 @@ Measured on one TypeScript monorepo with Claude Code 2.1, small samples of 1–4
 | --- | --- |
 | Hook, task = locate or describe something in a big file | [**−16 %** session cost](docs/measurements.md#the-hook-on-a-locate-or-describe-task) |
 | Hook, task = a judgement question, limit set below the file | [no saving, **3.6× slower**](docs/measurements.md#the-hook-on-a-judgement-question) |
+| Hook, the denial rewritten into the first 350 lines instead (`rewrite`) | [**no saving** with Fable, 5 runs: 101 s against 102 s, 2 % dearer, and a locate question never meets the hook](docs/measurements.md#rewriting-a-denied-read-into-its-first-lines) |
 | Delegated writing of a ~110-line test file | [**break-even**](docs/measurements.md#delegated-writing-of-a-test-file) |
 | Files where delegation starts to pay | [roughly **2,000–3,000 lines** and up](docs/measurements.md#where-delegation-starts-to-pay) |
 | A denial the model then pages through by ranges | [one request per read, each re-reading the whole context: **1.57 M tokens for 12 denials** in 6 days](docs/measurements.md#what-a-denial-costs-after-the-message) |

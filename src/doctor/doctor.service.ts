@@ -10,8 +10,9 @@ import {
 } from "../delegation/worker.client.ts"
 import { readWorker, type Worker } from "../delegation/worker.store.ts"
 import {
+  adapterFor,
   type Limits,
-  limitsFor,
+  limitsFrom,
   type Plugged,
   plug,
   readPlugged,
@@ -150,7 +151,7 @@ const fallback = (worker: Worker | undefined): Finding => {
     : { level: "FAIL", text: `fallback: ${bin} does not run; set "claude" in worker.json` }
 }
 
-const gate = (root: string, lines: number): Finding => {
+const gate = (root: string, lines: number, rewrite: boolean): Finding => {
   const long = join(root, `.ccsaver-probe-${process.pid}.txt`)
   try {
     writeFileSync(long, "x\n".repeat(lines), { flag: "wx" })
@@ -167,8 +168,11 @@ const gate = (root: string, lines: number): Finding => {
       env: { ...process.env, CLAUDE_PROJECT_DIR: root },
       input: JSON.stringify({ tool_use_id: "doctor", tool_input: { file_path: long } }),
     })
-    return run.status === 0 && run.stdout.includes('"permissionDecision":"deny"')
-      ? { level: "ok", text: `gate: ${root} · the hook denied a ${lines}-line read` }
+    const [wanted, held] = rewrite
+      ? ([`"limit":${lines - 1}`, `cut a ${lines}-line read to ${lines - 1}`] as const)
+      : (['"permissionDecision":"deny"', `denied a ${lines}-line read`] as const)
+    return run.status === 0 && run.stdout.includes(wanted)
+      ? { level: "ok", text: `gate: ${root} · the hook ${held}` }
       : { level: "FAIL", text: `gate: ${root} · the hook let a ${lines}-line read through` }
   } finally {
     rmSync(long, { force: true })
@@ -202,13 +206,16 @@ const shape = (root: string, limits: Limits, adapter?: string): Finding[] => {
 const project = ({ root, adapter }: Plugged): Finding[] => {
   if (!existsSync(root)) return [{ level: "warn", text: `plugged: ${root} no longer exists` }]
   try {
-    const limits = limitsFor(adapter)
+    const chosen = adapterFor(adapter)
+    const limits = limitsFrom(chosen)
+    const rewrite = chosen.rewrite === true
+    const fate = rewrite ? `cut to their first ${limits.maxLines} lines` : "denied"
     return [
       {
         level: "ok",
-        text: `plugged: ${root} · adapter ${adapter ?? "none"} · reads over ${limits.maxLines} lines or ${limits.maxTokens} tokens are denied`,
+        text: `plugged: ${root} · adapter ${adapter ?? "none"} · reads over ${limits.maxLines} lines or ${limits.maxTokens} tokens are ${fate}`,
       },
-      gate(root, limits.maxLines + 1),
+      gate(root, limits.maxLines + 1, rewrite),
       ...shape(root, limits, adapter),
     ]
   } catch (error) {

@@ -8,14 +8,20 @@ const HOME = tempDir("model-home")
 const WORK = tempDir("model-work")
 const PROJECT = join(WORK, "project")
 const LONG = join(PROJECT, "long.txt")
+const CUT = join(WORK, "cut")
+const CUT_LONG = join(CUT, "long.txt")
 
 mkdirSync(join(HOME, "log"), { recursive: true, mode: 0o700 })
+mkdirSync(join(HOME, "adapters"), { recursive: true, mode: 0o700 })
 mkdirSync(PROJECT, { recursive: true })
+mkdirSync(CUT, { recursive: true })
 writeFileSync(LONG, "x\n".repeat(351))
-writeHome(HOME, { plugged: [[PROJECT]] })
+writeFileSync(CUT_LONG, "x\n".repeat(351))
+writeFileSync(join(HOME, "adapters", "cut.json"), JSON.stringify({ rewrite: true }))
+writeHome(HOME, { plugged: [[PROJECT], [CUT, "cut"]] })
 
-const hook = (input: unknown): Promise<Ran> =>
-  run("node", [HOOK], { CCSAVER_HOME: HOME, CLAUDE_PROJECT_DIR: PROJECT }, JSON.stringify(input))
+const hook = (input: unknown, project = PROJECT): Promise<Ran> =>
+  run("node", [HOOK], { CCSAVER_HOME: HOME, CLAUDE_PROJECT_DIR: project }, JSON.stringify(input))
 
 const said = (role: string, body: object): string => JSON.stringify({ message: { role, ...body } })
 
@@ -80,5 +86,23 @@ test("the gate records the context the session's last request carried beside the
       [null, null],
       [null, null],
     ],
+  )
+})
+
+test("a read rewritten under an adapter is one gate event carrying the range the hook wrote in the model's place", async () => {
+  const before = events(HOME).length
+  const out = await hook({ tool_input: { file_path: CUT_LONG } }, CUT)
+  assert.match(out.stdout, /"updatedInput"/)
+  const [row] = events(HOME).slice(before)
+  assert.deepEqual(
+    [
+      row?.["decision"],
+      row?.["reason"],
+      row?.["offset"],
+      row?.["limit"],
+      row?.["adapter"],
+      row?.["lines"],
+    ],
+    ["rewrite", "lines", 1, 350, "cut", 351],
   )
 })

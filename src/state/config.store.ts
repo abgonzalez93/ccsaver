@@ -38,6 +38,7 @@ export interface Adapter {
   after?: string[]
   maxLines?: number
   maxTokens?: number
+  rewrite?: boolean
 }
 
 export interface Limits {
@@ -134,7 +135,7 @@ export const linesIn = (bytes: Buffer): number => {
   return lines
 }
 
-const ADAPTER_KEYS = ["rules", "format", "after", "maxLines", "maxTokens"]
+const ADAPTER_KEYS = ["rules", "format", "after", "maxLines", "maxTokens", "rewrite"]
 const ADAPTER_NAME = /^[a-z0-9][a-z0-9-]*$/
 const LINE_BREAKERS = /[\t\n\r]/
 
@@ -175,9 +176,10 @@ export const pluggedRootOf = (path: string): Plugged | undefined => {
 }
 
 const fieldsHold = (raw: Record<PropertyKey, unknown>): boolean => {
-  const { rules, format, after, maxLines, maxTokens } = raw
+  const { rules, format, after, maxLines, maxTokens, rewrite } = raw
   return (
     (rules === undefined || typeof rules === "string") &&
+    (rewrite === undefined || typeof rewrite === "boolean") &&
     (format === undefined || (isStrings(format) && format.length > 0)) &&
     (after === undefined || isStrings(after)) &&
     (maxLines === undefined || isCount(maxLines)) &&
@@ -189,9 +191,10 @@ const adapterOf = (raw: unknown): Adapter | undefined => {
   if (!isRecord(raw) || Array.isArray(raw)) return undefined
   if (!Object.keys(raw).every((key) => ADAPTER_KEYS.includes(key)) || !fieldsHold(raw))
     return undefined
-  const { rules, format, after, maxLines, maxTokens } = raw
+  const { rules, format, after, maxLines, maxTokens, rewrite } = raw
   return {
     ...(typeof rules === "string" ? { rules } : {}),
+    ...(typeof rewrite === "boolean" ? { rewrite } : {}),
     ...(isStrings(format) ? { format } : {}),
     ...(isStrings(after) ? { after } : {}),
     ...(isCount(maxLines) ? { maxLines } : {}),
@@ -253,8 +256,10 @@ export const limitsFrom = ({ maxLines, maxTokens }: Adapter): Limits => ({
   maxTokens: maxTokens ?? DEFAULT_LIMITS.maxTokens,
 })
 
-export const limitsFor = (adapter: string | undefined): Limits =>
-  limitsFrom(adapter === undefined ? {} : loadAdapter(adapter))
+export const adapterFor = (name: string | undefined): Adapter =>
+  name === undefined ? {} : loadAdapter(name)
+
+export const limitsFor = (adapter: string | undefined): Limits => limitsFrom(adapterFor(adapter))
 
 export interface Plugging {
   entry: Plugged

@@ -85,10 +85,34 @@ const reasonOf = (measured: Measured, inside: boolean, ranged: boolean, limits: 
   return measured.lines > limits.maxLines ? "lines" : "under"
 }
 
-const denial = (given: string, { lines, bytes }: Measured, limits: Limits): string => {
+const sized = (given: string, { lines, bytes }: Measured, limits: Limits): string => {
   const counted =
     lines === undefined ? `${bytes} bytes, too big to count its lines` : `${lines} lines`
-  return `${given} has ${counted}, ~${tokensIn(bytes)} tokens by bytes/4 and about twice that as a Read (limits ${limits.maxLines} lines, ${limits.maxTokens} tokens): Grep to locate, /ccsaver:bulk-reader to understand it whole, a ranged Read with offset and limit to edit.`
+  return `${given} has ${counted}, ~${tokensIn(bytes)} tokens by bytes/4 and about twice that as a Read (limits ${limits.maxLines} lines, ${limits.maxTokens} tokens)`
+}
+
+const denial = (given: string, measured: Measured, limits: Limits): string =>
+  `${sized(given, measured, limits)}: Grep to locate, /ccsaver:bulk-reader to understand it whole, a ranged Read with offset and limit to edit.`
+
+const cut = (given: string, measured: Measured, limits: Limits): string =>
+  `${sized(given, measured, limits)}: this Read was cut to lines 1-${limits.maxLines}. Grep to locate, /ccsaver:bulk-reader to understand it whole, a ranged Read with offset and limit for the rest.`
+
+const rewrite = (
+  asked: Record<PropertyKey, unknown>,
+  given: string,
+  measured: Measured,
+  limits: Limits,
+): void => {
+  process.stdout.write(
+    JSON.stringify({
+      hookSpecificOutput: {
+        hookEventName: "PreToolUse",
+        permissionDecision: "allow",
+        updatedInput: { ...asked, offset: 1, limit: limits.maxLines },
+        additionalContext: cut(given, measured, limits),
+      },
+    }),
+  )
 }
 
 interface Place {
@@ -117,8 +141,6 @@ const spokenOf = (call: Record<PropertyKey, unknown>): Record<string, unknown> =
   return { model: spoken?.model ?? null, context: spoken?.context ?? null }
 }
 
-const limitsOf = (name: string | undefined): Limits => limitsFrom(adapterOrDefaults(name))
-
 const kindOf = (call: Record<PropertyKey, unknown>): string =>
   call["tool_use_id"] === "doctor" ? "doctor" : "gate"
 
@@ -138,24 +160,27 @@ const gate = (root: string, adapterName: string | undefined): void => {
     seen({ decision: "allow", reason: "malformed" })
     return
   }
-  const limits = limitsOf(adapterName)
+  const adapter = adapterOrDefaults(adapterName)
+  const limits = limitsFrom(adapter)
   const at = real(given)
   const place = placeOf(at, root)
   const measured = measure(given, limits.maxTokens * BYTES_PER_TOKEN)
   const over = reasonOf(measured, place.inside, ranged, limits)
   const reason = isOver(over) && untakeable(given, at, root, measured) ? "untakeable" : over
   const denied = isOver(reason)
-  if (denied) deny(denial(given, measured, limits))
+  const rewritten = denied && adapter.rewrite === true
+  if (rewritten) rewrite(asked, given, measured, limits)
+  else if (denied) deny(denial(given, measured, limits))
   if (!logging) return
   seen({
     ...place,
-    ...rangeOf(offset, limit),
+    ...(rewritten ? { offset: 1, limit: limits.maxLines } : rangeOf(offset, limit)),
     lines: measured.lines ?? null,
     bytes: measured.bytes,
     ...limits,
     adapter: adapterName ?? null,
     ...spokenOf(call),
-    decision: denied ? "deny" : "allow",
+    decision: rewritten ? "rewrite" : denied ? "deny" : "allow",
     reason,
   })
 }

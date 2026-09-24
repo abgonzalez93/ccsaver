@@ -4,6 +4,15 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.29.0 - 2026-09-24
+
+feat: an adapter with rewrite answers a denied read with the first lines of the file, measured with Fable and left off
+
+- `"rewrite": true` in an adapter turns what the hook would deny into a Read of lines 1 to maxLines, through updatedInput, with a note in the model's context that names the length of the file and what it got; a file bulk-read would refuse, a ranged read and a file under the limits are left alone as before
+- the gate line records decision "rewrite" with the offset and limit the hook wrote, saved counts it as the ranged read it became, doctor says what the adapter does to a long read and its gate line passes when the probe is cut
+- measured against a denial on a 520-line file, arms alternated: with Fable, 5 runs per arm, the locate question never met the hook (Fable greps first) and the judgement question saved nothing, 101.2 s and 0.710 $ against 102.3 s and 0.696 $, median 99.1 against 79.7 s, 10.2 against 8.4 turns; with Haiku, 3 runs, 2.2× the cost on the locate question and inside the spread on the judgement one; so the option is off unless an adapter asks for it
+- the hook pays nothing for it: 25.2 against 24.7 ms let through and 27.0 against 27.0 ms denied with the log on, three rounds of 30 runs per arm, floor 0.0–0.1 ms
+
 ## 0.28.5 - 2026-09-24
 
 docs: measurements.md keeps what a session sees, and the notes behind ccsaver's own milliseconds move to development.md

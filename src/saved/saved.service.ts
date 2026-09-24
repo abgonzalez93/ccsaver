@@ -135,7 +135,7 @@ const gateInto = (sum: Spend, row: Row): Spend => {
       byModel: withRead(sum.byModel, model, { deniedTokens: tokens, rangedTokens: 0 }),
     }
   }
-  if (row["reason"] !== "range") return sum
+  if (row["reason"] !== "range" && row["decision"] !== "rewrite") return sum
   pagedAfter(sum.paged, row, false)
   const lines = numberAt(row, "lines")
   if (lines <= 0) return { ...sum, ranged: sum.ranged + 1, uncounted: sum.uncounted + 1 }
