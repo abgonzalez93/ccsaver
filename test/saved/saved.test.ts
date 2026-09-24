@@ -1,15 +1,21 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 import type { Prices } from "../../src/saved/prices.store.ts"
-import { moneyOf, NOTHING_SPENT, tallied, totalled } from "../../src/saved/saved.service.ts"
+import {
+  moneyOf,
+  nothingSpent,
+  type Spend,
+  tallied,
+  totalled,
+} from "../../src/saved/saved.service.ts"
 import { foldMonth } from "../../src/state/log.store.ts"
 import { denialRow, gateRow } from "../test.helpers.ts"
 
 const OPUS = "claude-opus-5"
 const FABLE = "claude-fable-5-1"
 
-const spent = (models: Record<string, [number, number]>): typeof NOTHING_SPENT => ({
-  ...NOTHING_SPENT,
+const spent = (models: Record<string, [number, number]>): Spend => ({
+  ...nothingSpent(),
   byModel: Object.fromEntries(
     Object.entries(models).map(([model, [deniedTokens, rangedTokens]]) => [
       model,
@@ -68,11 +74,56 @@ test("a denial that ranged reads of the same file follow in the same session kee
     gateRow({ ...range, session: "s1", path: "c.ts", offset: 1, context: 5 }),
     { ...denialRow(40_000), path: "d.ts" },
   ])
-  assert.deepEqual(tally.paged, {
-    "s1\ta.ts": { reads: 2, reread: 230_000 },
-    "s1\tb.ts": { reads: 0, reread: 0 },
-  })
+  assert.deepEqual(
+    tally.paged,
+    new Map([
+      ["s1\ta.ts", { reads: 2, reread: 230_000 }],
+      ["s1\tb.ts", { reads: 0, reread: 0 }],
+    ]),
+  )
   assert.deepEqual([tally.denied, tally.ranged], [3, 4])
+})
+
+test("a file denied twice in one session is one entry, and the second denial does not reset what followed the first", () => {
+  const same = { session: "s1", path: "pnpm-lock.yaml" }
+  const range = gateRow({
+    ...same,
+    reason: "range",
+    bytes: 400_000,
+    lines: null,
+    offset: 1,
+    limit: 100,
+    context: 50_000,
+  })
+  const tally = tallied([
+    { ...denialRow(400_000), ...same, context: 100_000 },
+    range,
+    { ...denialRow(400_000), ...same, context: 100_000 },
+    range,
+  ])
+  assert.deepEqual(tally.paged, new Map([["s1\tpnpm-lock.yaml", { reads: 2, reread: 100_000 }]]))
+  assert.deepEqual([tally.denied, tally.ranged, tally.uncounted], [2, 2, 2])
+})
+
+test("a subagent's reads take no part in what followed a denial, because the log holds no context for them", () => {
+  const same = { session: "s1", path: "a.ts" }
+  const range = { ...same, reason: "range", bytes: 40_000, lines: 1000, offset: 1, limit: 100 }
+  const tally = tallied([
+    { ...denialRow(40_000), ...same, context: 100_000 },
+    gateRow({ ...range, agent_id: "agent-7", context: null }),
+    gateRow({ ...range, context: 110_000 }),
+    { ...denialRow(40_000), session: "s1", path: "b.ts", agent_id: "agent-7", context: null },
+    gateRow({ ...range, path: "b.ts", context: 120_000 }),
+  ])
+  assert.deepEqual(tally.paged, new Map([["s1\ta.ts", { reads: 1, reread: 110_000 }]]))
+  assert.deepEqual([tally.denied, tally.ranged], [2, 3])
+})
+
+test("nothing spent is a fresh tally each time, so one month's paging never leaks into the next", () => {
+  const same = { session: "s1", path: "a.ts" }
+  tallied([{ ...denialRow(40_000), ...same }])
+  assert.equal(nothingSpent().paged.size, 0)
+  assert.equal(tallied([]).paged.size, 0)
 })
 
 test("an external call that reports its usage is counted from that, not from chars/4", () => {

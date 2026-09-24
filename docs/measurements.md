@@ -120,6 +120,8 @@ A synthetic month of 200,000 `gate` lines, 66.6 MB, added up by `ccsaver saved 2
 
 Reading it as a stream instead takes the same work to 0.31 s and 80 MB, but it makes the reader asynchronous, and `src/` reads files synchronously for the reason 4.1 of [CONTRIBUTING](../CONTRIBUTING.md) gives. At the 181 denied reads a month of the worked example, 66.6 MB is about 900 years of log, so the ceiling is written down here rather than paid for.
 
+The table of what followed each denial, one entry per session and file, was copied whole on every denial and on every ranged read that followed one, from 0.25.0 to 0.25.3, which is quadratic in the files denied: 5,000 denials of 5,000 files took 2.54 / 2.58 / 2.51 s, 10,000 took 11.40 / 10.95 / 10.53 s, 20,000 took 49.54 / 47.39 / 47.00 s, and a month of 200,000 lines over 2,000 session-and-file pairs, a quarter of them denials, 96 MB, took 1.45 / 1.57 / 1.53 s at 282 MB of peak RSS. `src/saved/saved.service.ts` · `pagedAfter` now writes into one `Map` the fold carries, the way `readEvents` pushes into one array, and the same four take 0.08 / 0.08 / 0.08 s, 0.10 / 0.09 / 0.10 s, 0.11 / 0.12 / 0.11 s and 0.50 / 0.47 / 0.50 s at 284 MB; 200,000 denials of 200,000 files, 92 MB, take 0.52 / 0.56 / 0.51 s at 296 MB. Three runs each, the whole command under `/usr/bin/time`, Node 24.16, lines of about 460 bytes carrying a session, a path and a context, which the 66.6 MB month above did not.
+
 ## The citation check in bulk-read
 
 One free model, files up to 493 lines, 183 citations in 18 answers: 175 matched their line and 8 were tagged, in 3 of the answers. The 8 are the same 2 mis-copied words, and 6 citations that end in the line number again, `path:69:70`, with no text to compare (all in one answer).
@@ -151,7 +153,7 @@ Six days of session transcripts of one machine, 2026-09-18 to 24, Claude Code 2.
 - What it saved: the 8 reads of `pnpm-lock.yaml` nobody came back for, 3,900 tokens by bytes/4 each and 1.9–2.8× that as a `Read`, plus what a file that never entered the context is not re-read for by every later request of the session, which no log counts; the sessions of those six days made 112 requests each at the mean.
 - What the log never saw: the session that ran this measurement, in the `auto` permission mode on the plugged project, read 1,113 lines of five files with `cat` and left no `gate` line, because in that mode the harness tells the model to read with `cat`, `head` and `sed`; in the 51 `auto` sessions of another project that September, before the plugin, files over 400 lines were read whole 6 times with `Read` against 12 times with `cat`, and 581 times in part through Bash.
 
-`saved` prints the first count at the foot, from the `context` the hook records on every line and the ranged reads that follow a denial of the same file in the same session ([saved](events.md#saved)). It cannot see the `sed` and `cat` follow-ups, 7 of the 13 here, so it undercounts; two ranged reads made in one request count that request twice, so it overcounts; and no column holds the second count.
+`saved` prints the first count at the foot, from the `context` the hook records on every line and the session's own ranged reads that follow a denial of the same file in the same session ([saved](events.md#saved)). It cannot see the `sed` and `cat` follow-ups, 7 of the 13 here, so it undercounts; two ranged reads made in one request count that request twice, so it overcounts; and no column holds the second count.
 
 ## The hook's token estimate vs a real Read
 

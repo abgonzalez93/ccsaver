@@ -4,6 +4,15 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.25.4 - 2026-09-24
+
+fix: saved adds a month up in linear time, and counts what followed a denial by file
+
+- the table of what followed each denial was copied on every denial and on every ranged read after one, quadratic in the files denied: 20,000 denials of 20,000 files took 47 s, and take 0.11 s now that `pagedAfter` writes into one Map the fold carries
+- a file denied twice in one session is one entry, so the second denial no longer resets the reads that followed the first, and the foot counts denied files, not denials
+- a subagent's lines take no part, denial or read, because the context the hook records is the session's, not the subagent's
+- `nothingSpent()` replaces the shared `NOTHING_SPENT`, so no tally starts from a Map another one wrote into
+
 ## 0.25.3 - 2026-09-24
 
 fix: the denial message is the counts and a pointer, 254 characters instead of 376

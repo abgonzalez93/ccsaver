@@ -135,32 +135,32 @@ const orphaned = (tally: Spend): boolean =>
 const readBack = (tally: Spend): number => tally.denied * DENIAL_TOKENS + tally.answerTokens
 
 interface Followed {
-  denials: number
+  files: number
   reads: number
   reread: number
 }
 
-const UNFOLLOWED: Followed = { denials: 0, reads: 0, reread: 0 }
+const UNFOLLOWED: Followed = { files: 0, reads: 0, reread: 0 }
 
 const followedIn = (tally: Spend): Followed =>
-  Object.values(tally.paged).reduce<Followed>(
+  [...tally.paged.values()].reduce<Followed>(
     (sum, { reads, reread }) =>
       reads === 0
         ? sum
-        : { denials: sum.denials + 1, reads: sum.reads + reads, reread: sum.reread + reread },
+        : { files: sum.files + 1, reads: sum.reads + reads, reread: sum.reread + reread },
     UNFOLLOWED,
   )
 
 const followedLines = (tally: Spend): string[] => {
   const followed = followedIn(tally)
-  if (followed.denials === 0) return []
+  if (followed.files === 0) return []
   const counted =
     followed.reread > 0
       ? `${millions(followed.reread)} tokens by the log`
-      : "a count the log does not hold for them"
+      : "which the log did not count"
   return [
-    `  ${followed.denials} of ${many(tally.denied, "denial")} ${followed.denials === 1 ? "was" : "were"} followed by ranged reads of the same file in the same session,`,
-    `  ${many(followed.reads, "read")} whose requests each re-read the whole context: ${counted}, in neither column`,
+    `  ${followed.files} of ${many(tally.paged.size, "denied file")} ${followed.files === 1 ? "was" : "were"} read by ranges after the denial, in the same session:`,
+    `  ${many(followed.reads, "read")}, each a request that re-read the whole context, ${counted}, in neither column`,
   ]
 }
 

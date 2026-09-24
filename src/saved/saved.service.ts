@@ -26,7 +26,7 @@ export interface Spend {
   ranged: number
   uncounted: number
   byModel: Record<string, Read>
-  paged: Record<string, Paging>
+  paged: Map<string, Paging>
   calls: number
   paid: number
   paidUsd: number
@@ -48,14 +48,15 @@ export interface Money {
 }
 
 const NO_READ: Read = { deniedTokens: 0, rangedTokens: 0 }
+const UNPAGED: Paging = { reads: 0, reread: 0 }
 
-export const NOTHING_SPENT: Spend = {
+export const nothingSpent = (): Spend => ({
   denied: 0,
   outside: 0,
   ranged: 0,
   uncounted: 0,
   byModel: {},
-  paged: {},
+  paged: new Map(),
   calls: 0,
   paid: 0,
   paidUsd: 0,
@@ -63,7 +64,7 @@ export const NOTHING_SPENT: Spend = {
   externalTokens: 0,
   estimated: 0,
   answerTokens: 0,
-}
+})
 
 const partOf = (lines: number, offset: number, limit: number): number => {
   const from = Math.min(Math.max(offset - 1, 0), lines)
@@ -103,23 +104,18 @@ export const totalled = (byModel: Record<string, Read>): Read =>
 const pagingKey = (row: Row): string | undefined => {
   const session = row["session"]
   const path = row["path"]
+  if (typeof row["agent_id"] === "string") return undefined
   return typeof session === "string" && typeof path === "string" ? `${session}\t${path}` : undefined
 }
 
-const pagedAfter = (
-  paged: Record<string, Paging>,
-  row: Row,
-  denied: boolean,
-): Record<string, Paging> => {
+const pagedAfter = (paged: Map<string, Paging>, row: Row, denied: boolean): void => {
   const key = pagingKey(row)
-  if (key === undefined) return paged
-  if (denied) return { ...paged, [key]: { reads: 0, reread: 0 } }
-  const open = paged[key]
-  if (open === undefined) return paged
-  return {
-    ...paged,
-    [key]: { reads: open.reads + 1, reread: open.reread + numberAt(row, "context") },
-  }
+  if (key === undefined) return
+  const open = paged.get(key)
+  if (open === undefined) {
+    if (denied) paged.set(key, UNPAGED)
+  } else if (!denied)
+    paged.set(key, { reads: open.reads + 1, reread: open.reread + numberAt(row, "context") })
 }
 
 const gateInto = (sum: Spend, row: Row): Spend => {
@@ -127,21 +123,20 @@ const gateInto = (sum: Spend, row: Row): Spend => {
   const model = modelOf(row)
   if (row["decision"] === "deny") {
     if (row["inside"] === false) return { ...sum, outside: sum.outside + 1 }
+    pagedAfter(sum.paged, row, true)
     return {
       ...sum,
       denied: sum.denied + 1,
       byModel: withRead(sum.byModel, model, { deniedTokens: tokens, rangedTokens: 0 }),
-      paged: pagedAfter(sum.paged, row, true),
     }
   }
   if (row["reason"] !== "range") return sum
+  pagedAfter(sum.paged, row, false)
   const lines = numberAt(row, "lines")
-  const paged = pagedAfter(sum.paged, row, false)
-  if (lines <= 0) return { ...sum, paged, ranged: sum.ranged + 1, uncounted: sum.uncounted + 1 }
+  if (lines <= 0) return { ...sum, ranged: sum.ranged + 1, uncounted: sum.uncounted + 1 }
   const part = partOf(lines, numberAt(row, "offset"), numberAt(row, "limit"))
   return {
     ...sum,
-    paged,
     ranged: sum.ranged + 1,
     byModel: withRead(sum.byModel, model, {
       deniedTokens: 0,
@@ -178,7 +173,7 @@ const into = (sum: Spend, row: Row): Spend => {
   return row["kind"] === "delegate" ? delegateInto(sum, row) : sum
 }
 
-export const tallied = (rows: Rows, from: Spend = NOTHING_SPENT): Spend => rows.reduce(into, from)
+export const tallied = (rows: Rows, from = nothingSpent()): Spend => rows.reduce(into, from)
 
 export const monthsOf = (): string[] =>
   (attempt(() => readdirSync(logDir())) ?? [])
@@ -187,7 +182,7 @@ export const monthsOf = (): string[] =>
     .sort()
 
 export const tallyOver = (months: string[]): Spend =>
-  months.reduce((sum, month) => foldMonth(month, sum, into), NOTHING_SPENT)
+  months.reduce((sum, month) => foldMonth(month, sum, into), nothingSpent())
 
 const pricedIn = (tally: Spend, prices: Prices): { read: Read; each: number }[] =>
   Object.entries(tally.byModel).flatMap(([model, read]) => {
