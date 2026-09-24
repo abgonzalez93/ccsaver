@@ -13,6 +13,7 @@ import {
   run,
   SHELL_PATH,
   tempDir,
+  writeHome,
 } from "../test.helpers.ts"
 
 const HOME = tempDir("terminal-home")
@@ -168,6 +169,34 @@ test("doctor says whether the two Bash(ccsaver …) rules are in permissions.all
     /^warn permissions: \S+settings\.json is not JSON, so the two Bash\(ccsaver …\) rules could not be checked$/m,
   )
   rmSync(settings)
+})
+
+test("the rules count in the .claude settings of a plugged project, where don't ask again writes them, and in the :* spelling", async () => {
+  const home = tempDir("terminal-rules-home")
+  const project = tempDir("terminal-rules-project")
+  writeHome(home, { plugged: [[project]] })
+  mkdirSync(join(project, ".claude"), { recursive: true })
+  const local = join(project, ".claude", "settings.local.json")
+  const user = join(WORK, "no-config", "settings.json")
+  const allowing = (allow: string[]): void => {
+    writeFileSync(local, JSON.stringify({ permissions: { allow } }))
+  }
+  const checked = (): Promise<Ran> =>
+    doctor({ CCSAVER_HOME: home, CLAUDE_CONFIG_DIR: join(WORK, "no-config") })
+  allowing(["Bash(ccsaver bulk-read:*)", "Bash(ccsaver code-write *)"])
+  assert.match(
+    (await checked()).stdout,
+    new RegExp(`^ok {3}permissions: the ccsaver rules are in ${local}$`, "m"),
+  )
+  allowing(["Bash(ccsaver bulk-read *)"])
+  assert.match(
+    (await checked()).stdout,
+    new RegExp(
+      `^warn permissions: Bash\\(ccsaver code-write \\*\\) not in permissions\\.allow of ${user} nor of a plugged project: Claude asks`,
+      "m",
+    ),
+  )
+  for (const dir of [home, project]) rmSync(dir, { recursive: true, force: true })
 })
 
 test("a launcher that runs another version than this doctor says so", async () => {

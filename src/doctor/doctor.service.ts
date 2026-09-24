@@ -59,41 +59,64 @@ const WHY = {
 } as const
 
 const NOTHING_PLUGGED: Finding = { level: "warn", text: "plugged: nothing" }
-const RULES = ["Bash(ccsaver bulk-read *)", "Bash(ccsaver code-write *)"]
-const WIDER_RULES = ["Bash(ccsaver *)", "Bash(ccsaver:*)"]
+const MODES = ["bulk-read", "code-write"]
+const RULE = /^Bash\(ccsaver(?: (bulk-read|code-write))?(?: \*|:\*)\)$/
 const UNCHECKED = "so the two Bash(ccsaver …) rules could not be checked"
 
-const settingsFile = (): string =>
-  join(process.env["CLAUDE_CONFIG_DIR"] || join(homedir(), ".claude"), "settings.json")
+const settingsFiles = (): string[] => {
+  const user = join(process.env["CLAUDE_CONFIG_DIR"] || join(homedir(), ".claude"), "settings.json")
+  const ofProject = (root: string): string[] =>
+    ["settings.json", "settings.local.json"].map((name) => join(root, ".claude", name))
+  try {
+    return [user, ...readPlugged().flatMap(({ root }) => ofProject(root))]
+  } catch {
+    return [user]
+  }
+}
 
-const allowedIn = (raw: unknown): string[] => {
-  const permissions = isRecord(raw) ? raw["permissions"] : undefined
-  const allow = isRecord(permissions) ? permissions["allow"] : undefined
+const allowedIn = (file: string): string[] | undefined => {
+  const raw = parsed(attempt(() => readFileSync(file, "utf8")) ?? "")
+  if (!isRecord(raw)) return undefined
+  const allow = isRecord(raw["permissions"]) ? raw["permissions"]["allow"] : undefined
   return Array.isArray(allow)
     ? allow.flatMap((rule) => (typeof rule === "string" ? [rule] : []))
     : []
 }
 
+const covers = (rule: string, mode: string): boolean => {
+  const found = RULE.exec(rule)
+  return found !== null && (found[1] === undefined || found[1] === mode)
+}
+
 const permissionRules = (): Finding => {
-  const file = settingsFile()
-  const text = attempt(() => readFileSync(file, "utf8"))
-  if (text === undefined)
+  const [user = "", ...ofProjects] = settingsFiles()
+  const text = attempt(() => readFileSync(user, "utf8"))
+  if (text !== undefined && !isRecord(parsed(text)))
+    return { level: "warn", text: `permissions: ${user} is not JSON, ${UNCHECKED}` }
+  const held = [user, ...ofProjects].flatMap((file) => {
+    const allow = allowedIn(file)
+    return allow === undefined ? [] : [{ file, allow }]
+  })
+  if (held.length === 0)
     return {
       level: "warn",
-      text: `permissions: ${file} is not there or cannot be read, ${UNCHECKED}`,
+      text: `permissions: ${user} is not there or cannot be read, ${UNCHECKED}`,
     }
-  const raw = parsed(text)
-  if (!isRecord(raw))
-    return { level: "warn", text: `permissions: ${file} is not JSON, ${UNCHECKED}` }
-  const allow = allowedIn(raw)
-  const wider = WIDER_RULES.some((rule) => allow.includes(rule))
-  const missing = wider ? [] : RULES.filter((rule) => !allow.includes(rule))
-  return missing.length === 0
-    ? { level: "ok", text: `permissions: the ccsaver rules are in ${file}` }
-    : {
-        level: "warn",
-        text: `permissions: ${missing.join(" and ")} not in permissions.allow of ${file}: Claude asks before every delegation, and refuses one in print mode`,
-      }
+  const where = MODES.map(
+    (mode) => held.find(({ allow }) => allow.some((rule) => covers(rule, mode)))?.file,
+  )
+  const missing = MODES.filter((_, at) => where[at] === undefined)
+  if (missing.length === 0)
+    return {
+      level: "ok",
+      text: `permissions: the ccsaver rules are in ${[...new Set(where)].join(" and ")}`,
+    }
+  const named = missing.map((mode) => `Bash(ccsaver ${mode} *)`).join(" and ")
+  const also = held.some(({ file }) => file !== user) ? " nor of a plugged project" : ""
+  return {
+    level: "warn",
+    text: `permissions: ${named} not in permissions.allow of ${user}${also}: Claude asks before every delegation, and refuses one in print mode`,
+  }
 }
 
 const OTHERS = 0o077

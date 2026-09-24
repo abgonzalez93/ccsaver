@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.33.4 - 2026-09-24
+
+fix: doctor finds the two rules in the .claude settings of a plugged project too, and reads the :* spelling
+
+- don't ask again writes the rule to .claude/settings.local.json of the repository, which is the other way the README offers, and the check read the user's settings.json alone, so that user saw a warn on every doctor while holding the rules
+- Bash(ccsaver bulk-read:*) is the same rule as Bash(ccsaver bulk-read *) to Claude Code and now to doctor
+- a plugged list that cannot be read stays the one FAIL line it was: the permissions check then looks at the user's file alone
+
 ## 0.33.3 - 2026-09-24
 
 docs: doctor's handoff lines, the two state files the README left out, the formatter's path and the notebook limit
