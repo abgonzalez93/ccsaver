@@ -4,6 +4,13 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.28.3 - 2026-09-24
+
+docs: the one-shot worker measured at 1.0-1.4 s, and the length of pnpm test is the CPU
+
+- the 4-8 s of one-shot worker vs a subagent stands as written and gets what the same call takes today with gemini-flash-lite-latest, 1.03-1.37 s over nine calls
+- splitting test/doctor/doctor.test.ts, 6.3 s on its own, into two files of 3.6 and 3.9 s left pnpm test at 9.5 / 9.2 / 9.1 s against 9.4 / 9.1 / 9.2: one run is 73 s of CPU at 782 % on twelve cores, so the split was measured and not kept
+
 ## 0.28.2 - 2026-09-24
 
 perf: the terminal launcher remembers where the installed plugin is

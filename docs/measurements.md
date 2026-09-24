@@ -114,7 +114,11 @@ Since the gate stopped denying what `bulk-read` would refuse, a file past the by
 
 ## One-shot worker vs a subagent
 
-For the same read: 4–8 s and 0.03–0.07 $ for the one-shot worker, against 26–169 s and up to 0.14 $ for a subagent.
+For the same read: 4–8 s and 0.03–0.07 $ for the one-shot worker, against 26–169 s and up to 0.14 $ for a subagent. The worker's side has since fallen: with `gemini-flash-lite-latest` on 2026-09-24 a real `bulk-read` took 1.03 / 1.15 / 1.12 s of wall clock for a 100-line file, 968 / 1,093 / 1,060 ms of it at the endpoint, and 1.37 s, 1,313 ms, for 150 KB, nine calls in all. DNS, TCP and TLS are 55–90 ms of that, and there is no streaming, so the first byte is the whole answer; the 30 s the call waits are six times the worst normal case, 2,048 tokens at about 435 a second.
+
+## The length of pnpm test
+
+9.4 / 9.1 / 9.2 s on a 12-core machine, 318 tests in 34 files, and the wall is the CPU, not the longest file: one run costs 53 s of user time and 20 s of system time, 73 s at 782 %, which is 6.1 s of twelve cores kept busy, because every test that starts the hook, the CLI, a fake `claude` or a fake server pays a process. Splitting `test/doctor/doctor.test.ts`, 6.3 s on its own, into two files of 3.6 and 3.9 s left the wall at 9.5 / 9.2 / 9.1 s, so the split was not kept; `--test-concurrency=4` took it to 14.6 s. What would shorten it is fewer processes per test, not shorter files.
 
 ## An answer cut at the output limit
 

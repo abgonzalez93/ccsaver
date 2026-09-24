@@ -10,7 +10,7 @@ pnpm lint
 claude plugin validate .
 ```
 
-The first three run in CI; the fourth is typed by hand, because a read-only CI that pins every action by SHA has nowhere to put an unpinned global install of Claude Code. What it would have caught on its own, `test/repo/skills.test.ts` holds: both manifests name the same plugin and the same version, the hook file `hooks.json` points at exists and is executable, and so are the launcher and the two git hooks.
+The first three run in CI; the fourth is typed by hand, because a read-only CI that pins every action by SHA has nowhere to put an unpinned global install of Claude Code. What it would have caught on its own, `test/repo/skills.test.ts` holds: both manifests name the same plugin and the same version, the hook file `hooks.json` points at exists and is executable, and so are the launcher and the two git hooks. The test run takes about 9 s, and [the CPU sets that](measurements.md#the-length-of-pnpm-test), not the longest file.
 
 `CCSAVER_HOME` relocates the state folder; the tests use it and nothing else, and `pnpm test` starts from one that does not exist, and from a `HOME` that does not exist either, so a test that forgets its own cannot touch your key or your launcher.
 
