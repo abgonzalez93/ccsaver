@@ -100,6 +100,7 @@ test("one gate event per decision, with the ids of the call", async () => {
     [{ file_path: OUTSIDE }, "allow", "outside"],
     [{ file_path: KEYED }, "allow", "untakeable"],
     [{ file_path: LONG, pages: "3-4" }, "allow", "range"],
+    [{ file_path: LONG, pages: 2 }, "allow", "range"],
   ]
   const before = events(HOME).length
   for (const [tool_input] of cases) await hook({ ...call, tool_input })
@@ -136,6 +137,7 @@ test("one gate event per decision, with the ids of the call", async () => {
   assert.deepEqual(seen.map(({ offset, limit, lines }) => [offset, limit, lines])[3], [10, 5, 351])
   assert.deepEqual([seen[7]?.["inside"], seen[7]?.["path"]], [false, undefined])
   assert.deepEqual([seen[9]?.["pages"], seen[9]?.["offset"]], ["3-4", undefined])
+  assert.equal(seen[10]?.["pages"], 2)
 })
 
 test("an adapter the hook cannot load leaves a crash next to the gate event it explains", async () => {

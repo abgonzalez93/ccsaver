@@ -139,7 +139,8 @@ const gateInto = (sum: Spend, row: Row): Spend => {
   if (row["inside"] === false) return sum
   pagedAfter(sum.paged, row, false)
   const lines = numberAt(row, "lines")
-  if (lines <= 0 || typeof row["pages"] === "string")
+  const pages = row["pages"]
+  if (lines <= 0 || typeof pages === "string" || typeof pages === "number")
     return { ...sum, ranged: sum.ranged + 1, uncounted: sum.uncounted + 1 }
   const part = partOf(lines, numberAt(row, "offset"), numberAt(row, "limit"))
   return {

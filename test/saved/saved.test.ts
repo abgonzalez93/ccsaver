@@ -75,8 +75,11 @@ test("a ranged read of a file whose lines the hook never counted is not counted 
 })
 
 test("a PDF read by pages is a ranged read the log cannot weigh, so it is counted and left out", () => {
-  const tally = tallied([gateRow({ reason: "range", bytes: 4_000, lines: 100, pages: "1-2" })])
-  assert.deepEqual([tally.ranged, tally.uncounted, totalled(tally.byModel).rangedTokens], [1, 1, 0])
+  const tally = tallied([
+    gateRow({ reason: "range", bytes: 4_000, lines: 100, pages: "1-2" }),
+    gateRow({ reason: "range", bytes: 4_000, lines: 100, pages: 3 }),
+  ])
+  assert.deepEqual([tally.ranged, tally.uncounted, totalled(tally.byModel).rangedTokens], [2, 2, 0])
 })
 
 test("a model id written the Bedrock or the Vertex way is a model of its own, never unnamed", () => {

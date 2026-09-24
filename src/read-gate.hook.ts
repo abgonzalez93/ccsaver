@@ -126,7 +126,7 @@ const placeOf = (at: string, root: string): Place =>
 const rangeOf = (offset: unknown, limit: unknown, pages: unknown): Record<string, unknown> => ({
   ...(typeof offset === "number" ? { offset } : {}),
   ...(typeof limit === "number" ? { limit } : {}),
-  ...(typeof pages === "string" ? { pages } : {}),
+  ...(typeof pages === "string" || typeof pages === "number" ? { pages } : {}),
 })
 
 const idsOf = (call: Record<PropertyKey, unknown>): Record<string, unknown> =>

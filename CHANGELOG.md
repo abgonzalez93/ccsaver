@@ -4,6 +4,12 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.33.6 - 2026-09-24
+
+fix: a page given as a number is a page range too, in the log and in saved
+
+- the hook let a numeric pages through as a ranged read but wrote nothing about it in the gate line, so saved would have weighed a small PDF as the whole file
+
 ## 0.33.5 - 2026-09-24
 
 fix: the reason doctor quotes for a rejected request stays on one line
