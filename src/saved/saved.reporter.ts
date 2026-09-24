@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs"
+import { tinted } from "../cli/terminal.reporter.ts"
 import { logDir, monthKey } from "../state/log.store.ts"
-import { plural, tinted } from "../state/state.store.ts"
+import { plural } from "../state/state.store.ts"
 import { type Prices, readPrices, workerNamed } from "./prices.store.ts"
 import {
   type Band,

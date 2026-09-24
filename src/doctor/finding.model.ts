@@ -1,5 +1,6 @@
 import { readSync } from "node:fs"
-import { attempt, marked, messageOf, scrubbed } from "../state/state.store.ts"
+import { marked, scrubbed } from "../cli/terminal.reporter.ts"
+import { attempt, messageOf } from "../state/state.store.ts"
 
 export type Level = "ok" | "warn" | "FAIL"
 

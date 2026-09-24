@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs"
+import { marked, scrubbed, shown, type Tone } from "./cli/terminal.reporter.ts"
 import {
   atMost,
   type Command,
@@ -41,7 +42,7 @@ import {
   setHandoff,
 } from "./state/handoff.store.ts"
 import { crashed, logDir, MONTH, ownVersion, record, setLog } from "./state/log.store.ts"
-import { marked, messageOf, Refusal, scrubbed, shown, type Tone } from "./state/state.store.ts"
+import { messageOf, Refusal } from "./state/state.store.ts"
 
 const HELP = ["help", "--help", "-h"]
 const LIMIT_KEYS = ["maxLines", "maxTokens"] as const

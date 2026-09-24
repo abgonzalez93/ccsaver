@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from "node:fs"
+import { scrubbed } from "../cli/terminal.reporter.ts"
 import { record } from "../state/log.store.ts"
 import {
   attempt,
@@ -6,7 +7,6 @@ import {
   parsed,
   pricesFile,
   Refusal,
-  scrubbed,
   workerFile,
   writePrivate,
 } from "../state/state.store.ts"

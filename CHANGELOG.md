@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.33.16 - 2026-09-24
+
+refactor: what a terminal may be shown leaves state.store.ts for src/cli/terminal.reporter.ts
+
+- `Tone`, `tinted`, `marked`, `shown`, `quoted` and `scrubbed` painted, quoted and escaped for a terminal or a shell from inside the store of the state folder, where four commits had put them so that the hooks gained no module; neither hook imports any of the six, so they move to `src/cli/terminal.reporter.ts` beside the usage table, and `state.store.ts` keeps the state folder, the key, the guards and `Refusal`
+- nine importers change a line; the map and the citation of 3.1 follow, and the map's list of folders names `src/cli/`, which it had not
+- measured paired on one disk, three rounds of 30 runs per arm, log on: a 100-line file let through 24.9 / 24.8 / 24.9 ms before against 23.7 / 24.1 / 23.8 ms after, the 500-line file denied 27.7 / 27.1 / 27.0 against 27.6 / 26.6 / 26.3 ms, the handoff hook 23.0 / 23.6 / 23.2 against 23.0 / 23.2 / 23.1 ms; two identical trees sat 0.1–0.7 ms apart the same day, so both hooks pay what they paid
+
 ## 0.33.15 - 2026-09-24
 
 docs: the map says what src/state holds, the config row names the transcript, and a store is one thing of the state folder

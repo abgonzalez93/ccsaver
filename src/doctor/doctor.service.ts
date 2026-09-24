@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process"
 import { existsSync, rmSync, statSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
+import { marked, scrubbed, shown } from "../cli/terminal.reporter.ts"
 import { CLAUDE_ON_PATH, claudeBin } from "../delegation/fallback.client.ts"
 import { fellOf, postJson, rejectionOf, requestOf } from "../delegation/worker.client.ts"
 import { readWorker, type Worker } from "../delegation/worker.store.ts"
@@ -23,14 +24,11 @@ import {
   keyIsCarriable,
   keyIsStored,
   keyWasMoved,
-  marked,
   messageOf,
   movedKeyFile,
   pluggedFile,
   pricesFile,
   readKey,
-  scrubbed,
-  shown,
   stateHome,
   workerFile,
 } from "../state/state.store.ts"

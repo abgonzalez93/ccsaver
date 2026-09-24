@@ -1,5 +1,5 @@
 import { record } from "../state/log.store.ts"
-import { marked, scrubbed } from "../state/state.store.ts"
+import { marked, scrubbed } from "./terminal.reporter.ts"
 
 export const USAGE = `usage: ccsaver <command>
 

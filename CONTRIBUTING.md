@@ -72,30 +72,31 @@ Guard: `test/repo/conventions.test.ts`.
 
 ## 2. Architecture
 
-**2.1 ALWAYS respect the map.** Twenty-two files in six folders and three entry points, one reason to change each, arrows that never turn back. `src/state/` holds the three stores every feature imports, and the handoff's; `src/boundary/` what may leave the machine and what comes back from it; `src/delegation/` the two flows and their two ways out; `src/saved/` the report and its prices; `src/doctor/` the checks, what they report, the survey, and what surrounds ccsaver on the machine. `src/ccsaver.cli.ts`, `src/read-gate.hook.ts` and `src/handoff.hook.ts` stay at the top, where `bin/ccsaver` and `hooks/gate` find them.
+**2.1 ALWAYS respect the map.** Twenty-three files in six folders and three entry points, one reason to change each, arrows that never turn back. `src/state/` holds the three stores every feature imports, and the handoff's; `src/cli/` what a command prints; `src/boundary/` what may leave the machine and what comes back from it; `src/delegation/` the two flows and their two ways out; `src/saved/` the report and its prices; `src/doctor/` the checks, what they report, the survey, and what surrounds ccsaver on the machine. `src/ccsaver.cli.ts`, `src/read-gate.hook.ts` and `src/handoff.hook.ts` stay at the top, where `bin/ccsaver` and `hooks/gate` find them.
 
 | File | Owns | Imports |
 | --- | --- | --- |
-| `src/state/state.store.ts` | the state folder, the key, the guards, what a terminal may be shown (`scrubbed`, `tinted`, `marked`) and what a shell may be handed (`quoted`), `Refusal` | `node:` only |
+| `src/state/state.store.ts` | the state folder, the key, the guards and `Refusal` | `node:` only |
 | `src/state/log.store.ts` | the event log, its switch, its reader, and the version that stamps each line | `state.store` |
 | `src/state/config.store.ts` | what the user configured: the plugged roots, the adapters, how a file is weighed against a limit, and the last line of the session's transcript | `log.store`, `state.store` |
 | `src/state/handoff.store.ts` | `handoff.json`, the switch and the limit of the context warning, and the `handoff/` folder | `config.store`, `log.store`, `state.store` |
 | `src/delegation/worker.store.ts` | `worker.json`: the url, the model, the pinned binary and the fallback switch | `log.store`, `state.store` |
-| `src/doctor/survey.service.ts` | how long a project's files are, and what limit that asks for | `config.store`, `state.store` |
+| `src/doctor/survey.service.ts` | how long a project's files are, and what limit that asks for | `config.store`, `state.store`, `terminal.reporter` |
 | `src/boundary/answer.validator.ts` | pure text work on the worker's answer | nothing |
 | `src/boundary/boundary.guard.ts` | what may leave the machine | `state.store` |
-| `src/delegation/worker.client.ts` | the way out to the worker, `fetch`, what a call records (`delegation`) and how it stops or notes (`fail`, `note`) | `log.store`, `state.store`, the `Worker` type of `worker.store`, the `Tally` type of `answer.validator` |
+| `src/delegation/worker.client.ts` | the way out to the worker, `fetch`, what a call records (`delegation`) and how it stops or notes (`fail`, `note`) | `log.store`, `state.store`, `terminal.reporter`, the `Worker` type of `worker.store`, the `Tally` type of `answer.validator` |
 | `src/delegation/fallback.client.ts` | the other way out: the spawn of a bare, bounded `claude -p` | `state.store`, `worker.client`, the `Worker` type of `worker.store` |
-| `src/delegation/delegation.service.ts` | the `bulk-read` and `code-write` flows | `answer.validator`, `boundary.guard`, `config.store`, `fallback.client`, `log.store`, `state.store`, `worker.client`, `worker.store` |
-| `src/saved/prices.store.ts` | `prices.json`: one price per model, one for the worker, and the worker's name beside a price, its own lenient read of `worker.json` | `log.store`, `state.store` |
+| `src/delegation/delegation.service.ts` | the `bulk-read` and `code-write` flows | `answer.validator`, `boundary.guard`, `config.store`, `fallback.client`, `log.store`, `state.store`, `terminal.reporter`, `worker.client`, `worker.store` |
+| `src/saved/prices.store.ts` | `prices.json`: one price per model, one for the worker, and the worker's name beside a price, its own lenient read of `worker.json` | `log.store`, `state.store`, `terminal.reporter` |
 | `src/saved/saved.service.ts` | what the log says was spent, added up month by month | `config.store`, `log.store`, `prices.store`, `state.store` |
-| `src/saved/saved.reporter.ts` | what `ccsaver saved` prints, and every caveat under it | `log.store`, `prices.store`, `saved.service`, `state.store` |
-| `src/doctor/finding.model.ts` | what a check reports: a level, a text and the fix it offers, and how a line is painted | `state.store` |
+| `src/saved/saved.reporter.ts` | what `ccsaver saved` prints, and every caveat under it | `log.store`, `prices.store`, `saved.service`, `state.store`, `terminal.reporter` |
+| `src/doctor/finding.model.ts` | what a check reports: a level, a text and the fix it offers, and how a line is painted | `state.store`, `terminal.reporter` |
 | `src/doctor/month.service.ts` | the two lines that add the month's log up, `denied:` and `spent:`, folded one row at a time | `config.store`, `finding.model`, `log.store`, `state.store` |
-| `src/doctor/doctor.service.ts` | every check `doctor` runs and the level each one reports | `config.store`, `environment.service`, `fallback.client`, `finding.model`, `handoff.store`, `log.store`, `month.service`, `state.store`, `survey.service`, `worker.client`, `worker.store` |
+| `src/doctor/doctor.service.ts` | every check `doctor` runs and the level each one reports | `config.store`, `environment.service`, `fallback.client`, `finding.model`, `handoff.store`, `log.store`, `month.service`, `state.store`, `survey.service`, `terminal.reporter`, `worker.client`, `worker.store` |
 | `src/doctor/environment.service.ts` | what surrounds ccsaver on the machine: the launcher of your own terminal, `launcher/ccsaver.sh` with `launcher/installed.js` inlined, its place and what stands before it on the `PATH`, and the two rules in Claude Code's settings | `config.store`, `finding.model`, `log.store`, `state.store` |
-| `src/cli/usage.reporter.ts` | the usage table, and how a mistake on the command line is answered with the row of its own command | `log.store`, `state.store` |
-| `src/ccsaver.cli.ts` | arguments and the exit code | `config.store`, `delegation.service`, `doctor.service`, `environment.service`, `handoff.store`, `log.store`, `prices.store`, `saved.reporter`, `state.store`, `survey.service`, `usage.reporter`, `worker.store` |
+| `src/cli/usage.reporter.ts` | the usage table, and how a mistake on the command line is answered with the row of its own command | `log.store`, `terminal.reporter` |
+| `src/cli/terminal.reporter.ts` | what a terminal may be shown (`scrubbed`, `tinted`, `marked`) and what a shell may be handed (`quoted`) | `state.store` |
+| `src/ccsaver.cli.ts` | arguments and the exit code | `config.store`, `delegation.service`, `doctor.service`, `environment.service`, `handoff.store`, `log.store`, `prices.store`, `saved.reporter`, `state.store`, `survey.service`, `terminal.reporter`, `usage.reporter`, `worker.store` |
 | `src/read-gate.hook.ts` | the `Read` gate | `boundary.guard`, `config.store`, `log.store`, `state.store` |
 | `src/handoff.hook.ts` | the context warning at the end of a turn | `config.store`, `handoff.store`, `log.store`, `state.store` |
 
@@ -132,7 +133,7 @@ Guard: `test/repo/conventions.test.ts`.
 
 **3.1 ALWAYS end a stop the user can fix the same way:** one `Error: …` line on stderr, one `fail` event, exit code 1, nothing sent. That line leaves through `writeSync` and not through the stream (`src/delegation/worker.client.ts` · `said`), because `process.exit` drops what a stream has queued and Node queues a pipe on macOS. State code throws a `Refusal`, caught once at the bottom of `src/ccsaver.cli.ts`; the worker path calls `fail`, which returns `never` (`src/delegation/worker.client.ts` · `fail`); a command handed arguments it cannot take returns the complaint as a string instead of an exit code, and `src/cli/usage.reporter.ts` · `mistake` prints it as the `Error:` line with the command's own row of the usage table under it, so the reason and the remedy arrive together. Anything else that throws is a bug and is recorded as a `crash`.
 
-Every line a person reads goes through `src/state/state.store.ts` · `marked`, which puts a mark and a colour in front of it on a terminal and nothing at all on a pipe, `NO_COLOR` or `TERM=dumb`: the words carry the meaning, the paint only repeats it. Untrusted text is `scrubbed` first and painted second, because `scrubbed` would escape the paint. A command that finds its setting already so says `already` and returns 0 without writing or recording anything: `src/state/log.store.ts` · `setLog`, `src/delegation/worker.store.ts` · `setFallback`, `src/state/config.store.ts` · `plug` and their siblings answer whether anything changed, and the wording lives in `src/ccsaver.cli.ts`.
+Every line a person reads goes through `src/cli/terminal.reporter.ts` · `marked`, which puts a mark and a colour in front of it on a terminal and nothing at all on a pipe, `NO_COLOR` or `TERM=dumb`: the words carry the meaning, the paint only repeats it. Untrusted text is `scrubbed` first and painted second, because `scrubbed` would escape the paint. A command that finds its setting already so says `already` and returns 0 without writing or recording anything: `src/state/log.store.ts` · `setLog`, `src/delegation/worker.store.ts` · `setFallback`, `src/state/config.store.ts` · `plug` and their siblings answer whether anything changed, and the wording lives in `src/ccsaver.cli.ts`.
 Guard: every `throw new` in `src/` throws a `Refusal`, by `test/repo/conventions.test.ts`; `test/state/log.test.ts` pins that a mistake on the command line is a `fail`, never a `crash`.
 
 ```ts

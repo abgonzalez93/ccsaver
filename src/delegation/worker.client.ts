@@ -1,6 +1,7 @@
 // Portions of this file are adapted from a third-party Apache-2.0 work and were modified; see NOTICE.
 import { writeSync } from "node:fs"
 import type { Tally } from "../boundary/answer.validator.ts"
+import { marked, scrubbed, shown } from "../cli/terminal.reporter.ts"
 import { record } from "../state/log.store.ts"
 import {
   attempt,
@@ -11,12 +12,9 @@ import {
   keyIsCarriable,
   keyIsStored,
   keyWasMoved,
-  marked,
   movedKeyFile,
   parsed,
   readKey,
-  scrubbed,
-  shown,
 } from "../state/state.store.ts"
 import type { Worker } from "./worker.store.ts"
 

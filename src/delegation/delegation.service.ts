@@ -7,6 +7,7 @@ import { basename, dirname, join, relative, resolve } from "node:path"
 import { parseArgs } from "node:util"
 import { checked, risky, unwrapped } from "../boundary/answer.validator.ts"
 import { contentRefusal, pathRefusal, targetRefusal } from "../boundary/boundary.guard.ts"
+import { marked, quoted, scrubbed } from "../cli/terminal.reporter.ts"
 import { type Adapter, loadAdapter, pluggedRootOf } from "../state/config.store.ts"
 import { record } from "../state/log.store.ts"
 import {
@@ -14,11 +15,8 @@ import {
   codeOf,
   hidden,
   isUnder,
-  marked,
   messageOf,
-  quoted,
   real,
-  scrubbed,
   stateHome,
 } from "../state/state.store.ts"
 import { invokeClaude } from "./fallback.client.ts"

@@ -12,6 +12,7 @@ import {
 } from "node:fs"
 import { join } from "node:path"
 import { after, test } from "node:test"
+import { scrubbed } from "../../src/cli/terminal.reporter.ts"
 import { readWorker, setFallback, writeWorker } from "../../src/delegation/worker.store.ts"
 import {
   linesIn,
@@ -23,7 +24,7 @@ import {
   unplug,
   writeLimits,
 } from "../../src/state/config.store.ts"
-import { isEncrypted, messageOf, Refusal, scrubbed } from "../../src/state/state.store.ts"
+import { isEncrypted, messageOf, Refusal } from "../../src/state/state.store.ts"
 import { AS_ROOT, tempDir } from "../test.helpers.ts"
 
 const WORK = tempDir("state-work")
