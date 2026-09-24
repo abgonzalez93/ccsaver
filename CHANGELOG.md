@@ -4,6 +4,12 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.25.7 - 2026-09-24
+
+docs: how the hook is measured, so a number before and after comes from the same harness
+
+- development.md describes the paired harness behind the recent hook numbers: a throwaway state folder with the log on, a 300 KB transcript, a worktree of the tree before, 30 runs in turn per arm and three rounds, and the floor two identical trees sit apart
+
 ## 0.25.6 - 2026-09-24
 
 refactor: what followed a denial is summed in the service, and the hook and the survey share one scan ceiling
