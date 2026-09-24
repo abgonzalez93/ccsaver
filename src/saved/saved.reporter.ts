@@ -4,6 +4,7 @@ import { tinted } from "../state/state.store.ts"
 import { type Prices, readPrices, workerNamed } from "./prices.store.ts"
 import {
   type Band,
+  followedIn,
   type Money,
   moneyOf,
   monthsOf,
@@ -133,23 +134,6 @@ const orphaned = (tally: Spend): boolean =>
   tally.denied > 0 && tally.ranged === 0 && tally.calls === 0
 
 const readBack = (tally: Spend): number => tally.denied * DENIAL_TOKENS + tally.answerTokens
-
-interface Followed {
-  files: number
-  reads: number
-  reread: number
-}
-
-const UNFOLLOWED: Followed = { files: 0, reads: 0, reread: 0 }
-
-const followedIn = (tally: Spend): Followed =>
-  [...tally.paged.values()].reduce<Followed>(
-    (sum, { reads, reread }) =>
-      reads === 0
-        ? sum
-        : { files: sum.files + 1, reads: sum.reads + reads, reread: sum.reread + reread },
-    UNFOLLOWED,
-  )
 
 const followedLines = (tally: Spend): string[] => {
   const followed = followedIn(tally)

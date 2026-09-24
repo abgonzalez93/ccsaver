@@ -72,6 +72,8 @@ Moving `worker.json` out of `config.store.ts` into `worker.store.ts` costs the h
 
 The launcher taking the name of the hook it starts, so that a second hook shares it instead of copying it, costs nothing either: 26.2 / 25.8 / 24.8 ms before against 26.4 / 25.9 / 25.1 ms after in a plugged project, and 1.8 against 1.7–1.8 ms unplugged, three rounds of 30 runs per arm, paired.
 
+Sharing the 1 MB ceiling between the hook and the survey as one export of `config.store.ts`, `SCAN_CEILING`, costs nothing the harness can see, because the hook already imported that module: a 100-line file let through, 27.6 / 28.2 / 28.9 ms before against 26.8 / 26.8 / 27.1 ms after; a 500-line, 23 KB file denied by lines, 30.2 / 29.2 / 29.0 against 30.5 / 28.3 / 28.3 ms. Three rounds of 30 runs per arm, paired, log on, a 300 KB transcript; two identical trees measured the same way sat 1.8 ms apart on the allow path and 0.1 ms on the deny path, which is the floor of the harness.
+
 Folders cost it nothing either. When `src/` regrouped by feature and the hook's three imports moved into `src/state/`: 21.3 / 20.6 / 21.0 ms flat against 21.4 / 20.6 / 20.4 ms in folders, three rounds of 30 runs per arm, paired, both trees on the same disk. A first pair with the flat copy on `tmpfs` read 2 ms in favour of the folders, which was the disk and not the layout: what the hook pays for is a module, never the depth of its path.
 
 ## The handoff hook per turn

@@ -51,6 +51,8 @@ export const BYTES_PER_TOKEN = 4
 
 export const LIMIT_CEILING = 1_000_000
 
+export const SCAN_CEILING = 1_000_000
+
 const LINE_BREAK = 10
 const NUL = 0
 

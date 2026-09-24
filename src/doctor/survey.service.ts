@@ -7,6 +7,7 @@ import {
   isBinary,
   type Limits,
   linesIn,
+  SCAN_CEILING,
   tokensIn,
 } from "../state/config.store.ts"
 import { attempt, quoted } from "../state/state.store.ts"
@@ -30,7 +31,6 @@ const PRUNED = [
   "Pods",
 ]
 const READ_CAP = 4000
-const CEILING_BYTES = 1_000_000
 const SHARE = 0.95
 const IN_TWENTY = 20
 const LINE_STEP = 50
@@ -55,7 +55,7 @@ const filesUnder = (dir: string, found: string[]): string[] => {
 
 const measure = (path: string): Limits | undefined => {
   const size = attempt(() => statSync(path).size)
-  if (size === undefined || size > CEILING_BYTES) return undefined
+  if (size === undefined || size > SCAN_CEILING) return undefined
   const head = headOf(path)
   if (head === undefined || isBinary(head)) return undefined
   const bytes = size <= HEAD_BYTES ? head : attempt(() => readFileSync(path))

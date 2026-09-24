@@ -175,6 +175,23 @@ const into = (sum: Spend, row: Row): Spend => {
 
 export const tallied = (rows: Rows, from = nothingSpent()): Spend => rows.reduce(into, from)
 
+export interface Followed {
+  files: number
+  reads: number
+  reread: number
+}
+
+const UNFOLLOWED: Followed = { files: 0, reads: 0, reread: 0 }
+
+export const followedIn = (tally: Spend): Followed =>
+  [...tally.paged.values()].reduce<Followed>(
+    (sum, { reads, reread }) =>
+      reads === 0
+        ? sum
+        : { files: sum.files + 1, reads: sum.reads + reads, reread: sum.reread + reread },
+    UNFOLLOWED,
+  )
+
 export const monthsOf = (): string[] =>
   (attempt(() => readdirSync(logDir())) ?? [])
     .flatMap((name) => MONTH_FILE.exec(name)?.[1] ?? [])

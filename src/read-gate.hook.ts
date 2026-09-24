@@ -13,6 +13,7 @@ import {
   linesIn,
   loadAdapter,
   pluggedRootOf,
+  SCAN_CEILING,
   tokensIn,
 } from "./state/config.store.ts"
 import { crashed, logDir, record } from "./state/log.store.ts"
@@ -20,7 +21,6 @@ import { attempt, isRecord, isUnder, real, stateHome } from "./state/state.store
 
 const IDS = ["tool_use_id", "agent_id", "agent_type", "permission_mode"]
 const TRANSCRIPT_TAIL = 262_144
-const SCAN_CEILING = 1_000_000
 
 interface Measured {
   lines?: number
