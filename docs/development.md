@@ -10,7 +10,7 @@ pnpm lint
 claude plugin validate .
 ```
 
-The first three run in CI; the fourth is typed by hand, because a read-only CI that pins every action by SHA has nowhere to put an unpinned global install of Claude Code. What it would have caught on its own, `test/repo/skills.test.ts` holds: both manifests name the same plugin and the same version, the hook file `hooks.json` points at exists and is executable, and so are the launcher and the two git hooks. The test run takes about 9 s, and [the CPU sets that](#the-length-of-pnpm-test), not the longest file.
+The first three run in CI; the fourth is typed by hand, because a read-only CI that pins every action by SHA has nowhere to put an unpinned global install of Claude Code. What it would have caught on its own, `test/repo/skills.test.ts` holds: both manifests name the same plugin and the same version, the hook file `hooks.json` points at exists and is executable, and so are the launcher and the two git hooks. The test run takes about 7 s, [the CPU and the longest file between them](#the-length-of-pnpm-test).
 
 `CCSAVER_HOME` relocates the state folder; the tests use it and nothing else, and `pnpm test` starts from one that does not exist, and from a `HOME` that does not exist either, so a test that forgets its own cannot touch your key or your launcher.
 
@@ -101,7 +101,7 @@ Since the gate stopped denying what `bulk-read` would refuse, a file past the by
 
 ## The length of pnpm test
 
-9.4 / 9.1 / 9.2 s on a 12-core machine, 318 tests in 34 files, and the wall is the CPU, not the longest file: one run costs 53 s of user time and 20 s of system time, 73 s at 782 %, which is 6.1 s of twelve cores kept busy, because every test that starts the hook, the CLI, a fake `claude` or a fake server pays a process. Splitting `test/doctor/doctor.test.ts`, 6.3 s on its own, into two files of 3.6 and 3.9 s left the wall at 9.5 / 9.2 / 9.1 s, so the split was not kept; `--test-concurrency=4` took it to 14.6 s. What would shorten it is fewer processes per test, not shorter files.
+9.4 / 9.1 / 9.2 s on a 12-core machine, 318 tests in 34 files, and the wall is the CPU, not the longest file: one run costs 53 s of user time and 20 s of system time, 73 s at 782 %, which is 6.1 s of twelve cores kept busy, because every test that starts the hook, the CLI, a fake `claude` or a fake server pays a process. Splitting `test/doctor/doctor.test.ts`, 6.3 s on its own, into two files of 3.6 and 3.9 s left the wall at 9.5 / 9.2 / 9.1 s, so the split was not kept; `--test-concurrency=4` took it to 14.6 s. What would shorten it is fewer processes per test, not shorter files. Two changes on 2026-09-24, 325 tests: one compile cache shared by every `node` the run starts, `NODE_COMPILE_CACHE` in the `test` script, because each throwaway state folder had been handing the CLI a cold one, took it from 9.30 / 9.15 / 9.21 s to 7.33 / 7.24 / 7.28 s and 52 + 20 s of CPU to 28 + 14, a CLI start being 31 ms warm against 79 ms cold, 10 runs each; and the fake `claude` written in `sh` instead of Node, one process start less per `doctor` and per fallback, 9.05 / 9.14 / 9.02 s alone and 7.26 / 7.23 / 7.22 s beside the cache. The longest file, `test/doctor/doctor.test.ts`, takes 5.5 s alone and now sets the wall: each of its `doctor` runs pays the launcher's Node version check, about 30 ms, which calling the CLI directly would save, 1.3 s in all.
 
 ## The Haiku fallback on one 8,230-token call
 

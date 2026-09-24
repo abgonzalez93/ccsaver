@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.29.1 - 2026-09-24
+
+test: the test run shares one compile cache and fakes claude in sh, 9.2 s to 7.2 s
+
+- NODE_COMPILE_CACHE in the test script, one folder under node_modules/.cache for every node the run starts: each throwaway state folder had been handing the CLI a cold cache, and a CLI start is 31 ms warm against 79 ms cold; 9.30 / 9.15 / 9.21 s to 7.33 / 7.24 / 7.28 s, three runs each, 52 + 20 s of CPU to 28 + 14
+- the fake claude the tests spawn is a sh script instead of a Node one, one process start less per doctor and per fallback: 9.05 / 9.14 / 9.02 s on its own, 7.26 / 7.23 / 7.22 s beside the cache
+- the note in development.md carries the numbers and names the next lever, the launcher's Node version check that every doctor of doctor.test.ts pays
+
 ## 0.29.0 - 2026-09-24
 
 feat: an adapter with rewrite answers a denied read with the first lines of the file, measured with Fable and left off

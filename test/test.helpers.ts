@@ -107,7 +107,7 @@ export const fakeClaude = (
   const path = join(dir, name)
   writeFileSync(
     path,
-    `#!/usr/bin/env node\nprocess.stdout.write(process.argv.includes("--version") ? "9.9.9 (fake)\\n" : JSON.stringify({ result: "${result}", total_cost_usd: ${cost} }))\n`,
+    `#!/bin/sh\ncase " $* " in *" --version "*) echo "9.9.9 (fake)" ;; *) printf '%s' '${JSON.stringify({ result, total_cost_usd: cost })}' ;; esac\n`,
   )
   chmodSync(path, 0o755)
   return path
