@@ -4,6 +4,13 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.31.2 - 2026-09-24
+
+refactor: the gate and the external call come under the complexity ceiling of 15
+
+- gate had grown to 18 with cut and rewrite, and invokeExternal to 16, against the 15 of CONTRIBUTING 1.7; answered writes the gate's answer, usableKey and answerOf check the key and read the response, and each function decides one thing
+- the hook measured 25.9 / 26.0 / 26.2 ms before against 25.9 / 26.1 / 26.2 after on a 100-line file let through, log on, three rounds of 30 paired runs with both trees on the same disk; the recipe now says so, because a worktree on tmpfs read 0.8 ms apart from an identical one on the disk
+
 ## 0.31.1 - 2026-09-24
 
 refactor: what may leave the machine and what comes back live in src/boundary, and the fallback is a client of its own

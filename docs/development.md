@@ -23,7 +23,7 @@ Rule 4.4 of [CONTRIBUTING](../CONTRIBUTING.md) asks for a number before and afte
 
 - a throwaway `CCSAVER_HOME` with a `plugged` line naming a throwaway project and an empty `log/`, so the hook takes the path that writes a line, and one without it, for the path the `sh` gate answers alone; in the project, a 100-line file it lets through and a 500-line one it denies;
 - a 300 KB transcript of assistant lines carrying a `usage` block and 2 KB tool results, named in the `transcript_path` of the hook's input beside a `session_id`;
-- the tree before the change, from `git worktree add /tmp/before HEAD`, and the working tree after it;
+- the tree before the change, from `git worktree add ../ccsaver-before HEAD`, on the same disk as the working tree after it, because `/tmp` is a `tmpfs` on some machines and the disk alone moved a paired run by 0.8 ms;
 - `sh hooks/gate read-gate` from one tree, then from the other, 30 times in turn on the same input after three warm-up runs, the mean per arm; three such rounds per file;
 - the same run once with the two trees identical, which says how far apart two equal arms sit on this machine: 1.8 ms on the allow path and 0.1 ms on the deny path, the last time.
 

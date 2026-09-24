@@ -145,6 +145,34 @@ const spokenOf = (call: Record<PropertyKey, unknown>): Record<string, unknown> =
 const kindOf = (call: Record<PropertyKey, unknown>): string =>
   call["tool_use_id"] === "doctor" ? "doctor" : "gate"
 
+const seen = (
+  call: Record<PropertyKey, unknown>,
+  root: string,
+  fields: Record<string, unknown>,
+): void => {
+  const ms = Number(performance.now().toFixed(1))
+  record(kindOf(call), { root, ...fields, ...idsOf(call), ms }, call["session_id"])
+}
+
+type Decision = "allow" | "deny" | "rewrite"
+
+const answered = (
+  asked: Record<PropertyKey, unknown>,
+  given: string,
+  measured: Measured,
+  limits: Limits,
+  rewriting: boolean,
+  reason: string,
+): Decision => {
+  if (!isOver(reason)) return "allow"
+  if (rewriting) {
+    rewrite(asked, given, measured, limits)
+    return "rewrite"
+  }
+  deny(denial(given, measured, limits))
+  return "deny"
+}
+
 const gate = (root: string, adapterName: string | undefined): void => {
   const input: unknown = JSON.parse(readFileSync(0, "utf8"))
   const call = isRecord(input) ? input : {}
@@ -153,12 +181,8 @@ const gate = (root: string, adapterName: string | undefined): void => {
   const ranged = isPresent(offset) || isPresent(limit) || isPresent(pages)
   const logging = existsSync(logDir())
   if (ranged && !logging) return
-  const seen = (fields: Record<string, unknown>): void => {
-    const ms = Number(performance.now().toFixed(1))
-    record(kindOf(call), { root, ...fields, ...idsOf(call), ms }, call["session_id"])
-  }
   if (typeof given !== "string") {
-    seen({ decision: "allow", reason: "malformed" })
+    seen(call, root, { decision: "allow", reason: "malformed" })
     return
   }
   const adapter = adapterOrDefaults(adapterName)
@@ -168,20 +192,19 @@ const gate = (root: string, adapterName: string | undefined): void => {
   const measured = measure(given, limits.maxTokens * BYTES_PER_TOKEN)
   const over = reasonOf(measured, place.inside, ranged, limits)
   const reason = isOver(over) && untakeable(given, at, root, measured) ? "untakeable" : over
-  const denied = isOver(reason)
-  const rewritten = denied && adapter.rewrite === true
-  if (rewritten) rewrite(asked, given, measured, limits)
-  else if (denied) deny(denial(given, measured, limits))
+  const decision = answered(asked, given, measured, limits, adapter.rewrite === true, reason)
   if (!logging) return
-  seen({
+  seen(call, root, {
     ...place,
-    ...(rewritten ? { offset: 1, limit: limits.maxLines } : rangeOf(offset, limit, pages)),
+    ...(decision === "rewrite"
+      ? { offset: 1, limit: limits.maxLines }
+      : rangeOf(offset, limit, pages)),
     lines: measured.lines ?? null,
     bytes: measured.bytes,
     ...limits,
     adapter: adapterName ?? null,
     ...spokenOf(call),
-    decision: rewritten ? "rewrite" : denied ? "deny" : "allow",
+    decision,
     reason,
   })
 }

@@ -177,6 +177,46 @@ const keyTrouble = (key: string | undefined): { fell: string; said: string } => 
   }
 }
 
+const usableKey = (worker: Worker): string | undefined => {
+  const key = readKey()
+  if (key === undefined && keyWasMoved()) {
+    delegation.fell = "key moved"
+    return fail(
+      `the worker moved to ${shown(worker.url)} and the key was set aside in ${movedKeyFile()}: run ccsaver key set`,
+    )
+  }
+  if (key !== undefined && keyIsCarriable(key)) return key
+  const { fell, said } = keyTrouble(key)
+  delegation.fell = fell
+  note(`${said}, ${next(worker)}`)
+  return undefined
+}
+
+const answerOf = async (
+  response: Response,
+  mode: string,
+  worker: Worker,
+): Promise<string | undefined> => {
+  const text = response.ok ? await bodyOf(response, MAX_BODY_BYTES) : undefined
+  const raw: unknown = JSON.parse(text ?? "null")
+  const cut = firstChoice(raw)?.["finish_reason"] === "length"
+  const content = cut && mode !== "bulk-read" ? undefined : contentOf(raw)
+  if (content === undefined) {
+    gaveNothing(worker, response, cut)
+    return undefined
+  }
+  const inTokens = inTokensOf(raw)
+  Object.assign(delegation, {
+    answered: "external",
+    model: worker.model,
+    answerChars: content.length,
+    ...(cut ? { cut } : {}),
+    ...(inTokens === undefined ? {} : { inTokens }),
+  } satisfies Delegation)
+  if (cut) note(`${worker.model} hit its ${answerTokensOf(mode)}-token limit, the answer is cut`)
+  return content
+}
+
 export const invokeExternal = async (
   mode: string,
   system: string,
@@ -188,19 +228,8 @@ export const invokeExternal = async (
     note("no worker is set (ccsaver worker set <url> <model>), falling back")
     return undefined
   }
-  const key = readKey()
-  if (key === undefined && keyWasMoved()) {
-    delegation.fell = "key moved"
-    return fail(
-      `the worker moved to ${shown(worker.url)} and the key was set aside in ${movedKeyFile()}: run ccsaver key set`,
-    )
-  }
-  if (key === undefined || !keyIsCarriable(key)) {
-    const { fell, said } = keyTrouble(key)
-    delegation.fell = fell
-    note(`${said}, ${next(worker)}`)
-    return undefined
-  }
+  const key = usableKey(worker)
+  if (key === undefined) return undefined
   if (!isEncrypted(worker.url)) {
     delegation.fell = "not https"
     note(`the worker url is not https, ${next(worker)}`)
@@ -215,23 +244,8 @@ export const invokeExternal = async (
       EXTERNAL_TIMEOUT_MS,
     )
     delegation.status = response.status
-    const text = response.ok ? await bodyOf(response, MAX_BODY_BYTES) : undefined
-    const raw: unknown = JSON.parse(text ?? "null")
-    const cut = firstChoice(raw)?.["finish_reason"] === "length"
-    const content = cut && mode !== "bulk-read" ? undefined : contentOf(raw)
-    if (content === undefined) {
-      gaveNothing(worker, response, cut)
-      return undefined
-    }
-    const inTokens = inTokensOf(raw)
-    Object.assign(delegation, {
-      answered: "external",
-      model: worker.model,
-      answerChars: content.length,
-      ...(cut ? { cut } : {}),
-      ...(inTokens === undefined ? {} : { inTokens }),
-    } satisfies Delegation)
-    if (cut) note(`${worker.model} hit its ${answerTokensOf(mode)}-token limit, the answer is cut`)
+    const content = await answerOf(response, mode, worker)
+    if (content === undefined) return undefined
     note(
       `~${tokensOf(message)} input tokens by chars/4 | external | ${worker.model} | delegated to ${mode}`,
     )
