@@ -4,6 +4,12 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.29.8 - 2026-09-24
+
+fix: the sh gate reads a compact handoff.json as off, not only the one ccsaver writes
+
+- the shortcut matched the two-space spelling of JSON.stringify alone, so a hand-written {"on":false} started Node on every turn, 24 ms instead of 2, and the page said otherwise
+
 ## 0.29.7 - 2026-09-24
 
 fix: doctor's denied line counts only the whole-file reads the hook could judge

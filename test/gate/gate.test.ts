@@ -8,6 +8,7 @@ const HOME = tempDir("gate-home")
 const OFF_HOME = tempDir("gate-off")
 const ON_HOME = tempDir("gate-on")
 const NESTED_HOME = tempDir("gate-nested")
+const COMPACT_HOME = tempDir("gate-compact")
 const EMPTY_HOME = tempDir("gate-empty")
 const WORK = tempDir("gate-work")
 const PLUGGED = join(WORK, "proj-a")
@@ -43,6 +44,8 @@ writeHome(OFF_HOME, { plugged: [[PLUGGED]] })
 writeHome(ON_HOME, { plugged: [[PLUGGED]] })
 mkdirSync(join(ON_HOME, "log"), { mode: 0o700 })
 writeHome(NESTED_HOME, { plugged: [[PLUGGED], [DEEP, "strict-ts"]] })
+writeHome(COMPACT_HOME, { plugged: [[PLUGGED]] })
+writeFileSync(join(COMPACT_HOME, "handoff.json"), '{"on":false,"limit":200000}\n', { mode: 0o600 })
 writeFileSync(
   join(OFF_HOME, "handoff.json"),
   `${JSON.stringify({ on: false, limit: 200_000 }, null, 2)}\n`,
@@ -97,7 +100,7 @@ const NODE_DECIDES = [
 ]
 
 after(() => {
-  for (const dir of [HOME, OFF_HOME, ON_HOME, NESTED_HOME, EMPTY_HOME, WORK])
+  for (const dir of [HOME, OFF_HOME, ON_HOME, NESTED_HOME, COMPACT_HOME, EMPTY_HOME, WORK])
     rmSync(dir, { recursive: true, force: true })
 })
 
@@ -169,6 +172,8 @@ test("the handoff hook is launched in a plugged project unless the warning is of
   await launch(OTHER, HOME)
   assert.equal(existsSync(MARKER), false)
   await launch(PLUGGED, OFF_HOME)
+  assert.equal(existsSync(MARKER), false)
+  await launch(PLUGGED, COMPACT_HOME)
   assert.equal(existsSync(MARKER), false)
   assert.deepEqual(await launch(PLUGGED, HOME, [GATE]), { code: 0, stdout: "", stderr: "" })
   assert.equal(existsSync(MARKER), false)
