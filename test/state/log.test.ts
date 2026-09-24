@@ -33,6 +33,7 @@ const PROJECT = join(WORK, "project")
 const LOG = join(HOME, "log")
 const SOURCE = join(PROJECT, "source.ts")
 const LONG = join(PROJECT, "deep", "long.txt")
+const OUTSIDE = join(WORK, "outside.txt")
 const FAKE = fakeClaude(WORK)
 const WHOLE = { tool_input: { file_path: LONG } }
 const NONE: Record<PropertyKey, unknown> = {}
@@ -55,11 +56,15 @@ const ccsaver = (args: string[], input = ""): Promise<Ran> =>
     input,
   )
 
+const ask = (...paths: string[]): Promise<Ran> =>
+  ccsaver(["bulk-read", "--question=QUESTION_SENTINEL", "--project", PROJECT, "--paths", ...paths])
+
 before(async () => {
   server = await startServer()
   mkdirSync(join(PROJECT, "deep"), { recursive: true })
   writeFileSync(SOURCE, "export const CONTENT_SENTINEL = 1\n")
   writeFileSync(LONG, "x\n".repeat(351))
+  writeFileSync(OUTSIDE, "x\n")
   writeHome(HOME, { plugged: [[PROJECT]], worker: { url: server.url, model: KEY }, key: KEY })
 })
 
@@ -189,6 +194,103 @@ test("a session id from outside cannot grow a line past the cap the stub is ther
   const written = logged(HOME).slice(before)
   assert.ok(Buffer.byteLength(written) < 4096, String(Buffer.byteLength(written)))
   assert.equal(String(events(HOME).at(-1)?.["session"]).length, 200)
+})
+
+test("a delegation leaves metadata: no key, no question, no file content, no answer", async () => {
+  const before = events(HOME).length
+  const sent = server.seen.length
+  const [file = ""] = readdirSync(LOG)
+  writeFileSync(join(PROJECT, ".env"), "TOKEN=1\n")
+  assert.equal((await ask(SOURCE)).code, 0)
+  server.reply.status = 500
+  assert.equal((await ask(SOURCE, OUTSIDE)).code, 0)
+  assert.equal((await ask(SOURCE)).code, 0)
+  server.reset()
+  assert.equal((await ask(join(PROJECT, ".env"))).code, 1)
+  assert.match((await ask(join(LOG, file))).stderr, /state folder/)
+  const written = await ccsaver([
+    "code-write",
+    "--spec=SPEC_SENTINEL",
+    "--project",
+    PROJECT,
+    "--reference",
+    SOURCE,
+    "--target",
+    join(PROJECT, "out.ts"),
+  ])
+  assert.equal(written.code, 0)
+  const seen = events(HOME).slice(before)
+  assert.deepEqual(
+    seen
+      .filter(({ kind }) => kind === "delegate")
+      .map(({ mode, answered, fell, status, files, outside, exit, target, written: lines }) => [
+        mode,
+        answered,
+        fell,
+        status,
+        files,
+        outside,
+        exit,
+        target,
+        lines,
+      ]),
+    [
+      ["bulk-read", "external", undefined, 200, 1, 0, 0, undefined, undefined],
+      ["bulk-read", "fallback", "outside", undefined, 2, 1, 0, undefined, undefined],
+      ["bulk-read", "fallback", "status", 500, 1, 0, 0, undefined, undefined],
+      ["bulk-read", undefined, undefined, undefined, undefined, undefined, 1, undefined, undefined],
+      ["bulk-read", undefined, undefined, undefined, undefined, undefined, 1, undefined, undefined],
+      ["code-write", "external", undefined, 200, 1, 0, 0, true, 1],
+    ],
+  )
+  assert.equal(
+    seen.every(({ session }) => session === "session-cli"),
+    true,
+  )
+  assert.deepEqual([...new Set(seen.map(({ kind }) => kind))].sort(), ["delegate", "fail", "note"])
+  assert.equal(server.seen.length - sent, 3)
+  const text = logged(HOME)
+  for (const banned of [
+    KEY,
+    "Bearer",
+    "QUESTION_SENTINEL",
+    "SPEC_SENTINEL",
+    "CONTENT_SENTINEL",
+    "FROM-EXTERNAL",
+    "FROM-CLAUDE",
+  ])
+    assert.equal(text.includes(banned), false, banned)
+  assert.match(text, /\| external \| \[key\] \|/)
+})
+
+test("a command line that goes nowhere leaves a fail, and says which kind", async () => {
+  const before = events(HOME).length
+  assert.equal((await ccsaver(["frobnicate"])).code, 1)
+  assert.equal((await ccsaver(["worker", "claude"])).code, 1)
+  assert.deepEqual(
+    events(HOME)
+      .slice(before)
+      .map(({ kind, text }) => [kind, text]),
+    [
+      ["fail", "unknown command: frobnicate"],
+      ["fail", "worker claude needs a path, or auto"],
+    ],
+  )
+})
+
+test("the input tokens the endpoint reports are recorded, and its silence is not a zero", async () => {
+  const before = events(HOME).length
+  server.reply.inTokens = 4242
+  assert.equal((await ask(SOURCE)).code, 0)
+  server.reset()
+  assert.equal((await ask(SOURCE)).code, 0)
+  server.reply.inTokens = -5
+  assert.equal((await ask(SOURCE)).code, 0)
+  const [reported, silent, negative] = events(HOME)
+    .slice(before)
+    .filter(({ kind }) => kind === "delegate")
+    .map(({ inTokens }) => inTokens)
+  assert.deepEqual([reported, silent, negative], [4242, undefined, undefined])
 })
 
 test("a stored key under 8 characters is left alone, so unrelated text survives", async () => {

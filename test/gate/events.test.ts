@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { appendFileSync, chmodSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs"
+import { appendFileSync, chmodSync, mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { after, before, test } from "node:test"
 import {
@@ -54,9 +54,6 @@ const ccsaver = (args: string[], input = ""): Promise<Ran> =>
     { CCSAVER_HOME: HOME, CLAUDE_CODE_EXECPATH: FAKE, CLAUDE_CODE_SESSION_ID: "session-cli" },
     input,
   )
-
-const ask = (...paths: string[]): Promise<Ran> =>
-  ccsaver(["bulk-read", "--question=QUESTION_SENTINEL", "--project", PROJECT, "--paths", ...paths])
 
 before(async () => {
   server = await startServer()
@@ -176,73 +173,6 @@ test("a crash inside the hook is recorded and the read still goes through", asyn
   )
 })
 
-test("a delegation leaves metadata: no key, no question, no file content, no answer", async () => {
-  const before = events(HOME).length
-  const sent = server.seen.length
-  const [file = ""] = readdirSync(LOG)
-  writeFileSync(join(PROJECT, ".env"), "TOKEN=1\n")
-  assert.equal((await ask(SOURCE)).code, 0)
-  server.reply.status = 500
-  assert.equal((await ask(SOURCE, OUTSIDE)).code, 0)
-  assert.equal((await ask(SOURCE)).code, 0)
-  server.reset()
-  assert.equal((await ask(join(PROJECT, ".env"))).code, 1)
-  assert.match((await ask(join(LOG, file))).stderr, /state folder/)
-  const written = await ccsaver([
-    "code-write",
-    "--spec=SPEC_SENTINEL",
-    "--project",
-    PROJECT,
-    "--reference",
-    SOURCE,
-    "--target",
-    join(PROJECT, "out.ts"),
-  ])
-  assert.equal(written.code, 0)
-  const seen = events(HOME).slice(before)
-  assert.deepEqual(
-    seen
-      .filter(({ kind }) => kind === "delegate")
-      .map(({ mode, answered, fell, status, files, outside, exit, target, written: lines }) => [
-        mode,
-        answered,
-        fell,
-        status,
-        files,
-        outside,
-        exit,
-        target,
-        lines,
-      ]),
-    [
-      ["bulk-read", "external", undefined, 200, 1, 0, 0, undefined, undefined],
-      ["bulk-read", "fallback", "outside", undefined, 2, 1, 0, undefined, undefined],
-      ["bulk-read", "fallback", "status", 500, 1, 0, 0, undefined, undefined],
-      ["bulk-read", undefined, undefined, undefined, undefined, undefined, 1, undefined, undefined],
-      ["bulk-read", undefined, undefined, undefined, undefined, undefined, 1, undefined, undefined],
-      ["code-write", "external", undefined, 200, 1, 0, 0, true, 1],
-    ],
-  )
-  assert.equal(
-    seen.every(({ session }) => session === "session-cli"),
-    true,
-  )
-  assert.deepEqual([...new Set(seen.map(({ kind }) => kind))].sort(), ["delegate", "fail", "note"])
-  assert.equal(server.seen.length - sent, 3)
-  const text = logged(HOME)
-  for (const banned of [
-    KEY,
-    "Bearer",
-    "QUESTION_SENTINEL",
-    "SPEC_SENTINEL",
-    "CONTENT_SENTINEL",
-    "FROM-EXTERNAL",
-    "FROM-CLAUDE",
-  ])
-    assert.equal(text.includes(banned), false, banned)
-  assert.match(text, /\| external \| \[key\] \|/)
-})
-
 test("doctor counts the month's denied reads against the ones it could judge, and leaves its own probe out of them", async () => {
   const fresh = tempDir("events-denied")
   mkdirSync(join(fresh, "log"), { recursive: true, mode: 0o700 })
@@ -270,21 +200,6 @@ test("doctor counts the month's denied reads against the ones it could judge, an
     /^ok {3}denied: 4 of 5 whole-file reads this month \(80 %\), median 376 lines$/m,
   )
   rmSync(fresh, { recursive: true, force: true })
-})
-
-test("a command line that goes nowhere leaves a fail, and says which kind", async () => {
-  const before = events(HOME).length
-  assert.equal((await ccsaver(["frobnicate"])).code, 1)
-  assert.equal((await ccsaver(["worker", "claude"])).code, 1)
-  assert.deepEqual(
-    events(HOME)
-      .slice(before)
-      .map(({ kind, text }) => [kind, text]),
-    [
-      ["fail", "unknown command: frobnicate"],
-      ["fail", "worker claude needs a path, or auto"],
-    ],
-  )
 })
 
 test("doctor says nothing about denied reads while the log is off", async () => {
@@ -332,19 +247,4 @@ test("a ranged read the hook could not count lines for is left out of instead, a
   assert.equal(out.code, 0)
   assert.match(out.stdout, /^ {2}\d+ of \d+ ranged reads were on files past the byte limit/m)
   assert.match(out.stdout, /^ {2}never counts, or were PDF pages: the log cannot say/m)
-})
-
-test("the input tokens the endpoint reports are recorded, and its silence is not a zero", async () => {
-  const before = events(HOME).length
-  server.reply.inTokens = 4242
-  assert.equal((await ask(SOURCE)).code, 0)
-  server.reset()
-  assert.equal((await ask(SOURCE)).code, 0)
-  server.reply.inTokens = -5
-  assert.equal((await ask(SOURCE)).code, 0)
-  const [reported, silent, negative] = events(HOME)
-    .slice(before)
-    .filter(({ kind }) => kind === "delegate")
-    .map(({ inTokens }) => inTokens)
-  assert.deepEqual([reported, silent, negative], [4242, undefined, undefined])
 })
