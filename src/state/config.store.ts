@@ -114,10 +114,17 @@ const spokenIn = (text: string): Spoken | undefined => {
   return said
 }
 
-export const lastAssistantOf = (transcript: unknown, bytes: number): Spoken | undefined => {
-  if (typeof transcript !== "string") return undefined
+const NEAR_TAIL = 16_384
+
+const spokenAt = (transcript: string, bytes: number): Spoken | undefined => {
   const tail = tailOf(transcript, bytes)
   return tail === undefined ? undefined : spokenIn(tail.toString("utf8"))
+}
+
+export const lastAssistantOf = (transcript: unknown, bytes: number): Spoken | undefined => {
+  if (typeof transcript !== "string") return undefined
+  if (bytes <= NEAR_TAIL) return spokenAt(transcript, bytes)
+  return spokenAt(transcript, NEAR_TAIL) ?? spokenAt(transcript, bytes)
 }
 
 export const linesIn = (bytes: Buffer): number => {

@@ -53,6 +53,19 @@ test("the transcript reader takes the last main-chain assistant line, its model 
   assert.equal(lastAssistantOf(path, 40), undefined)
 })
 
+test("the last assistant line is found past the 16 KB read first, through the 256 KB read after it", () => {
+  const long = said({ type: "user", message: { role: "user", content: "x".repeat(20_000) } })
+  const path = written(assistant("claude-opus-5", USAGE), long)
+  const spoken = { model: "claude-opus-5", context: 10_002 }
+  assert.deepEqual(lastAssistantOf(path, 262_144), spoken)
+  assert.deepEqual(lastAssistantOf(path, 30_000), spoken)
+  assert.equal(lastAssistantOf(path, 16_384), undefined)
+  assert.deepEqual(
+    lastAssistantOf(written(long, assistant("claude-opus-5", USAGE)), 262_144),
+    spoken,
+  )
+})
+
 test("a transcript that is missing, not named, or without usage answers with what it has", () => {
   assert.equal(lastAssistantOf(join(WORK, "gone.jsonl"), 1_000), undefined)
   assert.equal(lastAssistantOf(undefined, 1_000), undefined)

@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.28.1 - 2026-09-24
+
+perf: the hooks read the last 16 KB of the transcript first, and 256 KB only when no assistant line sits in them
+
+- in PreToolUse the last assistant line is the one that asked for the tool, in Stop it is the last line of the file, so the short read answers almost every time and the long one stays for a tool result longer than 16 KB
+- a 100-line file let through with the log on: 27.6 / 28.2 / 27.7 ms before against 25.2 / 24.8 / 25.7 after; the handoff hook per turn 27.0 / 26.5 / 26.9 against 24.2 / 24.3 / 24.3, three rounds of 30 runs per arm, paired
+- the same line is found either way, and the test covers one that sits past the short read
+
 ## 0.28.0 - 2026-09-24
 
 feat: bulk-read keeps an answer cut at its output limit, and says so

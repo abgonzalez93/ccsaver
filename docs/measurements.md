@@ -80,7 +80,7 @@ Folders cost it nothing either. When `src/` regrouped by feature and the hook's 
 
 ## The handoff hook per turn
 
-Three rounds of 30 runs per arm, paired, process spawn included, on a 4 MB transcript whose last line holds the count, with the warning already given for the multiple the count sits in, which is what every turn but the crossing one costs: **1.7 / 1.7 / 1.7 ms in an unplugged project and 1.7 / 1.7 / 1.7 ms in a plugged one with the warning off**, where `hooks/gate` exits in `sh` before Node starts, and **27.2 / 27.3 / 25.9 ms with it on**: Node's start-up with four modules, the last 256 KB of the transcript parsed, and the marker read. The `Read` gate did not move when the switch line joined the launcher: 24.3 / 23.9 / 24.3 ms before against 24.0 / 24.0 / 23.7 ms after.
+Three rounds of 30 runs per arm, paired, process spawn included, on a 4 MB transcript whose last line holds the count, with the warning already given for the multiple the count sits in, which is what every turn but the crossing one costs: **1.7 / 1.7 / 1.7 ms in an unplugged project and 1.7 / 1.7 / 1.7 ms in a plugged one with the warning off**, where `hooks/gate` exits in `sh` before Node starts, and **27.2 / 27.3 / 25.9 ms with it on**: Node's start-up with four modules, the tail of the transcript parsed, and the marker read; [reading 16 KB of it first](#reading-the-model-out-of-the-transcript) took the last figure to 24.2 / 24.3 / 24.3 ms. The `Read` gate did not move when the switch line joined the launcher: 24.3 / 23.9 / 24.3 ms before against 24.0 / 24.0 / 23.7 ms after.
 
 The fifth slash command's description is one of the seven entries [measured together](#the-fixed-cost-of-the-skill-descriptions) at 266 tokens.
 
@@ -101,6 +101,8 @@ The fifth slash command's description is one of the seven entries [measured toge
 0.156 ms, mean of 200 runs, on a 2.5 MB transcript: open, read the last 64 KB, split it and `JSON.parse` each whole line, keep the `model` of the last assistant one. A naive regex over the same slice took 0.071 ms but reads a model name written in the conversation as the one in force, which this very repository's sessions produce.
 
 Per `Read`, paired on the same machine, three rounds of 30 runs per arm: **21-23 ms before and 19-21 ms after with the log off**, where the hook never looks, and **21-22 ms before against 22 ms after with the log on**. The lookup sits inside the branch that writes the line, so the default costs nothing.
+
+Reading the last 16 KB first, and the 256 KB only when no assistant line sits in them, because in `PreToolUse` the last assistant line is the one that asked for the tool and in `Stop` it is the last line of the file: a 100-line file let through with the log on, **27.6 / 28.2 / 27.7 ms before against 25.2 / 24.8 / 25.7 ms after**; the 500-line file denied by lines, 28.2 / 27.9 / 29.2 against 27.0 / 26.9 / 27.4 ms; the handoff hook on a turn that crosses nothing, **27.0 / 26.5 / 26.9 against 24.2 / 24.3 / 24.3 ms**. Three rounds of 30 runs per arm, paired, a 300 KB transcript of 2 KB lines whose last line is the assistant's, every round after below every round before; the two trees measured identical the same day sat 0.3–0.6 ms apart. In process the 256 KB read and parse took 0.35 ms on that transcript and the 16 KB one 0.02, p50 of 200; a transcript whose last assistant line sits further back than 16 KB, a tool result of 200 KB after it, pays both reads, 0.02 ms more than before.
 
 ## The hook on a file past the byte limit
 
