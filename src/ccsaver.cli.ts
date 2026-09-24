@@ -147,8 +147,9 @@ const handoffShown = (): number => {
 
 const handoffKept = (): number => {
   const session = process.env["CLAUDE_CODE_SESSION_ID"] || undefined
-  const { place, lines, bytes } = keepHandoff(readFileSync(0, "utf8"), session)
-  say("ok", `handoff kept in ${place} (${lines} lines, ${bytes} bytes)`)
+  const { place, lines, bytes, replaced } = keepHandoff(readFileSync(0, "utf8"), session)
+  const verb = replaced ? "replaced" : "kept"
+  say("ok", `handoff ${verb} in ${place} (${lines} lines, ${bytes} bytes)`)
   say(
     "info",
     `next session, in a terminal: claude "Read ${place} whole, then continue from its next step"`,

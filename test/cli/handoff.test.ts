@@ -114,6 +114,14 @@ test("write keeps what stdin holds under the session's name, private, and says h
     (await ccsaver(["handoff"])).stdout,
     `handoff on · limit 300000 tokens · 1 kept in ${DIR}, the latest ${place}\n`,
   )
+  const later = "# Handoff\n\nGoal: ship it, later.\n"
+  const again = await ccsaver(["handoff", "write"], later)
+  assert.equal(
+    again.stdout.split("\n")[0],
+    `handoff replaced in ${place} (3 lines, ${Buffer.byteLength(later)} bytes)`,
+  )
+  assert.equal(readFileSync(place, "utf8"), later)
+  assert.equal(kept().length, 1)
   const outside = await ccsaver(["handoff", "write"], "no newline at the end", {
     CLAUDE_CODE_SESSION_ID: "",
   })

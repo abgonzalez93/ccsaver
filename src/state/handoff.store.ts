@@ -105,6 +105,7 @@ export interface Kept {
   place: string
   lines: number
   bytes: number
+  replaced: boolean
 }
 
 const counted = (count: number, noun: string): string => `${count} ${noun}${count === 1 ? "" : "s"}`
@@ -122,9 +123,10 @@ export const keepHandoff = (text: string, session: string | undefined): Kept => 
     session === undefined ? new Date().toISOString().replaceAll(":", "-") : nameOf(session)
   privateDir()
   const place = join(handoffDir(), `${name}.md`)
+  const replaced = existsSync(place)
   writePrivate(place, body)
-  record("handoff", { action: "written", lines, bytes }, session)
-  return { place, lines, bytes }
+  record("handoff", { action: "written", lines, bytes, replaced }, session)
+  return { place, lines, bytes, replaced }
 }
 
 export const keptHandoffs = (): string[] =>
