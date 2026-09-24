@@ -4,6 +4,13 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.33.0 - 2026-09-24
+
+feat: behind a proxy, the launcher lets fetch use it
+
+- Node's fetch ignores HTTPS_PROXY and HTTP_PROXY unless NODE_USE_ENV_PROXY=1, so behind a corporate proxy every call to the worker fell as unreachable and paid the fallback under a note that blamed the host; bin/ccsaver now sets the variable when a proxy variable is set and it is not, and never overrides a value already there
+- Node 24.16 honours it on this machine; the page says the 22.18 floor is unverified
+
 ## 0.32.0 - 2026-09-24
 
 feat: doctor's probe quotes the reason a rejected request came with

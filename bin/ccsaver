@@ -31,6 +31,11 @@ if [ -d "$home" ]; then
   export NODE_COMPILE_CACHE
 fi
 
+if [ -z "${NODE_USE_ENV_PROXY:-}" ] && [ -n "${HTTPS_PROXY:-}${https_proxy:-}${HTTP_PROXY:-}${http_proxy:-}" ]; then
+  NODE_USE_ENV_PROXY=1
+  export NODE_USE_ENV_PROXY
+fi
+
 cli() {
   node "$root/src/ccsaver.cli.ts" "$@"
 }

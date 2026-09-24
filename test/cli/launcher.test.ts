@@ -1,6 +1,15 @@
 import assert from "node:assert/strict"
 import { spawn } from "node:child_process"
-import { existsSync, readFileSync, rmSync, statSync, symlinkSync } from "node:fs"
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs"
 import { join } from "node:path"
 import { after, before, test } from "node:test"
 import {
@@ -136,6 +145,30 @@ test("setup stops on an empty answer and writes nothing", async () => {
   assert.match(out.stderr, /Error: nothing typed, setup stopped\n$/)
   assert.equal(existsSync(join(home, "worker.json")), false)
   rmSync(home, { recursive: true, force: true })
+})
+
+test("behind a proxy the launcher tells node to use it, and leaves a choice already made alone", async () => {
+  const bin = join(WORK, "env-node")
+  mkdirSync(bin, { recursive: true })
+  writeFileSync(join(bin, "node"), '#!/bin/sh\nprintf "%s" "$NODE_USE_ENV_PROXY"\n')
+  chmodSync(join(bin, "node"), 0o755)
+  const said = (env: NodeJS.ProcessEnv): Promise<Ran> =>
+    run(LAUNCHER, ["list"], {
+      CCSAVER_HOME: HOME,
+      PATH: `${bin}:${process.env["PATH"] ?? ""}`,
+      HTTPS_PROXY: "",
+      https_proxy: "",
+      HTTP_PROXY: "",
+      http_proxy: "",
+      NODE_USE_ENV_PROXY: "",
+      ...env,
+    })
+  assert.equal((await said({})).stdout, "")
+  assert.equal((await said({ HTTPS_PROXY: "http://proxy.invalid:3128" })).stdout, "1")
+  assert.equal((await said({ https_proxy: "http://proxy.invalid:3128" })).stdout, "1")
+  assert.equal((await said({ http_proxy: "http://proxy.invalid:3128" })).stdout, "1")
+  const kept = await said({ HTTPS_PROXY: "http://proxy.invalid:3128", NODE_USE_ENV_PROXY: "0" })
+  assert.equal(kept.stdout, "0")
 })
 
 test("a relative CCSAVER_HOME is refused, by the launcher and by the command", async () => {
