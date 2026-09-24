@@ -27,7 +27,9 @@ export interface Spend {
   uncounted: number
   byModel: Record<string, Read>
   paged: Map<string, Paging>
+  deniedIn: Set<string>
   calls: number
+  followedCalls: number
   paid: number
   paidUsd: number
   external: number
@@ -57,7 +59,9 @@ export const nothingSpent = (): Spend => ({
   uncounted: 0,
   byModel: {},
   paged: new Map(),
+  deniedIn: new Set(),
   calls: 0,
+  followedCalls: 0,
   paid: 0,
   paidUsd: 0,
   external: 0,
@@ -124,6 +128,7 @@ const gateInto = (sum: Spend, row: Row): Spend => {
   if (row["decision"] === "deny") {
     if (row["inside"] === false) return { ...sum, outside: sum.outside + 1 }
     pagedAfter(sum.paged, row, true)
+    if (typeof row["session"] === "string") sum.deniedIn.add(row["session"])
     return {
       ...sum,
       denied: sum.denied + 1,
@@ -146,22 +151,20 @@ const gateInto = (sum: Spend, row: Row): Spend => {
 }
 
 const delegateInto = (sum: Spend, row: Row): Spend => {
-  const calls = sum.calls + 1
-  const answerTokens = sum.answerTokens + tokensIn(numberAt(row, "answerChars"))
+  const session = row["session"]
+  const followed = typeof session === "string" && sum.deniedIn.has(session) ? 1 : 0
+  const called: Spend = {
+    ...sum,
+    calls: sum.calls + 1,
+    followedCalls: sum.followedCalls + followed,
+    answerTokens: sum.answerTokens + tokensIn(numberAt(row, "answerChars")),
+  }
   if (row["answered"] === "fallback")
-    return {
-      ...sum,
-      calls,
-      answerTokens,
-      paid: sum.paid + 1,
-      paidUsd: sum.paidUsd + numberAt(row, "cost"),
-    }
-  if (row["answered"] !== "external") return { ...sum, calls, answerTokens }
+    return { ...called, paid: sum.paid + 1, paidUsd: sum.paidUsd + numberAt(row, "cost") }
+  if (row["answered"] !== "external") return called
   const reported = numberAt(row, "inTokens")
   return {
-    ...sum,
-    calls,
-    answerTokens,
+    ...called,
     external: sum.external + 1,
     externalTokens: sum.externalTokens + (reported || tokensIn(numberAt(row, "chars"))),
     estimated: sum.estimated + (reported > 0 ? 0 : 1),

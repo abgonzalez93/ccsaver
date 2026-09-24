@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.26.0 - 2026-09-24
+
+feat: saved counts the calls that followed a denial in the same session
+
+- a delegation is what the denial asks for, so the foot says how many of the month's calls came after a denial in the same session, in the order of the log
+- the fold keeps the sessions with a denial inside the root in one Set it carries, the way it keeps the paging table; a denial outside the root opens nothing, because nothing could have delegated it
+- a `delegate` line holds no path, so the foot says which file each call took is not in the log
+
 ## 0.25.7 - 2026-09-24
 
 docs: how the hook is measured, so a number before and after comes from the same harness

@@ -148,6 +148,13 @@ const followedLines = (tally: Spend): string[] => {
   ]
 }
 
+const followedCallsLine = (tally: Spend): string[] =>
+  tally.denied > 0 && tally.calls > 0
+    ? [
+        `  ${tally.followedCalls} of ${many(tally.calls, "call")} followed a denial in the same session, which is what the denial asks for; the log does not say which file they took`,
+      ]
+    : []
+
 const footnotes = (tally: Spend, prices: Prices, priced: boolean): string[] => [
   ...(priced ? [rateIn(tally, prices)] : []),
   `  a real Read measured ${REAL_LOW}-${REAL_HIGH}x the bytes/4 estimate, and that band is the whole spread here`,
@@ -158,6 +165,7 @@ const footnotes = (tally: Spend, prices: Prices, priced: boolean): string[] => [
       ]
     : []),
   ...followedLines(tally),
+  ...followedCallsLine(tally),
   ...(tally.estimated > 0
     ? [
         `  ${tally.estimated} of ${tally.external} external calls reported no usage and were counted at chars/4`,

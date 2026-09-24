@@ -119,6 +119,20 @@ test("a subagent's reads take no part in what followed a denial, because the log
   assert.deepEqual([tally.denied, tally.ranged], [2, 3])
 })
 
+test("a call after a denial in the same session is counted as what the denial asked for; one before it, in another session, or after a denial outside the root is not", () => {
+  const tally = tallied([
+    { kind: "delegate", session: "s1", answered: "external", chars: 4_000 },
+    { ...denialRow(40_000), session: "s1", path: "a.ts" },
+    { kind: "delegate", session: "s1", answered: "external", chars: 4_000 },
+    { kind: "delegate", session: "s1", fell: "no key" },
+    { kind: "delegate", session: "s2", answered: "fallback", cost: 0.01 },
+    { ...denialRow(40_000), session: "s3", inside: false },
+    { kind: "delegate", session: "s3", answered: "external", chars: 4_000 },
+    { kind: "delegate", answered: "external", chars: 4_000 },
+  ])
+  assert.deepEqual([tally.calls, tally.followedCalls, tally.deniedIn], [6, 2, new Set(["s1"])])
+})
+
 test("nothing spent is a fresh tally each time, so one month's paging never leaks into the next", () => {
   const same = { session: "s1", path: "a.ts" }
   tallied([{ ...denialRow(40_000), ...same }])

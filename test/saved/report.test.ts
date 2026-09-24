@@ -293,6 +293,8 @@ test("denials that ranged reads followed are counted at the foot, with the conte
       { ...denialRow(40_000), ...paged, context: 100_000 },
       gateRow({ ...paged, reason: "range", offset: 1, limit: 100, context: 100_000 }),
       gateRow({ ...paged, reason: "range", offset: 101, limit: 100, context: 110_000 }),
+      { kind: "delegate", session: "s1", answered: "external", chars: 4_000 },
+      { kind: "delegate", session: "s9", answered: "external", chars: 4_000 },
     ],
   ])
   await priced(home, [OPUS, "5"])
@@ -300,10 +302,11 @@ test("denials that ranged reads followed are counted at the foot, with the conte
   assert.equal(out.code, 0)
   assert.match(
     out.stdout,
-    /1 of 21 denied files was read by ranges after the denial, in the same session:\n {2}2 reads, each a request that re-read the whole context, 0\.21 M tokens by the log, in neither column/,
+    /1 of 21 denied files was read by ranges after the denial, in the same session:\n {2}2 reads, each a request that re-read the whole context, 0\.21 M tokens by the log, in neither column\n {2}1 of 2 calls followed a denial in the same session, which is what the denial asks for; the log does not say which file they took/,
   )
   const quiet = await saved(homeWith("paged-quiet", [twentyDenials()]))
   assert.equal(quiet.stdout.includes("read by ranges after the denial"), false)
+  assert.equal(quiet.stdout.includes("followed a denial"), false)
 })
 
 test("a denied read of a file outside the plugged project is left out, and the foot says so", async () => {
