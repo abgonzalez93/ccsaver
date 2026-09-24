@@ -33,6 +33,8 @@ const LONG = fileOf("long.txt", 351)
 const EDGE = fileOf("edge.txt", 350)
 const HEAVY = join(PROJECT, "heavy.md")
 writeFileSync(HEAVY, `${"word ".repeat(8000)}\n`)
+const PDF = join(PROJECT, "spec.pdf")
+writeFileSync(PDF, `%PDF-1.4\n${"BT /F1 12 Tf 72 700 Td (x) Tj ET\n".repeat(1200)}%%EOF\n`)
 const ROOMY_LONG = fileOf("long.txt", 351, ROOMY)
 const ROOMY_HEAVY = join(ROOMY, "heavy.md")
 writeFileSync(ROOMY_HEAVY, `${"word ".repeat(8000)}\n`)
@@ -87,10 +89,12 @@ test("fails open on input that is not JSON", async () => {
   assert.equal(out.stdout, "")
 })
 
-test("allows any ranged Read, and a null range is no range", async () => {
+test("allows any ranged Read, a PDF read by pages among them, and a null range is no range", async () => {
   assert.equal(await denied({ tool_input: { file_path: LONG, limit: 2000 } }), false)
   assert.equal(await denied({ tool_input: { file_path: LONG, offset: 10 } }), false)
   assert.equal(await denied({ tool_input: { file_path: LONG, offset: null, limit: null } }), true)
+  assert.equal(await denied({ tool_input: { file_path: PDF } }), true)
+  assert.equal(await denied({ tool_input: { file_path: PDF, pages: "1-2" } }), false)
 })
 
 test("applies to subagents too", async () => {

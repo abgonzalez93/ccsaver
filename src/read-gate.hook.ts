@@ -123,9 +123,10 @@ interface Place {
 const placeOf = (at: string, root: string): Place =>
   isUnder(at, root) ? { inside: true, path: relative(root, at) } : { inside: false }
 
-const rangeOf = (offset: unknown, limit: unknown): Record<string, unknown> => ({
+const rangeOf = (offset: unknown, limit: unknown, pages: unknown): Record<string, unknown> => ({
   ...(typeof offset === "number" ? { offset } : {}),
   ...(typeof limit === "number" ? { limit } : {}),
+  ...(typeof pages === "string" ? { pages } : {}),
 })
 
 const idsOf = (call: Record<PropertyKey, unknown>): Record<string, unknown> =>
@@ -148,8 +149,8 @@ const gate = (root: string, adapterName: string | undefined): void => {
   const input: unknown = JSON.parse(readFileSync(0, "utf8"))
   const call = isRecord(input) ? input : {}
   const asked = isRecord(call["tool_input"]) ? call["tool_input"] : {}
-  const { file_path: given, offset, limit } = asked
-  const ranged = isPresent(offset) || isPresent(limit)
+  const { file_path: given, offset, limit, pages } = asked
+  const ranged = isPresent(offset) || isPresent(limit) || isPresent(pages)
   const logging = existsSync(logDir())
   if (ranged && !logging) return
   const seen = (fields: Record<string, unknown>): void => {
@@ -174,7 +175,7 @@ const gate = (root: string, adapterName: string | undefined): void => {
   if (!logging) return
   seen({
     ...place,
-    ...(rewritten ? { offset: 1, limit: limits.maxLines } : rangeOf(offset, limit)),
+    ...(rewritten ? { offset: 1, limit: limits.maxLines } : rangeOf(offset, limit, pages)),
     lines: measured.lines ?? null,
     bytes: measured.bytes,
     ...limits,

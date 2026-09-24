@@ -4,6 +4,13 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.29.5 - 2026-09-24
+
+fix: a PDF read by pages is a ranged read, in the hook, in the sh gate and in saved
+
+- Read of Claude Code 2.1.281 takes a pages parameter for PDFs, required past ten pages; the hook only knew offset and limit, so a PDF over 32 KB without a NUL in its first 8 KB, an uncompressed one, was denied with a message that asks for offset and limit, which a PDF does not take
+- the gate line records pages, and saved counts such a read in instead but leaves its tokens out, because no line count can weigh a page range
+
 ## 0.29.4 - 2026-09-24
 
 fix: saved leaves a ranged read of a file outside the plugged root out of instead

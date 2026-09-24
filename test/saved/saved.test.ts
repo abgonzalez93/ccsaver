@@ -74,6 +74,11 @@ test("a ranged read of a file whose lines the hook never counted is not counted 
   )
 })
 
+test("a PDF read by pages is a ranged read the log cannot weigh, so it is counted and left out", () => {
+  const tally = tallied([gateRow({ reason: "range", bytes: 4_000, lines: 100, pages: "1-2" })])
+  assert.deepEqual([tally.ranged, tally.uncounted, totalled(tally.byModel).rangedTokens], [1, 1, 0])
+})
+
 test("a read under the limit is neither denied nor counted as a range", () => {
   const tally = tallied([gateRow({ reason: "under", bytes: 900, lines: 20 })])
   assert.deepEqual([tally.denied, tally.ranged, totalled(tally.byModel).deniedTokens], [0, 0, 0])

@@ -99,6 +99,7 @@ test("one gate event per decision, with the ids of the call", async () => {
     ["nope", "allow", "malformed"],
     [{ file_path: OUTSIDE }, "allow", "outside"],
     [{ file_path: KEYED }, "allow", "untakeable"],
+    [{ file_path: LONG, pages: "3-4" }, "allow", "range"],
   ]
   const before = events(HOME).length
   for (const [tool_input] of cases) await hook({ ...call, tool_input })
@@ -134,6 +135,7 @@ test("one gate event per decision, with the ids of the call", async () => {
   )
   assert.deepEqual(seen.map(({ offset, limit, lines }) => [offset, limit, lines])[3], [10, 5, 351])
   assert.deepEqual([seen[7]?.["inside"], seen[7]?.["path"]], [false, undefined])
+  assert.deepEqual([seen[9]?.["pages"], seen[9]?.["offset"]], ["3-4", undefined])
 })
 
 test("an adapter the hook cannot load leaves a crash next to the gate event it explains", async () => {
@@ -323,7 +325,8 @@ test("a ranged read the hook could not count lines for is left out of instead, a
   assert.deepEqual([row?.["reason"], row?.["lines"]], ["range", null])
   const out = await ccsaver(["saved"])
   assert.equal(out.code, 0)
-  assert.match(out.stdout, /^ {2}1 of \d+ ranged reads were on files past the byte limit/m)
+  assert.match(out.stdout, /^ {2}\d+ of \d+ ranged reads were on files past the byte limit/m)
+  assert.match(out.stdout, /^ {2}never counts, or were PDF pages: the log cannot say/m)
 })
 
 test("the input tokens the endpoint reports are recorded, and its silence is not a zero", async () => {

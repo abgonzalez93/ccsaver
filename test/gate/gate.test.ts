@@ -21,6 +21,7 @@ const EDGE = join(PLUGGED, "edge.txt")
 const AT_BYTES = join(PLUGGED, "at-bytes.txt")
 const PAST_BYTES = join(PLUGGED, "past-bytes.txt")
 const BRACED = join(PLUGGED, "brace}.txt")
+const PDF = join(PLUGGED, "spec.pdf")
 const FAKE_BIN = join(WORK, "bin")
 const MARKER = join(WORK, "node-was-launched")
 const INPUT = JSON.stringify({ tool_input: { file_path: LONG } })
@@ -34,6 +35,7 @@ writeFileSync(EDGE, "x\n".repeat(350))
 writeFileSync(AT_BYTES, ROW.repeat(320))
 writeFileSync(PAST_BYTES, `${ROW.repeat(320)}x`)
 writeFileSync(BRACED, "x\n".repeat(100))
+writeFileSync(PDF, `%PDF-1.4\n${"BT /F1 12 Tf 72 700 Td (x) Tj ET\n".repeat(1200)}%%EOF\n`)
 writeFileSync(join(FAKE_BIN, "node"), `#!/bin/sh\n: > "${MARKER}"\n`)
 chmodSync(join(FAKE_BIN, "node"), 0o755)
 writeHome(HOME, { plugged: [["", "strict-ts"], [join(WORK, "unrelated")], [PLUGGED, "strict-ts"]] })
@@ -76,6 +78,7 @@ const SH_DECIDES = [
   read(LONG, { offset: 10 }),
   read(LONG, { limit: 5 }),
   read(SMALL, { offset: 1, limit: 5 }),
+  read(PDF, { pages: "1-2" }),
 ]
 
 const NODE_DECIDES = [
@@ -83,6 +86,7 @@ const NODE_DECIDES = [
   read(EDGE),
   read(PAST_BYTES),
   read(BRACED),
+  read(PDF),
   read(LONG, { offset: null, limit: null }),
   read(`${SMALL}\\`),
   `{"tool_input": {"file_path":"${SMALL}"}}`,

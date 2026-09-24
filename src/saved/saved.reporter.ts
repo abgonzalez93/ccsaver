@@ -174,8 +174,8 @@ const footnotes = (tally: Spend, prices: Prices, priced: boolean): string[] => [
   ...(tally.uncounted > 0
     ? [
         `  ${tally.uncounted} of ${tally.ranged} ranged reads were on files past the byte limit, whose lines the hook`,
-        "  never counts: the log cannot say what share of the file each range covered, so their tokens",
-        "  are left out of `instead`, which flatters ccsaver",
+        "  never counts, or were PDF pages: the log cannot say what share of the file each covered, so",
+        "  their tokens are left out of `instead`, which flatters ccsaver",
       ]
     : []),
   ...(tally.outside > 0

@@ -36,7 +36,7 @@ fields=${input#*'"tool_input":{'}
 fields=${fields%%\}*}
 case $fields in
 *\\* | *null*) defer ;;
-*'"offset"'* | *'"limit"'*) exit 0 ;;
+*'"offset"'* | *'"limit"'* | *'"pages"'*) exit 0 ;;
 esac
 path=${fields#*'"file_path":"'}
 [ "$path" != "$fields" ] || defer
