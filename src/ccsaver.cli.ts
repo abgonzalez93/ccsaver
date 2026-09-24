@@ -35,7 +35,7 @@ import { marked, messageOf, Refusal, scrubbed, shown, type Tone } from "./state/
 
 const USAGE = `usage: ccsaver <command>
 
-  setup                      ask for worker, key and fallback, then run doctor
+  setup                      ask for worker, key and fallback, write the launcher, run doctor
   plug [dir] [adapter]       turn ccsaver on for one project (default: this folder)
   adapter <name> k=v ...     set maxLines or maxTokens on an adapter, creating it
   unplug <dir>               turn it off again

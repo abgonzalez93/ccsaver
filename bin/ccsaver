@@ -60,7 +60,9 @@ store_key() {
   if [ -d "$home/log" ]; then
     now=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
     by=$(sed -n 's/^ *"version": *"\([^"]*\)".*$/\1/p' "$root/package.json" | head -n 1)
-    (printf '{"v":1,"ts":"%s","kind":"config","session":null,"pid":%s,"by":"%s","action":"key set"}\n' "$now" "$$" "${by:-unknown}" >> "$home/log/events-${now%%-[0-9][0-9]T*}.jsonl") 2>/dev/null
+    sid=$(printf '%s' "${CLAUDE_CODE_SESSION_ID:-}" | tr -d '"\\' | cut -c1-200)
+    if [ -n "$sid" ]; then session="\"$sid\""; else session=null; fi
+    (printf '{"v":1,"ts":"%s","kind":"config","session":%s,"pid":%s,"by":"%s","action":"key set"}\n' "$now" "$session" "$$" "${by:-unknown}" >> "$home/log/events-${now%%-[0-9][0-9]T*}.jsonl") 2>/dev/null
   fi
   said 32 ✓ '' "key $kept in $(plain "$home")/api-key (600)"
 }

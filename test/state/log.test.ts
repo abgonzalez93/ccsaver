@@ -126,13 +126,13 @@ test("a log that cannot be written changes no decision and no output", async () 
   if (process.getuid?.() !== 0) assert.equal(logged(HOME).length, size)
 })
 
-test("key set leaves the bare fact, never the key, in the format of every other line", async () => {
+test("key set leaves the bare fact and the session, never the key, in the format of every other line", async () => {
   assert.equal((await ccsaver(["key", "set"], `${KEY}\n`)).code, 0)
   const last = events(HOME).at(-1) ?? NONE
   assert.match(String(last["ts"]), /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.000Z$/)
   assert.deepEqual(
     { ...last, ts: 0, pid: 0 },
-    { v: 1, ts: 0, kind: "config", session: null, pid: 0, by: VERSION, action: "key set" },
+    { v: 1, ts: 0, kind: "config", session: "session-cli", pid: 0, by: VERSION, action: "key set" },
   )
   assert.deepEqual([...new Set(events(HOME).map(({ v }) => v))], [last["v"]])
   assert.equal(logged(HOME).includes(KEY), false)
