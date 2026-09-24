@@ -4,6 +4,13 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.29.10 - 2026-09-24
+
+refactor: the two lines of doctor that add the month up move to spent.service.ts and fold the log one row at a time
+
+- doctor held the whole month in an array, 263 MB of resident memory on a 56 MB month, where saved already folds; the reader that built that array, readEvents, had no other caller and is gone
+- the map of CONTRIBUTING 2.1 gains the row, and its rows for doctor.service.ts and ccsaver.cli.ts name handoff.store, which both import, and drop worker.client from the CLI, which never did
+
 ## 0.29.9 - 2026-09-24
 
 fix: the launcher's key set line carries the session, and usage says setup writes the launcher

@@ -74,12 +74,6 @@ const folded = <T>(text: string, seed: T, step: (sum: T, row: Row) => T): T => {
   return sum
 }
 
-export const readEvents = (): Rows =>
-  folded(textAt(logFile()), [], (rows: Rows, row) => {
-    rows.push(row)
-    return rows
-  })
-
 export const foldMonth = <T>(month: string, seed: T, step: (sum: T, row: Row) => T): T => {
   if (!MONTH.test(month)) throw new Refusal(`a month is YYYY-MM, this one is not: ${month}`)
   return folded(textAt(join(logDir(), `events-${month}.jsonl`)), seed, step)

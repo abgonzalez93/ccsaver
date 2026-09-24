@@ -19,7 +19,7 @@ import {
   writeLimits,
 } from "../state/config.store.ts"
 import { handoffDir, handoffFile, readHandoff } from "../state/handoff.store.ts"
-import { logDir, logFile, numberAt, type Rows, readEvents, record } from "../state/log.store.ts"
+import { logDir, logFile, record } from "../state/log.store.ts"
 import {
   adaptersDir,
   attempt,
@@ -41,6 +41,7 @@ import {
 } from "../state/state.store.ts"
 import { type Finding, type Level, offer, painted, TONE } from "./finding.model.ts"
 import { launcherFindings } from "./launcher.service.ts"
+import { monthFindings } from "./spent.service.ts"
 import {
   adapterNameOf,
   fixOf,
@@ -251,60 +252,6 @@ const log = (): Finding => {
     : { level: "FAIL", text: `log: ${logDir()} must be 700 and its files 600` }
 }
 
-const NEVER_DENIED = ["range", "outside", "unreadable", "malformed", "binary"]
-
-const kindOf = (rows: Rows, kind: string): Rows => rows.filter((row) => row["kind"] === kind)
-
-const middleOf = (sorted: number[]): number | undefined => {
-  const half = sorted.length / 2
-  const above = sorted[Math.floor(half)]
-  const below = sorted[Math.ceil(half) - 1]
-  return above === undefined || below === undefined ? undefined : Math.round((below + above) / 2)
-}
-
-const denied = (rows: Rows): Finding[] => {
-  const gates = kindOf(rows, "gate").filter((row) => row["tool_use_id"] !== "doctor")
-  const whole = gates.filter((row) => !NEVER_DENIED.includes(String(row["reason"])))
-  if (whole.length === 0) return []
-  const why = whole.filter((row) => row["decision"] === "deny")
-  const counted = why
-    .flatMap((row) => (typeof row["lines"] === "number" ? [row["lines"]] : []))
-    .sort((first, second) => first - second)
-  const middle = middleOf(counted)
-  const median = middle === undefined ? "" : `, median ${middle} lines`
-  const share = Math.round((100 * why.length) / whole.length)
-  return [
-    {
-      level: "ok",
-      text: `denied: ${why.length} of ${whole.length} whole-file reads this month (${share} %)${median}`,
-    },
-  ]
-}
-
-const spent = (rows: Rows): Finding[] => {
-  if (rows.length === 0) return []
-  const calls = kindOf(rows, "delegate")
-  const paid = calls.filter((row) => row["answered"] === "fallback")
-  const usd = paid.reduce((sum, row) => sum + numberAt(row, "cost"), 0)
-  const why = Object.entries(Object.groupBy(paid, (row) => String(row["fell"])))
-    .map(([fell, rows]) => `${rows?.length ?? 0} ${fell}`)
-    .join(", ")
-  return [
-    {
-      level: "ok",
-      text: `spent: ${paid.length} of ${calls.length} delegations this month went to paid Claude Haiku ($${usd.toFixed(4)})${paid.length > 0 ? `: ${why}` : ""}`,
-    },
-  ]
-}
-
-const events = (): [Rows, Finding[]] => {
-  try {
-    return [readEvents(), []]
-  } catch (error) {
-    return [[], [{ level: "FAIL", text: `log: ${messageOf(error)}` }]]
-  }
-}
-
 const workers = async (): Promise<Finding[]> => {
   try {
     const worker = readWorker()
@@ -316,7 +263,6 @@ const workers = async (): Promise<Finding[]> => {
 
 export const doctor = async (): Promise<number> => {
   const plugged = projects()
-  const [rows, unread] = events()
   const findings = [
     permissions("state", stateHome(), 0o700),
     permissions("plugged file", pluggedFile(), 0o600),
@@ -327,9 +273,7 @@ export const doctor = async (): Promise<number> => {
     ...optional("handoffs", handoffDir(), 0o700),
     handoff(),
     log(),
-    ...unread,
-    ...denied(rows),
-    ...spent(rows),
+    ...monthFindings(),
     ...(await workers()),
     ...(plugged.length > 0 ? plugged : [NOTHING_PLUGGED]),
     ...launcherFindings(),
