@@ -205,11 +205,37 @@ test("every symbol CONTRIBUTING cites lives in the file it names", () => {
   const cited = [...text.matchAll(/`((?:src|test|scripts)\/[a-z./-]+\.ts)` · `([A-Za-z]+)`/g)]
   assert.ok(cited.length > 0)
   const gone = cited.flatMap(([, file = "", symbol = ""]) =>
-    new RegExp(`\\b${symbol}\\b`).test(readFileSync(join(REPO, file), "utf8"))
+    new RegExp(`\\b(?:const|class|interface|type) ${symbol}\\b`).test(
+      readFileSync(join(REPO, file), "utf8"),
+    )
       ? []
-      : [`${file} has no ${symbol}`],
+      : [`${file} defines no ${symbol}`],
   )
   assert.deepEqual(gone, [])
+})
+
+const ROW = /^\| `(src\/[^`]+\.ts)` \| [^|]* \| ([^|]*) \|$/gm
+const MODULE = /`([a-z-]+\.(?:store|service|client|guard|validator|model|reporter))`/g
+
+const importsNamedIn = (file: string): string[] =>
+  [...readFileSync(join(REPO, file), "utf8").matchAll(/from "(\.[^"]+)\.ts"/g)]
+    .map(([, path = ""]) => path.slice(path.lastIndexOf("/") + 1))
+    .sort()
+
+test("every row of the map in CONTRIBUTING 2.1 lists what its file imports, no more and no less", () => {
+  const text = readFileSync(join(REPO, "CONTRIBUTING.md"), "utf8")
+  const rows = [...text.matchAll(ROW)]
+  assert.equal(rows.length, SRC.length)
+  const wrong = rows.flatMap(([, file = "", imports = ""]) => {
+    const listed = [...imports.matchAll(MODULE)].map(([, name = ""]) => name).sort()
+    const real = importsNamedIn(file)
+    return listed.join(",") === real.join(",")
+      ? []
+      : [
+          `${file}: the map lists ${listed.join(", ") || "nothing"}, the file imports ${real.join(", ") || "nothing"}`,
+        ]
+  })
+  assert.deepEqual(wrong, [])
 })
 
 const SEAMS = [

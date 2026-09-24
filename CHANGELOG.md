@@ -4,6 +4,13 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.33.2 - 2026-09-24
+
+test: the map of CONTRIBUTING 2.1 and the definition behind every citation are guarded
+
+- the map had two stale rows that no test could see, because only the two hooks' import lists were pinned; every row is now compared with the file's own imports
+- the citation guard accepted any word, so a citation of version in the CLI passed on the word alone while the reader lived elsewhere; it now asks for a const, class, type or interface of that name
+
 ## 0.33.1 - 2026-09-24
 
 perf: the launchers keep a compile cache the environment already names

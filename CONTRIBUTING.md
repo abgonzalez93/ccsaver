@@ -98,7 +98,7 @@ Guard: `test/repo/conventions.test.ts`.
 | `src/read-gate.hook.ts` | the `Read` gate | `boundary.guard`, `config.store`, `log.store`, `state.store` |
 | `src/handoff.hook.ts` | the context warning at the end of a turn | `config.store`, `handoff.store`, `log.store`, `state.store` |
 
-Guard: Biome `noImportCycles`, which is why the log cannot live in `src/state/state.store.ts`: it needs `stateHome` and the stored key, and every command recording a `config` event would point back at it. The import lists of both hooks are pinned by `test/repo/conventions.test.ts`, because they are the start-up cost of every `Read` and of every turn (4.4).
+Guard: Biome `noImportCycles`, which is why the log cannot live in `src/state/state.store.ts`: it needs `stateHome` and the stored key, and every command recording a `config` event would point back at it. Every row's import list is held to the file by `test/repo/conventions.test.ts`, and both hooks' by name too, because theirs are the start-up cost of every `Read` and of every turn (4.4).
 
 Off the map: `scripts/version.hook.ts`, the git hook of 5.3: nothing in `src/` imports it, and it imports `node:` built-ins and the guards of `src/state/state.store.ts`, by `test/repo/conventions.test.ts`.
 
