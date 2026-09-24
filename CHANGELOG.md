@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.28.2 - 2026-09-24
+
+perf: the terminal launcher remembers where the installed plugin is
+
+- the folder the record named is kept in launcher-root inside the state folder and trusted while it is newer than installed_plugins.json, which every install, update and uninstall rewrites, so a terminal pays the node that reads the record once per install
+- from a terminal 64.7 / 63.9 / 63.7 ms a command before against 47.5 / 47.4 / 46.7 after; inside a session unchanged at 47, because the bin the session loaded is still found on the PATH first
+- a remembered folder the sweep took, a record that is gone and a record rewritten after it are covered by the test
+
 ## 0.28.1 - 2026-09-24
 
 perf: the hooks read the last 16 KB of the transcript first, and 256 KB only when no assistant line sits in them

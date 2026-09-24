@@ -6,6 +6,7 @@ import {
   readFileSync,
   rmSync,
   statSync,
+  utimesSync,
   writeFileSync,
 } from "node:fs"
 import { dirname, join } from "node:path"
@@ -77,7 +78,7 @@ test("launcher write puts an executable launcher in ~/.local/bin, and names the 
     `warn: ${BIN} is not on this PATH; add to your shell profile: ${PROFILE_LINE}\n`,
   )
   assert.equal(statSync(PLACE).mode & 0o777, 0o755)
-  assert.match(readFileSync(PLACE, "utf8"), /^#!\/bin\/sh\n# ccsaver launcher 1 /)
+  assert.match(readFileSync(PLACE, "utf8"), /^#!\/bin\/sh\n# ccsaver launcher \d+ /)
   assert.deepEqual(
     events(HOME)
       .filter(({ action }) => action === "launcher")
@@ -114,6 +115,38 @@ test("a ccsaver of someone else's that comes first on the PATH is named", async 
 test("the launcher runs the installed version, never the newest folder in the cache", async () => {
   const out = await launched(["version"])
   assert.deepEqual([out.code, out.stdout, out.stderr], [0, "0.21.0\n", ""])
+})
+
+test("from a terminal the launcher remembers where the installed plugin is, until the record is written again", async () => {
+  const home = join(WORK, "remembering-home")
+  mkdirSync(home, { recursive: true, mode: 0o700 })
+  const known = join(home, "launcher-root")
+  const record = join(CONFIG, "plugins", "installed_plugins.json")
+  const first = await launched(["version"], { CCSAVER_HOME: home })
+  assert.deepEqual([first.code, first.stdout], [0, "0.21.0\n"])
+  assert.equal(readFileSync(known, "utf8"), `${join(cache, "0.21.0")}\n`)
+  const ahead = Date.now() / 1000 + 100
+  utimesSync(known, ahead, ahead)
+  const kept = readFileSync(record, "utf8")
+  writeFileSync(record, "{ oops")
+  const remembered = await launched(["version"], { CCSAVER_HOME: home })
+  assert.deepEqual([remembered.code, remembered.stdout, remembered.stderr], [0, "0.21.0\n", ""])
+  writeFileSync(known, "/nonexistent/0.1.0\n")
+  utimesSync(known, ahead, ahead)
+  const gone = await launched(["version"], { CCSAVER_HOME: home })
+  assert.match(gone.stderr, /^Error: \S+installed_plugins\.json is not JSON/)
+  fakeInstall(CONFIG, "0.30.0", ["0.21.0", "0.30.0"])
+  utimesSync(record, ahead + 100, ahead + 100)
+  const updated = await launched(["version"], { CCSAVER_HOME: home })
+  assert.deepEqual([updated.code, updated.stdout], [0, "0.30.0\n"])
+  assert.equal(readFileSync(known, "utf8"), `${join(cache, "0.30.0")}\n`)
+  utimesSync(known, ahead + 200, ahead + 200)
+  const never = await launched(["version"], {
+    CCSAVER_HOME: home,
+    CLAUDE_CONFIG_DIR: join(WORK, "never"),
+  })
+  assert.equal(never.code, 1)
+  writeFileSync(record, kept)
 })
 
 test("inside a session the bin of the plugin the session loaded wins, even last on the PATH", async () => {
