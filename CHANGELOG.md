@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.26.1 - 2026-09-24
+
+fix: the tripwire sees a write to the disk, a process exit, a plain rm -r and a beacon
+
+- `RISKY` let `writeFileSync`, `appendFileSync`, `renameSync`, `unlinkSync`, `rmdirSync`, `symlinkSync`, `process.exit`, `rm -r` and `sendBeacon` through: nine of the twenty-two probes of the audit of 2026-09-24
+- a generated test that writes a temporary file now trips the `warn:` line, and the README says that the read it costs is the price of never running unread code that touches the disk
+- the skill names the disk and the process among what a `warn:` line can point at
+
 ## 0.26.0 - 2026-09-24
 
 feat: saved counts the calls that followed a denial in the same session

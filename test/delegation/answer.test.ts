@@ -115,6 +115,29 @@ test("names a delete, a dynamic import and a socket the fetch check never saw", 
   ].join("\n")
   assert.deepEqual(risky(code), ["rmSync", "import", "http.request", "net.connect", "WebSocket"])
 })
+test("names a write to the disk, a process exit, a plain rm -r and a beacon, which the first list let through", () => {
+  const code = [
+    'import { appendFileSync, renameSync, symlinkSync, writeFileSync } from "node:fs"',
+    'writeFileSync(join(homedir(), ".bashrc"), "x")',
+    "unlinkSync(target)",
+    "rmdirSync(dir)",
+    "if (failed) process.exit(1)",
+    'execSync("rm -r build")',
+    "navigator.sendBeacon(url, data)",
+  ].join("\n")
+  assert.deepEqual(risky(code), [
+    "appendFileSync",
+    "renameSync",
+    "symlinkSync",
+    "writeFileSync",
+    "unlinkSync",
+    "rmdirSync",
+    "process.exit",
+    "rm -r",
+    "sendBeacon",
+  ])
+})
+
 test("names what generated code touches that a boilerplate test has no use for", () => {
   const code = [
     'import { execSync } from "node:child_process"',
