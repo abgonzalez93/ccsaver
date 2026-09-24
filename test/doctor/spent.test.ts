@@ -64,6 +64,14 @@ test("the probe quotes the reason a rejected request came with, and stays quiet 
   assert.match(bare.stdout, /^FAIL probe: the key or the request was rejected \(400\)$/m)
   const late = await rejected(503, JSON.stringify({ error: "overloaded\u001b[2J" }))
   assert.match(late.stdout, /^FAIL probe: cheap-1 answered 503 in \d+ ms: overloaded\\x1b\[2J$/m)
+  const wrapped = await rejected(
+    400,
+    JSON.stringify({ error: { message: "line one\n\n  line two" } }),
+  )
+  assert.match(
+    wrapped.stdout,
+    /^FAIL probe: the key or the request was rejected \(400\): line one line two$/m,
+  )
   server.reset()
 })
 

@@ -149,7 +149,8 @@ export const rejectionOf = async (response: Response): Promise<string> => {
   const raw = parsed((await bodyOf(response, MAX_BODY_BYTES)) ?? "")
   const error = isRecord(raw) ? raw["error"] : undefined
   const message = isRecord(error) ? error["message"] : error
-  return typeof message === "string" && message !== "" ? `: ${hidden(message.slice(0, 200))}` : ""
+  const said = typeof message === "string" ? message.replace(/\s+/g, " ").trim() : ""
+  return said === "" ? "" : `: ${hidden(said.slice(0, 200))}`
 }
 
 const inTokensOf = (raw: unknown): number | undefined => {
