@@ -1,8 +1,7 @@
+import { NEVER_DENIED } from "../state/config.store.ts"
 import { foldMonth, monthKey, numberAt, type Row } from "../state/log.store.ts"
 import { messageOf } from "../state/state.store.ts"
 import type { Finding } from "./finding.model.ts"
-
-const NEVER_DENIED = ["range", "outside", "unreadable", "malformed", "binary"]
 
 interface Month {
   rows: number
@@ -27,7 +26,8 @@ const emptyMonth = (): Month => ({
 })
 
 const gateInto = (month: Month, row: Row): Month => {
-  if (row["tool_use_id"] === "doctor" || NEVER_DENIED.includes(String(row["reason"]))) return month
+  if (row["tool_use_id"] === "doctor" || NEVER_DENIED.some((reason) => reason === row["reason"]))
+    return month
   const denied = row["decision"] === "deny"
   const lines = row["lines"]
   if (denied && typeof lines === "number") month.lengths.push(lines)

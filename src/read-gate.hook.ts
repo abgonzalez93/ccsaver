@@ -13,6 +13,7 @@ import {
   linesIn,
   loadAdapter,
   pluggedRootOf,
+  type Reason,
   SCAN_CEILING,
   tokensIn,
 } from "./state/config.store.ts"
@@ -51,7 +52,7 @@ const untakeable = (given: string, at: string, root: string, measured: Measured)
   return held !== undefined && contentRefusal(held.toString("utf8")) !== undefined
 }
 
-const isOver = (reason: string): boolean => reason === "lines" || reason === "tokens"
+const isOver = (reason: Reason): boolean => reason === "lines" || reason === "tokens"
 
 const adapterOrDefaults = (name: string | undefined): Adapter => {
   if (name === undefined) return {}
@@ -77,7 +78,7 @@ const deny = (reason: string): void => {
   )
 }
 
-const reasonOf = (measured: Measured, inside: boolean, ranged: boolean, limits: Limits): string => {
+const reasonOf = (measured: Measured, inside: boolean, ranged: boolean, limits: Limits): Reason => {
   if (ranged) return "range"
   if (!inside) return "outside"
   if (measured.blind !== undefined) return measured.blind
@@ -162,7 +163,7 @@ const answered = (
   measured: Measured,
   limits: Limits,
   rewriting: boolean,
-  reason: string,
+  reason: Reason,
 ): Decision => {
   if (!isOver(reason)) return "allow"
   if (rewriting) {

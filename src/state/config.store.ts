@@ -53,6 +53,19 @@ export const LIMIT_CEILING = 1_000_000
 
 export const SCAN_CEILING = 1_000_000
 
+export type Reason =
+  | "under"
+  | "lines"
+  | "tokens"
+  | "range"
+  | "outside"
+  | "binary"
+  | "unreadable"
+  | "malformed"
+  | "untakeable"
+
+export const NEVER_DENIED: Reason[] = ["range", "outside", "binary", "unreadable", "malformed"]
+
 const LINE_BREAK = 10
 const NUL = 0
 
