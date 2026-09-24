@@ -4,6 +4,13 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.32.0 - 2026-09-24
+
+feat: doctor's probe quotes the reason a rejected request came with
+
+- a 400 said the key or the request was rejected and nothing more, which hid a provider that wants max_completion_tokens instead of max_tokens behind a guess about the key; every rejection now carries the first 200 characters of the endpoint's error.message, scrubbed and with the key hidden
+- configuration.md says which OpenAI models refuse the request as it is, and that the request stays until one is measured
+
 ## 0.31.4 - 2026-09-24
 
 refactor: eight exports go private, and the test seams are named and guarded

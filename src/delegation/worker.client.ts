@@ -13,6 +13,7 @@ import {
   keyWasMoved,
   marked,
   movedKeyFile,
+  parsed,
   readKey,
   scrubbed,
   shown,
@@ -142,6 +143,13 @@ const bodyOf = async (response: Response, most: number): Promise<string | undefi
     parts.push(chunk)
   }
   return Buffer.concat(parts).toString("utf8")
+}
+
+export const rejectionOf = async (response: Response): Promise<string> => {
+  const raw = parsed((await bodyOf(response, MAX_BODY_BYTES)) ?? "")
+  const error = isRecord(raw) ? raw["error"] : undefined
+  const message = isRecord(error) ? error["message"] : error
+  return typeof message === "string" && message !== "" ? `: ${hidden(message.slice(0, 200))}` : ""
 }
 
 const inTokensOf = (raw: unknown): number | undefined => {

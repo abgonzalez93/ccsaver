@@ -46,6 +46,27 @@ after(() => {
   for (const dir of [HOME, WORK, OUTSIDE]) rmSync(dir, { recursive: true, force: true })
 })
 
+test("the probe quotes the reason a rejected request came with, and stays quiet when there is none", async () => {
+  const rejected = (status: number, body: string): Promise<Ran> => {
+    server.reply.status = status
+    server.reply.raw = body
+    return ccsaver(["doctor"])
+  }
+  const wanted = "max_tokens is not supported with this model. Use max_completion_tokens instead."
+  const asked = await rejected(400, JSON.stringify({ error: { message: wanted, type: "invalid" } }))
+  assert.match(
+    asked.stdout,
+    /^FAIL probe: the key or the request was rejected \(400\): max_tokens is not supported with this model\. Use max_completion_tokens instead\.$/m,
+  )
+  const keyed = await rejected(401, JSON.stringify({ error: { message: "Incorrect API key" } }))
+  assert.match(keyed.stdout, /^FAIL probe: the key was rejected \(401\): Incorrect API key$/m)
+  const bare = await rejected(400, "<html>busy</html>")
+  assert.match(bare.stdout, /^FAIL probe: the key or the request was rejected \(400\)$/m)
+  const late = await rejected(503, JSON.stringify({ error: "overloaded\u001b[2J" }))
+  assert.match(late.stdout, /^FAIL probe: cheap-1 answered 503 in \d+ ms: overloaded\\x1b\[2J$/m)
+  server.reset()
+})
+
 test("doctor says nothing about spending while the log is off", async () => {
   assert.doesNotMatch((await ccsaver(["doctor"])).stdout, /spent:/)
 })

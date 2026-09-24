@@ -3,7 +3,7 @@ import { existsSync, readFileSync, rmSync, statSync, writeFileSync } from "node:
 import { homedir } from "node:os"
 import { join } from "node:path"
 import { CLAUDE_ON_PATH, claudeBin } from "../delegation/fallback.client.ts"
-import { fellOf, postJson, requestOf } from "../delegation/worker.client.ts"
+import { fellOf, postJson, rejectionOf, requestOf } from "../delegation/worker.client.ts"
 import { readWorker, type Worker } from "../delegation/worker.store.ts"
 import {
   adapterFor,
@@ -126,11 +126,12 @@ const probe = async (url: string, model: string, key: string): Promise<Finding> 
     const took = `${Math.round(performance.now() - started)} ms`
     if (response.status === 200)
       return { level: "ok", text: `probe: ${model} accepted the key in ${took}` }
+    const why = await rejectionOf(response)
     if (response.status === 401 || response.status === 403)
-      return { level: "FAIL", text: `probe: the key was rejected (${response.status})` }
+      return { level: "FAIL", text: `probe: the key was rejected (${response.status})${why}` }
     return response.status === 400
-      ? { level: "FAIL", text: "probe: the key or the request was rejected (400)" }
-      : { level: "FAIL", text: `probe: ${model} answered ${response.status} in ${took}` }
+      ? { level: "FAIL", text: `probe: the key or the request was rejected (400)${why}` }
+      : { level: "FAIL", text: `probe: ${model} answered ${response.status} in ${took}${why}` }
   } catch (error) {
     return { level: "FAIL", text: `probe: ${shown(url)} ${WHY[fellOf(error)]}` }
   }
