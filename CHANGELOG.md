@@ -4,6 +4,13 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.33.18 - 2026-09-24
+
+refactor: finding.model.ts is finding.reporter.ts, named after what it does
+
+- the file was born from `doctor.service.ts` when longer import paths took it past 350 lines, and took what fit: the shapes of a finding, `painted`, which paints a line, and `offer`, which asks `run it? [y/N]` on a terminal and runs the fix; three of its six exports run and one reads stdin, and `model` says a shape
+- `git mv`, three importers change a line, the map follows; no hook imports it, so nothing was measured
+
 ## 0.33.17 - 2026-09-24
 
 refactor: what a call records is delegation.model.ts, and worker.client.ts is the way out

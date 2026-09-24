@@ -33,7 +33,7 @@ import {
   workerFile,
 } from "../state/state.store.ts"
 import { launcherFindings, permissionRules } from "./environment.service.ts"
-import { type Finding, type Level, offer, painted, TONE } from "./finding.model.ts"
+import { type Finding, type Level, offer, painted, TONE } from "./finding.reporter.ts"
 import { monthFindings } from "./month.service.ts"
 import {
   adapterNameOf,

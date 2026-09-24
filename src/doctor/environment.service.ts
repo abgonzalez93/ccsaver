@@ -21,7 +21,7 @@ import {
   Refusal,
   real,
 } from "../state/state.store.ts"
-import type { Finding, Fix } from "./finding.model.ts"
+import type { Finding, Fix } from "./finding.reporter.ts"
 
 const MARK = "# ccsaver launcher "
 const RUN_TIMEOUT_MS = 15_000
