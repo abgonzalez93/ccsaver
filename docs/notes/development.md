@@ -1,6 +1,6 @@
 # Development
 
-The checks, the slash commands, how to measure whether ccsaver saves you anything, and the notes behind every millisecond of ccsaver's own: the hook on every `Read`, the handoff hook at the end of every turn, the launcher, the fallback's start-up, adding up the log, measuring a repository and the test run. The rules the code follows are in [CONTRIBUTING.md](../CONTRIBUTING.md), the version hook in [versions.md](versions.md).
+The checks, the slash commands, how to measure whether ccsaver saves you anything, and the notes behind every millisecond of ccsaver's own: the hook on every `Read`, the handoff hook on every tool call, prompt and end of turn, the launcher, the fallback's start-up, adding up the log, measuring a repository and the test run. The rules the code follows are in [CONTRIBUTING.md](../../CONTRIBUTING.md), the version hook in [versions.md](../versions.md).
 
 ```bash
 pnpm install
@@ -14,7 +14,7 @@ The first three run in CI; the fourth is typed by hand, because a read-only CI t
 
 `CCSAVER_HOME` relocates the state folder; the tests use it and nothing else, and `pnpm test` starts from one that does not exist, and from a `HOME` that does not exist either, so a test that forgets its own cannot touch your key or your launcher.
 
-Once the gate is green and the commit made, `pnpm release` pushes `main` with its tags and then refreshes the plugin this machine runs, `claude plugin marketplace update abgonzalez93 && claude plugin update ccsaver@abgonzalez93`: the installed copy comes from the marketplace, never from this folder, so editing here changes nothing until that runs ([Update](../README.md#update)). The push is what makes the release workflow sweep for a `v*.*.0` tag ([versions](versions.md)).
+Once the gate is green and the commit made, `pnpm release` pushes `main` with its tags and then refreshes the plugin this machine runs, `claude plugin marketplace update abgonzalez93 && claude plugin update ccsaver@abgonzalez93`: the installed copy comes from the marketplace, never from this folder, so editing here changes nothing until that runs ([Update](../../README.md#update)). The push is what makes the release workflow sweep for a `v*.*.0` tag ([versions](../versions.md)).
 
 
 ## The slash commands
@@ -27,7 +27,7 @@ There is one per flow that needs judgement, **never one per command**. `key set`
 
 ## Measure the hook
 
-Rule 4.4 of [CONTRIBUTING](../CONTRIBUTING.md) asks for a number before and after any change to what the hook imports, and [the notes below](#hook-overhead-per-read) keep them. The harness behind the recent ones:
+Rule 4.4 of [CONTRIBUTING](../../CONTRIBUTING.md) asks for a number before and after any change to what the hook imports, and [the notes below](#hook-overhead-per-read) keep them. The harness behind the recent ones:
 
 - a throwaway `CCSAVER_HOME` with a `plugged` line naming a throwaway project and an empty `log/`, so the hook takes the path that writes a line, and one without it, for the path the `sh` gate answers alone; in the project, a 100-line file it lets through and a 500-line one it denies;
 - a 300 KB transcript of assistant lines carrying a `usage` block and 2 KB tool results, named in the `transcript_path` of the hook's input beside a `session_id`;
@@ -91,11 +91,16 @@ The measure of a file leaving `config.store.ts` for `src/measure/measure.helpers
 
 The transcript reader leaving `config.store.ts` for `src/measure/transcript.reader.ts`, one module more for the `Read` gate and the same count for the handoff hook, which drops `config.store.ts` for it, costs nothing the harness can see: a 100-line file let through, 27.0 / 26.4 / 27.3 and 27.6 / 27.4 / 26.5 ms before against 26.3 / 26.3 / 26.2 and 27.2 / 26.7 / 26.1 ms after; the 500-line file denied by lines, 28.5 / 28.9 / 28.6 and 28.9 / 28.6 / 28.2 against 29.1 / 28.8 / 29.1 and 28.7 / 28.2 / 27.9 ms; the handoff hook on a turn that crosses nothing, 24.5 / 23.6 / 23.7 against 24.6 / 23.4 / 23.8 ms. Six rounds of 30 runs per arm for the gate and three for the handoff hook, paired, log on, a 300 KB transcript, both trees on one disk; every pair sits inside the 0.1–0.7 ms floor of two identical trees. The gate loads one module more and parses 65 fewer lines of configuration, and the two cancel to nothing the harness can see, where the measure of a file, the same day, cost 1.1–2.2 ms.
 
-## The handoff hook per turn
+## The handoff hook per event
 
-Three rounds of 30 runs per arm, paired, process spawn included, on a 4 MB transcript whose last line holds the count, with the warning already given for the multiple the count sits in, which is what every turn but the crossing one costs: **1.7 / 1.7 / 1.7 ms in an unplugged project and 1.7 / 1.7 / 1.7 ms in a plugged one with the warning off**, where `hooks/gate` exits in `sh` before Node starts, and **27.2 / 27.3 / 25.9 ms with it on**: Node's start-up with four modules, the tail of the transcript parsed, and the marker read; [reading 16 KB of it first](#reading-the-model-out-of-the-transcript) took the last figure to 24.2 / 24.3 / 24.3 ms. The `Read` gate did not move when the switch line joined the launcher: 24.3 / 23.9 / 24.3 ms before against 24.0 / 24.0 / 23.7 ms after.
+Three rounds of 30 runs per arm, paired, process spawn included, on a 300 KB transcript of 2 KB tool results whose last lines are one response counting 100,000 tokens, under the point; the tree before the change from `git worktree add ../ccsaver-before HEAD`, on the same disk:
 
-The fifth slash command's description is one of the seven entries [measured together](measurements.md#the-fixed-cost-of-the-skill-descriptions) at 266 tokens.
+- A tool call below the point, `PreToolUse`, which no hook of ccsaver watched before: **5.2 / 5.1 / 5.1 ms**, answered in `sh` with one `tail` and one `grep` over the last 16 KB of the transcript, against 5.1 / 5.0 / 5.0 ms for the same tree on the other arm, which is the floor. A prompt below the point, `UserPromptSubmit`, the same way: **5.3 / 5.3 / 5.2 ms** against 5.4 / 5.3 / 5.3. Taking the last matching line with a parameter expansion instead of a second `tail` saved 0.2 ms on a tool call and cost 1.3 ms on a prompt, where `grep` returns every assistant line of the window, so the prompt keeps the `tail`.
+- The end of a turn, `Stop`, whose last line ends the turn and is fresh: **25.6 / 24.9 / 25.3 ms before against 25.7 / 25.7 / 25.7 ms after**, Node's start-up with four modules, the tail parsed and two `stat` calls for the markers. It pays Node on every turn because the line it needs is the last one and the transcript lags it, so `sh` could never say "surely under".
+- The crossing, a tool call at the point denied with the request and the text of `commands/handoff.md`, 2,918 characters of output: **32.0 / 31.4 / 31.8 ms**, once per session.
+- The `Read` gate, which shares `hooks/gate`, did not move: 4.1 / 4.0 / 4.0 ms before against 4.0 / 4.1 / 4.1 ms after, a 100-line file let through with the log off.
+
+The wait for a late line, up to two seconds in steps of 50 ms, costs nothing when the line is there, which is what the harness measures; how often a session waits, and for how long, is not measured yet. Before 0.34 the hook watched the end of the turn alone: 1.7 ms unplugged or off, and 24.2–27.3 ms on, [reading 16 KB of the transcript first](#reading-the-model-out-of-the-transcript).
 
 ## Reading the model out of the transcript
 
@@ -127,7 +132,7 @@ Around the request rather than in it: Claude Code 2.1.281, the fallback's exact 
 
 A synthetic month of 200,000 `gate` lines, 66.6 MB, added up by `ccsaver saved 2026-08`: **0.39-0.44 s and 219 MB of peak RSS**, against 0.59 s and 317 MB while the reader built an array of every row of the month first. The fold holds one row at a time, so what is left is the month's own text, read whole with `readFileSync`.
 
-Reading it as a stream instead takes the same work to 0.31 s and 80 MB, but it makes the reader asynchronous, and `src/` reads files synchronously for the reason 4.1 of [CONTRIBUTING](../CONTRIBUTING.md) gives. At the 181 denied reads a month of the worked example, 66.6 MB is about 900 years of log, so the ceiling is written down here rather than paid for.
+Reading it as a stream instead takes the same work to 0.31 s and 80 MB, but it makes the reader asynchronous, and `src/` reads files synchronously for the reason 4.1 of [CONTRIBUTING](../../CONTRIBUTING.md) gives. At the 181 denied reads a month of the worked example, 66.6 MB is about 900 years of log, so the ceiling is written down here rather than paid for.
 
 The table of what followed each denial, one entry per session and file, was copied whole on every denial and on every ranged read that followed one, from 0.25.0 to 0.25.3, which is quadratic in the files denied: 5,000 denials of 5,000 files took 2.54 / 2.58 / 2.51 s, 10,000 took 11.40 / 10.95 / 10.53 s, 20,000 took 49.54 / 47.39 / 47.00 s, and a month of 200,000 lines over 2,000 session-and-file pairs, a quarter of them denials, 96 MB, took 1.45 / 1.57 / 1.53 s at 282 MB of peak RSS. `src/saved/saved.service.ts` · `pagedAfter` now writes into one `Map` the fold carries, and the same four take 0.08 / 0.08 / 0.08 s, 0.10 / 0.09 / 0.10 s, 0.11 / 0.12 / 0.11 s and 0.50 / 0.47 / 0.50 s at 284 MB; 200,000 denials of 200,000 files, 92 MB, take 0.52 / 0.56 / 0.51 s at 296 MB. Three runs each, the whole command under `/usr/bin/time`, Node 24.16, lines of about 460 bytes carrying a session, a path and a context, which the 66.6 MB month above did not.
 

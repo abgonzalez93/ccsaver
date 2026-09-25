@@ -22,7 +22,7 @@ import {
   readPlugged,
   writeLimits,
 } from "../state/config.store.ts"
-import { handoffDir, handoffFile, readHandoff } from "../state/handoff.store.ts"
+import { handoffDir, handoffFile, handoffPoint, readHandoff } from "../state/handoff.store.ts"
 import { logDir, logFile, record } from "../state/log.store.ts"
 import {
   adaptersDir,
@@ -228,7 +228,10 @@ const projects = (): Finding[] => {
 const handoff = (): Finding => {
   try {
     const { on, limit } = readHandoff()
-    return { level: "ok", text: `handoff: ${on ? "on" : "off"} · ${limit} tokens` }
+    return {
+      level: "ok",
+      text: `handoff: ${on ? "on" : "off"} · ${limit} tokens · hands off at ${handoffPoint(limit)}`,
+    }
   } catch (error) {
     return { level: "FAIL", text: `handoff: ${messageOf(error)}` }
   }

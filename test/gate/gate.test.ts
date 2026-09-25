@@ -2,7 +2,17 @@ import assert from "node:assert/strict"
 import { chmodSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { after, test } from "node:test"
-import { GATE, HOOK, pdfOf, type Ran, run, tempDir, writeHome } from "../test.helpers.ts"
+import {
+  AS_ROOT,
+  GATE,
+  HANDOFF,
+  HOOK,
+  pdfOf,
+  type Ran,
+  run,
+  tempDir,
+  writeHome,
+} from "../test.helpers.ts"
 
 const HOME = tempDir("gate-home")
 const OFF_HOME = tempDir("gate-off")
@@ -63,13 +73,19 @@ const asked = (
   home: string,
   env: NodeJS.ProcessEnv = {},
   project = PLUGGED,
+  hook = "read-gate",
 ): Promise<Ran> =>
-  run("sh", [GATE, "read-gate"], { CCSAVER_HOME: home, CLAUDE_PROJECT_DIR: project, ...env }, input)
+  run("sh", [GATE, hook], { CCSAVER_HOME: home, CLAUDE_PROJECT_DIR: project, ...env }, input)
 
-const nodeStarted = async (input: string, home = OFF_HOME, project = PLUGGED): Promise<boolean> => {
+const nodeStarted = async (
+  input: string,
+  home = OFF_HOME,
+  project = PLUGGED,
+  hook = "read-gate",
+): Promise<boolean> => {
   rmSync(MARKER, { force: true })
   const path = `${FAKE_BIN}:${process.env["PATH"] ?? ""}`
-  const out = await asked(input, home, { PATH: path }, project)
+  const out = await asked(input, home, { PATH: path }, project, hook)
   assert.deepEqual([out.code, out.stdout, out.stderr], [0, "", ""], input)
   return existsSync(MARKER)
 }
@@ -97,6 +113,89 @@ const NODE_DECIDES = [
   read(PLUGGED),
   read(join(PLUGGED, "missing.txt")),
   JSON.stringify({ tool_input: "nope" }),
+]
+
+const HANDOFF_HOME = join(WORK, "handoff-home")
+const ASKED_HOME = join(WORK, "asked-home")
+const LIMIT_HOME = join(WORK, "limit-home")
+const HIGH_HOME = join(WORK, "high-home")
+const SHUT_HOME = join(WORK, "shut-home")
+const TRANSCRIPT = join(WORK, "transcript.jsonl")
+
+for (const home of [HANDOFF_HOME, ASKED_HOME, LIMIT_HOME, HIGH_HOME, SHUT_HOME])
+  writeHome(home, { plugged: [[PLUGGED]] })
+mkdirSync(join(ASKED_HOME, "handoff"), { mode: 0o700 })
+writeFileSync(join(ASKED_HOME, "handoff", "s.asked"), "1\n")
+writeFileSync(
+  join(LIMIT_HOME, "handoff.json"),
+  `${JSON.stringify({ on: true, limit: 150_000 }, null, 2)}\n`,
+)
+writeFileSync(
+  join(HIGH_HOME, "handoff.json"),
+  `${JSON.stringify({ on: true, limit: 300_000 }, null, 2)}\n`,
+)
+writeFileSync(join(SHUT_HOME, "handoff.json"), "{}", { mode: 0o000 })
+
+const spoken = (context: number, block: object, index: number, stop = "tool_use"): string =>
+  JSON.stringify({
+    type: "assistant",
+    isSidechain: false,
+    apiBlockIndex: index,
+    requestId: "req",
+    timestamp: new Date().toISOString(),
+    message: {
+      role: "assistant",
+      model: "claude-fable-5-1",
+      id: "req",
+      content: [block],
+      stop_reason: stop,
+      usage: {
+        input_tokens: 2,
+        cache_creation_input_tokens: 1_000,
+        cache_read_input_tokens: context - 1_002,
+        output_tokens: 10,
+      },
+    },
+  })
+
+writeFileSync(
+  TRANSCRIPT,
+  `${[
+    JSON.stringify({ type: "user", message: { role: "user", content: "x" } }),
+    spoken(100_000, { type: "thinking", thinking: "t" }, 0),
+    spoken(100_000, { type: "text", text: "x" }, 1),
+    spoken(100_000, { type: "tool_use", id: "toolu_a", name: "Bash", input: {} }, 2),
+    spoken(100_000, { type: "tool_use", id: "toolu_b", name: "Bash", input: {} }, 3),
+  ].join("\n")}\n`,
+)
+
+const handoffInput = (rest: object): string =>
+  JSON.stringify({
+    session_id: "s",
+    transcript_path: TRANSCRIPT,
+    hook_event_name: "PreToolUse",
+    tool_name: "Bash",
+    tool_input: { command: "ls" },
+    ...rest,
+  })
+
+const SH_HANDOFF = [
+  handoffInput({ tool_use_id: "toolu_a" }),
+  handoffInput({ hook_event_name: "UserPromptSubmit", prompt: "x" }),
+  handoffInput({ tool_use_id: "toolu_b", agent_id: "agent-1" }),
+]
+
+const NODE_HANDOFF = [
+  handoffInput({ tool_use_id: "toolu_b" }),
+  handoffInput({ tool_use_id: "toolu_a", session_id: "s/x" }),
+  handoffInput({ tool_use_id: "toolu_a", transcript_path: `${TRANSCRIPT}\\` }),
+  handoffInput({ tool_use_id: "toolu_a", transcript_path: "relative.jsonl" }),
+  handoffInput({ tool_use_id: "toolu_a", transcript_path: join(WORK, "gone.jsonl") }),
+  JSON.stringify({
+    hook_event_name: "PreToolUse",
+    tool_use_id: "toolu_a",
+    transcript_path: TRANSCRIPT,
+  }),
 ]
 
 after(() => {
@@ -186,4 +285,35 @@ test("the handoff hook is launched in a plugged project unless the warning is of
   assert.equal(existsSync(MARKER), false)
   await launch(PLUGGED, HOME)
   assert.equal(existsSync(MARKER), true)
+})
+
+test("the sh gate answers the handoff hook below the point without starting node, and hands node every event it is not sure of", async () => {
+  for (const input of SH_HANDOFF)
+    assert.equal(await nodeStarted(input, HANDOFF_HOME, PLUGGED, "handoff"), false, input)
+  for (const input of NODE_HANDOFF)
+    assert.equal(await nodeStarted(input, HANDOFF_HOME, PLUGGED, "handoff"), true, input)
+  const ended = join(WORK, "ended.jsonl")
+  writeFileSync(ended, `${spoken(100_000, { type: "text", text: "x" }, 0, "end_turn")}\n`)
+  const stop = handoffInput({
+    hook_event_name: "Stop",
+    stop_hook_active: false,
+    transcript_path: ended,
+  })
+  assert.equal(await nodeStarted(stop, HANDOFF_HOME, PLUGGED, "handoff"), true)
+  assert.equal(await nodeStarted(SH_HANDOFF[0] ?? "", ASKED_HOME, PLUGGED, "handoff"), true)
+  assert.equal(await nodeStarted(SH_HANDOFF[1] ?? "", LIMIT_HOME, PLUGGED, "handoff"), true)
+  assert.equal(await nodeStarted(NODE_HANDOFF[0] ?? "", HIGH_HOME, PLUGGED, "handoff"), false)
+  if (!AS_ROOT)
+    assert.equal(await nodeStarted(SH_HANDOFF[0] ?? "", SHUT_HOME, PLUGGED, "handoff"), true)
+})
+
+test("the sh gate and the handoff hook answer every event the same", async () => {
+  const env = { CCSAVER_HOME: HANDOFF_HOME, CLAUDE_PROJECT_DIR: PLUGGED }
+  for (const input of [...SH_HANDOFF, ...NODE_HANDOFF]) {
+    const [sh, node] = await Promise.all([
+      asked(input, HANDOFF_HOME, {}, PLUGGED, "handoff"),
+      run("node", [HANDOFF], env, input),
+    ])
+    assert.deepEqual([sh.code, sh.stdout, sh.stderr], [node.code, node.stdout, node.stderr], input)
+  }
 })

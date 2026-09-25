@@ -34,7 +34,9 @@ import {
   writeLimits,
 } from "./state/config.store.ts"
 import {
+  HANDOFF_MARGIN,
   handoffDir,
+  handoffPoint,
   keepHandoff,
   keptHandoffs,
   latestHandoff,
@@ -48,8 +50,8 @@ const HELP = ["help", "--help", "-h"]
 const LIMIT_KEYS = ["maxLines", "maxTokens"] as const
 const OWN_CLAUDE = "the session's own claude runs the fallback"
 const HAIKU = "a call the worker cannot take"
-const HANDOFF_ON = "a warning at the end of the turn that takes the context past the limit"
-const HANDOFF_OFF = "no warning; /ccsaver:handoff still works by hand"
+const HANDOFF_ON = "the session hands off by itself at the point under the limit"
+const HANDOFF_OFF = "no handoff point; /ccsaver:handoff still works by hand"
 
 const limitsGiven = (pairs: string[]): Partial<Limits> => {
   const given = pairs.map((pair) => pair.split("="))
@@ -106,7 +108,10 @@ const handoffShown = (): number => {
     kept.length === 0
       ? `nothing kept yet in ${handoffDir()}`
       : `${kept.length} kept in ${handoffDir()}, the latest ${latestHandoff()}`
-  return done("info", `handoff ${on ? "on" : "off"} · limit ${limit} tokens · ${where}`)
+  return done(
+    "info",
+    `handoff ${on ? "on" : "off"} · limit ${limit} tokens · hands off at ${handoffPoint(limit)} (margin ${HANDOFF_MARGIN}) · ${where}`,
+  )
 }
 
 const handoffKept = (): number => {
@@ -119,6 +124,7 @@ const handoffKept = (): number => {
     `next session, in a terminal: claude "Read ${place} whole, then continue from its next step"`,
   )
   say("info", "in VS Code: open a new conversation and type that same line")
+  say("info", `Read ${place} whole, then continue from its next step`)
   return 0
 }
 
@@ -206,6 +212,8 @@ const COMMANDS: Record<string, Command> = {
     if (!/^[1-9][0-9]*$/.test(first))
       return `handoff takes on, off, write or a number of tokens, not: ${first}`
     const limit = Number(first)
+    if (limit <= HANDOFF_MARGIN)
+      return `handoff takes a limit above its ${HANDOFF_MARGIN}-token margin, not: ${first}`
     const { before, changed } = setHandoff({ limit })
     return changed
       ? done("ok", `handoff limit ${limit} tokens (was ${before.limit})`)

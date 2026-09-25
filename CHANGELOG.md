@@ -4,6 +4,18 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.34.0 - 2026-09-25
+
+feat: the session hands off by itself at a point under the limit, instead of warning past it
+
+- the handoff hook runs on every tool call, every prompt and the end of every turn; at 120,000 tokens, the 200,000 limit less an 80,000 margin measured over 12,273 requests, it denies the first tool call with the text of commands/handoff.md, the session writes the handoff, and from then on every prompt of the old session is answered with the line to paste
+- the count is the last response's three input sums plus its output; near the point a batch of parallel calls is cut at 8,000 tokens per call and the rest are held, so the biggest step measured stays under the margin
+- the hook waits up to two seconds for the transcript line it needs, because the file lags the conversation; a subagent's calls are left alone
+- hooks/gate answers a tool call and a prompt below the point in sh, 5 ms, and hands Node the crossing; Stop pays Node as before
+- handoff/<session>.asked replaces the .tier marker; the log gains asked, held and done and loses warned
+- ccsaver handoff says where the point sits and refuses a limit under the margin, write prints the paste line last, doctor prints the point, and the skill gathers with three git commands and writes through a heredoc
+- docs/handoff.md is the page; the notes behind the numbers move to docs/notes/, because the sixth page of docs/ regroups it
+
 ## 0.33.21 - 2026-09-24
 
 refactor: the survey moves to src/measure/, beside the measure of a file

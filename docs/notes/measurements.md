@@ -1,6 +1,6 @@
 # Measurements
 
-The notes behind [Honest limits](../README.md#honest-limits). Measured on one TypeScript monorepo with Claude Code 2.1, small samples (1–4 sessions per cell). Every number carries its sample size; treat them as a starting point and [measure your own](development.md#measure-it-yourself). What ccsaver's own machinery costs, the hook, the handoff, the launcher, the fallback's start-up, the log and the tests, is on [the development page](development.md).
+The notes behind [Honest limits](../../README.md#honest-limits). Measured on one TypeScript monorepo with Claude Code 2.1, small samples (1–4 sessions per cell). Every number carries its sample size; treat them as a starting point and [measure your own](development.md#measure-it-yourself). What ccsaver's own machinery costs, the hook, the handoff, the launcher, the fallback's start-up, the log and the tests, is on [the development page](development.md).
 
 ## The hook on a locate-or-describe task
 
@@ -8,7 +8,7 @@ The notes behind [Honest limits](../README.md#honest-limits). Measured on one Ty
 
 ## The hook on a judgement question
 
-No saving and 3.6× slower, 230 s against 64 s. The model pages through ranges and delegates on top of that, so it pays for both. The diagnosis is the limit, not the approach: the file was under the size where delegating pays, so denying it bought nothing. [Limits](configuration.md#limits) is the knob, and `plug` now measures what it should be.
+No saving and 3.6× slower, 230 s against 64 s. The model pages through ranges and delegates on top of that, so it pays for both. The diagnosis is the limit, not the approach: the file was under the size where delegating pays, so denying it bought nothing. [Limits](../configuration.md#limits) is the knob, and `plug` now measures what it should be.
 
 ## Rewriting a denied read into its first lines
 
@@ -33,7 +33,7 @@ Roughly 2,000–3,000 lines and up.
 
 ## The rules of an adapter
 
-`gemini-flash-lite-latest` through an OpenAI-compatible endpoint, ccsaver 0.9.14, four `code-write` runs per arm with the same spec and the same two reference files: `src/state/state.store.ts`, which exports the function asked for, and a test file that imports from a different module with the real extension. The only difference between the arms is whether the plugged project points at an adapter carrying the `rules` of [`adapters/strict-ts.json`](../adapters/strict-ts.json).
+`gemini-flash-lite-latest` through an OpenAI-compatible endpoint, ccsaver 0.9.14, four `code-write` runs per arm with the same spec and the same two reference files: `src/state/state.store.ts`, which exports the function asked for, and a test file that imports from a different module with the real extension. The only difference between the arms is whether the plugged project points at an adapter carrying the `rules` of [`adapters/strict-ts.json`](../../adapters/strict-ts.json).
 
 - A return type on the `test` callback: **3 of 4 with the rules, 0 of 4 without**, where the four without copied the reference.
 - Importing the function from the module that exports it, with the real extension: **4 of 4 in both arms**, with the spec not naming the module and the reference importing from another one.
@@ -55,6 +55,17 @@ Seven entries, two skills and five slash commands, 983 bytes of descriptions in 
 - After crossing 200k a session makes 46 more requests at the median (p90 268), each carrying the whole history. Had those run in a new session opened with a 10,000-token handoff over the project's own base (39k–46k tokens for a first request), the input they carried would have been 31 % smaller; 44 % at 300k and 54 % at 400k, limits that reach fewer sessions. The estimate assumes the new session grows as the old one did and re-reads nothing, so it is a ceiling.
 - A real handoff costs 6.6k–14.5k tokens to read: six hand-written ones of 15–28 KB, measured as the difference in context around their `Read`, 2.2 bytes per token with line numbers.
 - Effective rates fitted on the cost lines of 15 Opus 5 sessions, residual 0.0 %: 5 $/M input, 25 $/M output, 0.50 $/M cache read, 10 $/M cache write, with no premium past 200k in sessions that reached 966k. At those rates the median session that crosses 200k would have spent 3.5 $ less.
+
+## Where the handoff margin comes from
+
+226 session transcripts of one machine, Claude Code 2.1.220 to 2.1.282, read on 2026-09-25 by a script that prints numbers and nothing else (`ccsaver-relevo-techo-2026-09-25.mjs`, kept beside the reports of the owner's machine, with its output); 99 of them are working sessions of 20 requests or more, 12,273 requests in all, 7,352 of them on Fable 5.1. The count is the one the hook reads, the three input sums of the last response plus its output.
+
+- **The step**, what the count grows by between two consecutive requests, is a response plus one batch of tool results: median 1,770 tokens, p90 7,640, p99 27,712, max 217,607. The ten biggest are batches of 10 to 29 parallel calls, 185,000 to 466,000 characters of results in one step; by batch size, a single call ends at p99 10,500 and max 78,000 (one `Skill`), two to four calls at p99 27,000 and max 91,000, five to nine at p99 49,000 and max 117,000, ten or more (61 steps) at p99 131,000 and max 216,000. That is why the hook cuts a batch near the point, 8,000 tokens per call, instead of adding the whole batch to the margin.
+- **One response**, thinking included: median 914 tokens on Fable 5.1, p90 4,900, p99 17,400, max 63,229, none of 12,273 cut by `max_tokens`; Claude Code caps it at 128,000 on that model, so the theoretical step, 128,000 plus one 30,000-character `Bash` result, does not fit under a 200,000 limit with the 44,000 tokens a first request already carries, and a batch has no documented cap at all. The margin is measured, not theoretical.
+- **Writing the handoff** cost 7,104 to 11,796 tokens in the four turns of `/ccsaver:handoff` that took three requests or fewer, a handoff of 9,900 to 15,200 characters each; with the request the hook adds, about 600 tokens, 15,000 is the figure the margin carries.
+- **The overflow at the point**, what the count reached past 120,000 on the request that first crossed it, with a batch cut at 8,000 per call: max 53,000 in 104 crossings, none past 60,000, two past 40,000, p99 38,000, p90 14,000. Plus the handoff, 68,000 at most: under the 80,000 margin in every session measured. Without the cut, the max was 100,000, three past 60,000.
+- **The price**: 91 of the 99 working sessions cross 120,000 (78 cross 200,000); between 120,000 and 200,000 a session makes 17 requests at the median (p90 37), 2,008 requests in all, 16 % of every request measured, which now run in a new session opened with the handoff; the cut touches 18 % of the parallel batches from a median count of 103,000 on, in 52 of the 99 sessions, 213 of 1,405 calls held to be called again. A margin of 60,000 (point 140,000) would have covered 99 of 102 crossings for 15 requests at the median; 100,000 without the cut (point 100,000), all of 104 for 20 requests at the median, but a batch like the 142,000-token one of 2026-09-24 at 99,000 would have ended at 241,000.
+- **The transcript lags the conversation**: at `Stop`, 10 of 11 warnings of the previous hook read the request before the last one of the turn; in one session the final line carried a time 114 ms before the hook ran and was not there, in another 156 ms and it was. That is what the hook waits for.
 
 200,000 is the default because that is where three working sessions in four still have 46 requests ahead of them, and because it is the count the author was already applying by hand.
 
@@ -97,7 +108,7 @@ Six days of session transcripts of one machine, 2026-09-18 to 24, Claude Code 2.
 - What it saved: the 8 reads of `pnpm-lock.yaml` nobody came back for, 3,900 tokens by bytes/4 each and 1.9–2.8× that as a `Read`, plus what a file that never entered the context is not re-read for by every later request of the session, which no log counts; the sessions of those six days made 112 requests each at the mean.
 - What the log never saw: the session that ran this measurement, in the `auto` permission mode on the plugged project, read 1,113 lines of five files with `cat` and left no `gate` line, because in that mode the harness tells the model to read with `cat`, `head` and `sed`; in the 51 `auto` sessions of another project that September, before the plugin, files over 400 lines were read whole 6 times with `Read` against 12 times with `cat`, and 581 times in part through Bash.
 
-`saved` prints the first count at the foot, from the `context` the hook records on every line and the session's own ranged reads that follow a denial of the same file in the same session ([saved](events.md#saved)). It cannot see the `sed` and `cat` follow-ups, 7 of the 13 here, so it undercounts; two ranged reads made in one request count that request twice, so it overcounts; and no column holds the second count.
+`saved` prints the first count at the foot, from the `context` the hook records on every line and the session's own ranged reads that follow a denial of the same file in the same session ([saved](../events.md#saved)). It cannot see the `sed` and `cat` follow-ups, 7 of the 13 here, so it undercounts; two ranged reads made in one request count that request twice, so it overcounts; and no column holds the second count.
 
 ## The hook's token estimate vs a real Read
 

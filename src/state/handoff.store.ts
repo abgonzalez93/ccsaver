@@ -20,6 +20,9 @@ export interface Handoff {
 
 const DEFAULT_HANDOFF = { on: true, limit: 200_000 } as const
 
+export const HANDOFF_MARGIN = 80_000
+export const BATCH_UNIT = 8_000
+
 const HANDOFF_KEYS = ["on", "limit"]
 const MARKER_DAYS = 7
 const DAY_MS = 86_400_000
@@ -29,6 +32,8 @@ const UNSAFE = /[^A-Za-z0-9._-]/g
 export const handoffFile = (): string => join(stateHome(), "handoff.json")
 
 export const handoffDir = (): string => join(stateHome(), "handoff")
+
+export const handoffPoint = (limit: number): number => limit - HANDOFF_MARGIN
 
 const malformed = (): string => `${handoffFile()} is malformed: fix it or delete it`
 
@@ -74,27 +79,36 @@ export const setHandoff = (change: Partial<Handoff>): Switched => {
 
 const nameOf = (session: string): string => session.replace(UNSAFE, "-").slice(0, 200)
 
-const markerOf = (session: string): string => join(handoffDir(), `${nameOf(session)}.tier`)
+const askedOf = (session: string): string => join(handoffDir(), `${nameOf(session)}.asked`)
 
-export const readTier = (session: string): number | undefined => {
-  const text = attempt(() => readFileSync(markerOf(session), "utf8"))
-  const tier = Number(text)
-  return text !== undefined && Number.isInteger(tier) && tier >= 0 ? tier : undefined
+export const handoffPlace = (session: string): string => join(handoffDir(), `${nameOf(session)}.md`)
+
+export type HandoffState = "none" | "asked" | "written"
+
+export const stateOf = (session: string): HandoffState => {
+  const asked = attempt(() => statSync(askedOf(session)).mtimeMs)
+  if (asked === undefined) return "none"
+  const written = attempt(() => statSync(handoffPlace(session)).mtimeMs)
+  return written !== undefined && written >= asked ? "written" : "asked"
 }
 
 const swept = (keep: string, now: number): void => {
   for (const name of attempt(() => readdirSync(handoffDir())) ?? []) {
-    if (!name.endsWith(".tier") || name === keep) continue
+    if (name.endsWith(".md") || name === keep) continue
     const place = join(handoffDir(), name)
     const age = now - (attempt(() => statSync(place).mtimeMs) ?? now)
     if (age > MARKER_DAYS * DAY_MS) attempt(() => unlinkSync(place))
   }
 }
 
-export const writeTier = (session: string, tier: number, now = Date.now()): void => {
+export const writeAsked = (session: string, context: number, now = Date.now()): void => {
   privateDir(handoffDir())
-  writePrivate(markerOf(session), `${tier}\n`)
-  swept(`${nameOf(session)}.tier`, now)
+  writePrivate(askedOf(session), `${context}\n`)
+  swept(`${nameOf(session)}.asked`, now)
+}
+
+export const clearAsked = (session: string): void => {
+  attempt(() => unlinkSync(askedOf(session)))
 }
 
 export interface Kept {
@@ -113,10 +127,11 @@ export const keepHandoff = (text: string, session: string | undefined): Kept => 
     throw new Refusal(
       `a handoff has to fit one whole Read, ${DEFAULT_LIMITS.maxLines} lines and ${MAX_BYTES} bytes; this one has ${plural(lines, "line")} and ${plural(bytes, "byte")}`,
     )
-  const name =
-    session === undefined ? new Date().toISOString().replaceAll(":", "-") : nameOf(session)
   privateDir(handoffDir())
-  const place = join(handoffDir(), `${name}.md`)
+  const place =
+    session === undefined
+      ? join(handoffDir(), `${new Date().toISOString().replaceAll(":", "-")}.md`)
+      : handoffPlace(session)
   const replaced = existsSync(place)
   writePrivate(place, body)
   record("handoff", { action: "written", lines, bytes, replaced }, session)

@@ -178,14 +178,14 @@ test("doctor checks prices.json and the adapters folder once they exist, and not
 
 test("doctor reports the handoff switch, checks its file and folder once they exist, and fails on a file it cannot trust", async () => {
   const quiet = await ccsaver(["doctor"])
-  assert.match(quiet.stdout, /^ok {3}handoff: on · 200000 tokens$/m)
+  assert.match(quiet.stdout, /^ok {3}handoff: on · 200000 tokens · hands off at 120000$/m)
   assert.doesNotMatch(quiet.stdout, /handoff file:/)
   assert.equal((await ccsaver(["handoff", "off"])).code, 0)
   assert.equal((await ccsaver(["handoff", "write"], "kept\n")).code, 0)
   const kept = await ccsaver(["doctor"])
   assert.match(kept.stdout, /^ok {3}handoff file: .*handoff\.json \(600\)$/m)
   assert.match(kept.stdout, /^ok {3}handoffs: .*handoff \(700\)$/m)
-  assert.match(kept.stdout, /^ok {3}handoff: off · 200000 tokens$/m)
+  assert.match(kept.stdout, /^ok {3}handoff: off · 200000 tokens · hands off at 120000$/m)
   writeFileSync(join(HOME, "handoff.json"), "{")
   const broken = await ccsaver(["doctor"])
   assert.equal(broken.code, 1)

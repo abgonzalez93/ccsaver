@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import { rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { after, test } from "node:test"
-import { lastAssistantOf } from "../../src/measure/transcript.reader.ts"
+import { lastAssistantOf, type Spoken } from "../../src/measure/transcript.reader.ts"
 import { tempDir } from "../test.helpers.ts"
 
 const WORK = tempDir("transcript-work")
@@ -17,7 +17,22 @@ const USAGE = {
 const said = (row: object): string => JSON.stringify(row)
 
 const assistant = (model: string, usage: object, extra: object = {}): string =>
-  said({ type: "assistant", ...extra, message: { role: "assistant", model, usage } })
+  said({
+    type: "assistant",
+    requestId: `req-${model}`,
+    ...extra,
+    message: { role: "assistant", model, usage },
+  })
+
+const spokenOf = (model: string, context: number, whole: boolean): Spoken => ({
+  model,
+  context,
+  output: 50,
+  stopReason: undefined,
+  toolUses: [],
+  at: undefined,
+  whole,
+})
 
 const written = (...rows: string[]): string => {
   writeFileSync(TRANSCRIPT, `${rows.join("\n")}\n`)
@@ -45,10 +60,12 @@ test("the transcript reader takes the last main-chain assistant line, its model 
     }),
   ]
   const path = written(...rows)
-  const spoken = { model: "claude-sonnet-5", context: 20_002 }
-  assert.deepEqual(lastAssistantOf(path, 1_000_000), spoken)
+  assert.deepEqual(lastAssistantOf(path, 1_000_000), spokenOf("claude-sonnet-5", 20_002, true))
   const lastThree = rows.slice(2).reduce((sum, row) => sum + row.length + 1, 0)
-  assert.deepEqual(lastAssistantOf(path, lastThree + 10), spoken)
+  assert.deepEqual(
+    lastAssistantOf(path, lastThree + 10),
+    spokenOf("claude-sonnet-5", 20_002, false),
+  )
   assert.equal(lastAssistantOf(path, lastThree - 10), undefined)
   assert.equal(lastAssistantOf(path, 40), undefined)
 })
@@ -56,14 +73,56 @@ test("the transcript reader takes the last main-chain assistant line, its model 
 test("the last assistant line is found past the 16 KB read first, through the 256 KB read after it", () => {
   const long = said({ type: "user", message: { role: "user", content: "x".repeat(20_000) } })
   const path = written(assistant("claude-opus-5", USAGE), long)
-  const spoken = { model: "claude-opus-5", context: 10_002 }
+  const spoken = spokenOf("claude-opus-5", 10_002, true)
   assert.deepEqual(lastAssistantOf(path, 262_144), spoken)
   assert.deepEqual(lastAssistantOf(path, 30_000), spoken)
   assert.equal(lastAssistantOf(path, 16_384), undefined)
   assert.deepEqual(
     lastAssistantOf(written(long, assistant("claude-opus-5", USAGE)), 262_144),
-    spoken,
+    spokenOf("claude-opus-5", 10_002, false),
   )
+})
+
+test("a response read whole gives its output, its stop reason, its tool ids in order and its time; one cut by the 16 KB read is read again for the id it looks for", () => {
+  const block = (id: string, input: object = {}): object => ({
+    type: "tool_use",
+    id,
+    name: "Bash",
+    input,
+  })
+  const line = (content: object[], stop: string): string =>
+    said({
+      type: "assistant",
+      requestId: "req-1",
+      timestamp: "2026-09-25T10:00:00.000Z",
+      message: {
+        role: "assistant",
+        model: "claude-fable-5-1",
+        content,
+        stop_reason: stop,
+        usage: USAGE,
+      },
+    })
+  const user = said({ type: "user", message: { role: "user", content: "y".repeat(20_000) } })
+  const path = written(
+    user,
+    line([{ type: "thinking", thinking: "t" }], "tool_use"),
+    line([block("toolu_1")], "tool_use"),
+    line([block("toolu_2")], "tool_use"),
+  )
+  const near = lastAssistantOf(path, 262_144)
+  assert.deepEqual(
+    [near?.output, near?.stopReason, near?.toolUses, near?.at, near?.whole],
+    [50, "tool_use", ["toolu_1", "toolu_2"], Date.parse("2026-09-25T10:00:00.000Z"), false],
+  )
+  assert.deepEqual(lastAssistantOf(path, 262_144, "toolu_2")?.whole, true)
+  const wide = written(
+    said({ type: "user", message: { role: "user", content: "y" } }),
+    line([block("toolu_a", { command: "z".repeat(20_000) })], "tool_use"),
+    line([block("toolu_b")], "tool_use"),
+  )
+  assert.deepEqual(lastAssistantOf(wide, 262_144)?.toolUses, ["toolu_b"])
+  assert.deepEqual(lastAssistantOf(wide, 262_144, "toolu_b")?.toolUses, ["toolu_a", "toolu_b"])
 })
 
 test("a transcript that is missing, not named, or without usage answers with what it has", () => {
@@ -72,13 +131,10 @@ test("a transcript that is missing, not named, or without usage answers with wha
   assert.equal(lastAssistantOf(written("not json", "{}"), 1_000), undefined)
   assert.deepEqual(
     lastAssistantOf(written(assistant("claude-opus-5", { input_tokens: 5 })), 1_000),
-    {
-      model: "claude-opus-5",
-      context: 5,
-    },
+    { ...spokenOf("claude-opus-5", 5, true), output: undefined },
   )
   assert.deepEqual(
     lastAssistantOf(written(said({ type: "assistant", message: { role: "assistant" } })), 1_000),
-    { model: undefined, context: undefined },
+    { ...spokenOf("", 0, true), model: undefined, context: undefined, output: undefined },
   )
 })

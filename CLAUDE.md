@@ -5,11 +5,12 @@ The [README](README.md) and the pages it links under [docs/](docs/) are the spec
 | Page | What it specifies |
 | --- | --- |
 | [README.md](README.md) | what ccsaver is, the quickstart, the honest limits, what leaves your machine, the commands |
-| [docs/configuration.md](docs/configuration.md) | your own terminal, the worker, the key, the fallback, `doctor`, adapters, the limits, the handoff warning, environment variables |
+| [docs/configuration.md](docs/configuration.md) | your own terminal, the worker, the key, the fallback, `doctor`, adapters, the limits, environment variables |
+| [docs/handoff.md](docs/handoff.md) | the limit, the margin and the point where a session hands off, what the hook does at each event, the states, the skill |
 | [docs/events.md](docs/events.md) | the event log, and `saved`, which adds it up with its prices |
 | [docs/versions.md](docs/versions.md) | the version hook and the changelog |
-| [docs/development.md](docs/development.md) | the checks, measuring a change, and the notes behind every millisecond of ccsaver's own |
-| [docs/measurements.md](docs/measurements.md) | the notes behind every number a session sees |
+| [docs/notes/development.md](docs/notes/development.md) | the checks, measuring a change, and the notes behind every millisecond of ccsaver's own |
+| [docs/notes/measurements.md](docs/notes/measurements.md) | the notes behind every number a session sees |
 
 Before writing or reviewing code, read [CONTRIBUTING.md](CONTRIBUTING.md): every rule, with its guard and an example from this code.
 
