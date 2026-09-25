@@ -4,6 +4,12 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.36.0 - 2026-09-25
+
+feat: the done line carries the count the handoff was asked at
+
+- done records asked beside context, output and limit, so the cost of writing the handoff is context + output − asked on the same line, which is the number the live test needs against the 15,000 the margin carries
+
 ## 0.35.1 - 2026-09-25
 
 fix: one request per crossing, a limit under the margin stops wherever it comes from, and the git commands of the handoff stay bare

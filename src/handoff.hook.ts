@@ -162,7 +162,13 @@ const stopped = (call: Call, spoken: Spoken, size: number, state: HandoffState):
   if (state === "written") {
     record(
       "handoff",
-      { action: "done", context: spoken.context, output: spoken.output, limit: call.limit },
+      {
+        action: "done",
+        context: spoken.context,
+        output: spoken.output,
+        limit: call.limit,
+        asked: readAsked(call.session) ?? null,
+      },
       call.session,
     )
     return

@@ -134,8 +134,8 @@ test("once the handoff is written, every tool is denied with the line to paste, 
   assert.deepEqual(await stop(transcript(user(), assistant(122_000))), QUIET)
   const done = logged().at(-1) ?? NONE
   assert.deepEqual(
-    ["kind", "action", "context", "output", "limit", "session"].map((key) => done[key]),
-    ["handoff", "done", 122_000, 10, 200_000, "session-a"],
+    ["kind", "action", "context", "output", "limit", "asked", "session"].map((key) => done[key]),
+    ["handoff", "done", 122_000, 10, 200_000, 120_010, "session-a"],
   )
 })
 
