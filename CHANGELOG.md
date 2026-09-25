@@ -4,6 +4,17 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.35.1 - 2026-09-25
+
+fix: one request per crossing, a limit under the margin stops wherever it comes from, and the git commands of the handoff stay bare
+
+- at the point, only the first call of a batch is denied with the request and the notice, and only it records asked; the calls beside it get the one-line answer, so ten parallel calls no longer put ten copies of the skill in the context, and the first call knows its batch by the count the marker holds, whichever hook wrote it first
+- a handoff.json whose limit sits at or under the 80,000 margin, written by hand or by a version before 0.34, stops the commands and doctor with its name and leaves the hook silent with a crash, instead of a negative point that asks for the handoff on the first call
+- while the handoff is asked, git status, git log and git describe pass only bare, with plain options and no pipe, redirection or second command, which is what the page promised
+- hooks/gate takes the session, the transcript and the event from the input before tool_input, and the tool id from its last occurrence, so a tool parameter of the same name cannot mislead it
+- ccsaver handoff on|off no longer calls the handoff a warning
+- tests for the crossing inside a batch, a stale end of turn the hook waits on, a partial or synthetic last line the sh gate hands to node, a nested field in tool_input, a handoff kept before the marker, and the limit under the margin
+
 ## 0.35.0 - 2026-09-25
 
 feat: the log says when the handoff hook waited for the transcript, and whether the line landed

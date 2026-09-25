@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { chmodSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs"
+import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { after, test } from "node:test"
 import {
@@ -179,14 +179,44 @@ const handoffInput = (rest: object): string =>
     ...rest,
   })
 
+const CUT_TRANSCRIPT = join(WORK, "cut.jsonl")
+const SYNTHETIC_TRANSCRIPT = join(WORK, "synthetic.jsonl")
+writeFileSync(
+  CUT_TRANSCRIPT,
+  `${readFileSync(TRANSCRIPT, "utf8")}${spoken(100_000, { type: "text", text: "cut" }, 4).slice(0, -40)}`,
+)
+writeFileSync(
+  SYNTHETIC_TRANSCRIPT,
+  `${readFileSync(TRANSCRIPT, "utf8")}${JSON.stringify({
+    type: "assistant",
+    isSidechain: false,
+    message: { role: "assistant", model: "<synthetic>", content: [], usage: { input_tokens: 0 } },
+  })}\n`,
+)
+
+const prompted = (transcript_path: string): string =>
+  handoffInput({ hook_event_name: "UserPromptSubmit", prompt: "x", transcript_path })
+
 const SH_HANDOFF = [
   handoffInput({ tool_use_id: "toolu_a" }),
-  handoffInput({ hook_event_name: "UserPromptSubmit", prompt: "x" }),
+  handoffInput({
+    tool_use_id: "toolu_a",
+    tool_input: {
+      command: "ls",
+      session_id: "other",
+      transcript_path: "/nope/x.jsonl",
+      hook_event_name: "Stop",
+      tool_use_id: "toolu_zzz",
+    },
+  }),
+  prompted(TRANSCRIPT),
   handoffInput({ tool_use_id: "toolu_b", agent_id: "agent-1" }),
 ]
 
 const NODE_HANDOFF = [
   handoffInput({ tool_use_id: "toolu_b" }),
+  prompted(CUT_TRANSCRIPT),
+  prompted(SYNTHETIC_TRANSCRIPT),
   handoffInput({ tool_use_id: "toolu_a", session_id: "s/x" }),
   handoffInput({ tool_use_id: "toolu_a", transcript_path: `${TRANSCRIPT}\\` }),
   handoffInput({ tool_use_id: "toolu_a", transcript_path: "relative.jsonl" }),

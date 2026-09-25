@@ -190,6 +190,11 @@ test("doctor reports the handoff switch, checks its file and folder once they ex
   const broken = await ccsaver(["doctor"])
   assert.equal(broken.code, 1)
   assert.match(broken.stdout, /^FAIL handoff: .*handoff\.json is malformed: fix it or delete it$/m)
+  writeFileSync(join(HOME, "handoff.json"), '{"limit": 60000}')
+  assert.match(
+    (await ccsaver(["doctor"])).stdout,
+    /^FAIL handoff: .*handoff\.json sets a limit of 60000 tokens, at or under the 80000 margin: fix it or delete it$/m,
+  )
   rmSync(join(HOME, "handoff.json"))
   rmSync(join(HOME, "handoff"), { recursive: true, force: true })
 })

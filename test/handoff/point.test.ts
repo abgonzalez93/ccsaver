@@ -94,6 +94,19 @@ test("while the handoff is asked, the skill, the three git commands and the writ
     denial(await tool(path, "toolu_next", "session-a", "Read", { file_path: "/x" })),
     /only the handoff runs/,
   )
+  const dressed = [
+    "git status && rm -rf x",
+    "git log | head",
+    "git -C /x status",
+    "git status > out",
+    "git status\nls",
+  ]
+  for (const command of dressed)
+    assert.match(
+      denial(await tool(path, "toolu_next", "session-a", "Bash", { command })),
+      /only the handoff runs/,
+      command,
+    )
   assert.match(
     denial(await tool(path, "toolu_next", "session-a", "Skill", { skill: "ccsaver:doctor" })),
     /only the handoff runs/,
@@ -124,6 +137,20 @@ test("once the handoff is written, every tool is denied with the line to paste, 
     ["kind", "action", "context", "output", "limit", "session"].map((key) => done[key]),
     ["handoff", "done", 122_000, 10, 200_000, "session-a"],
   )
+})
+
+test("a crossing inside a batch of parallel calls asks once: the first call carries the request, the others one line", async () => {
+  const ids = ["toolu_x", "toolu_y", "toolu_z"]
+  const path = transcript(user(), ...batch(120_000, ids))
+  const before = handoffs("asked").length
+  const [first, ...rest] = await Promise.all(ids.map((id) => tool(path, id, "session-m")))
+  assert.match(denial(first ?? QUIET), REQUEST)
+  assert.equal(typeof outputOf(first ?? QUIET)["systemMessage"], "string")
+  for (const out of rest) {
+    assert.match(denial(out), /only the handoff runs/)
+    assert.equal(outputOf(out)["systemMessage"], undefined)
+  }
+  assert.deepEqual([handoffs("asked").length - before, askedOf("session-m")], [1, "120010\n"])
 })
 
 test("a context back under the point, after a compaction or a raised limit, clears the marker and starts over", async () => {

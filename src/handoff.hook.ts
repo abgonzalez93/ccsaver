@@ -7,6 +7,7 @@ import {
   type HandoffState,
   handoffPlace,
   handoffPoint,
+  readAsked,
   readHandoff,
   stateOf,
   writeAsked,
@@ -20,7 +21,7 @@ const POLL_MS = 50
 const FRESH_MS = 2_000
 const SKILL = join(import.meta.dirname, "..", "commands", "handoff.md")
 const FRONT_MATTER = /^---\n[\s\S]*?\n---\n+/
-const HANDOFF_COMMANDS = ["git status", "git log", "git describe", "ccsaver handoff write"]
+const GIT_READS = /^git (status|log|describe)( [^;&|<>`$\n]*)?$/
 const SLEEPER = new Int32Array(new SharedArrayBuffer(4))
 
 type Input = Record<PropertyKey, unknown>
@@ -79,11 +80,14 @@ const passes = (input: Input): boolean => {
   const asked = isRecord(input["tool_input"]) ? input["tool_input"] : {}
   if (input["tool_name"] === "Skill") return asked["skill"] === "ccsaver:handoff"
   const command = asked["command"]
-  return (
-    input["tool_name"] === "Bash" &&
-    typeof command === "string" &&
-    HANDOFF_COMMANDS.some((start) => command.trimStart().startsWith(start))
-  )
+  if (input["tool_name"] !== "Bash" || typeof command !== "string") return false
+  const bare = command.trim()
+  return bare.startsWith("ccsaver handoff write") || GIT_READS.test(bare)
+}
+
+const indexOf = (call: Call, spoken: Spoken): number => {
+  const id = call.input["tool_use_id"]
+  return typeof id === "string" ? spoken.toolUses.indexOf(id) : -1
 }
 
 const asked = (call: Call, spoken: Spoken, size: number, event: string): void => {
@@ -104,8 +108,7 @@ const asked = (call: Call, spoken: Spoken, size: number, event: string): void =>
 }
 
 const batched = (call: Call, spoken: Spoken, size: number): void => {
-  const id = call.input["tool_use_id"]
-  const index = typeof id === "string" ? spoken.toolUses.indexOf(id) : -1
+  const index = indexOf(call, spoken)
   if (index <= 0) return
   const passed = Math.min(
     spoken.toolUses.length,
@@ -134,12 +137,21 @@ const tool = (call: Call, spoken: Spoken, size: number, state: HandoffState): vo
     )
     return
   }
+  const first = indexOf(call, spoken) <= 0
   if (state === "asked") {
-    if (!passes(call.input)) deny(onlyHandoff(size, call.limit))
+    if (first && readAsked(call.session) === size) {
+      asked(call, spoken, size, "PreToolUse")
+      deny(request(spoken, size, call.limit), notice(size, call.limit))
+    } else if (!passes(call.input)) deny(onlyHandoff(size, call.limit))
     return
   }
   if (size < handoffPoint(call.limit)) {
     batched(call, spoken, size)
+    return
+  }
+  if (!first) {
+    writeAsked(call.session, size)
+    deny(onlyHandoff(size, call.limit))
     return
   }
   asked(call, spoken, size, "PreToolUse")

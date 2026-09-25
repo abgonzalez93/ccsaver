@@ -1,5 +1,13 @@
 import assert from "node:assert/strict"
-import { appendFileSync, chmodSync, existsSync, rmSync, utimesSync, writeFileSync } from "node:fs"
+import {
+  appendFileSync,
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  rmSync,
+  utimesSync,
+  writeFileSync,
+} from "node:fs"
 import { join } from "node:path"
 import { after, test } from "node:test"
 import { AS_ROOT } from "../test.helpers.ts"
@@ -18,6 +26,7 @@ import {
   MARKERS,
   NONE,
   QUIET,
+  REQUEST,
   SYNTHETIC,
   stop,
   tool,
@@ -75,6 +84,31 @@ test("the hook waits for the transcript to catch up, and after two seconds decid
   const gaveUp = handoffs("waited").at(-1) ?? NONE
   assert.deepEqual([gaveUp["landed"], Number(gaveUp["ms"]) >= 2_000], [false, true])
   assert.equal(handoffs("waited").filter(({ session }) => session === "session-b").length, 0)
+})
+
+test("a turn whose last line is an old end of turn is waited on for two seconds, then judged by it", async () => {
+  const stale = new Date(Date.now() - 10_000).toISOString()
+  const path = transcript(user(), assistant(126_000, { at: stale }))
+  const started = Date.now()
+  const out = await stop(path, "session-n")
+  assert.ok(Date.now() - started >= 2_000)
+  assert.match(contextOf(out), /has 126,010 tokens/)
+  const gaveUp = handoffs("waited").at(-1) ?? NONE
+  assert.deepEqual([gaveUp["event"], gaveUp["landed"]], ["Stop", false])
+})
+
+test("a handoff kept before the hook asked leaves the session asked, not written", async () => {
+  mkdirSync(MARKERS, { recursive: true })
+  const kept = join(MARKERS, "session-o.md")
+  writeFileSync(kept, "# Earlier\n")
+  const earlier = (Date.now() - 60_000) / 1000
+  utimesSync(kept, earlier, earlier)
+  const path = transcript(user(), ...batch(120_000, ["toolu_o"]))
+  assert.match(denial(await tool(path, "toolu_o", "session-o")), REQUEST)
+  const next = transcript(user(), ...batch(121_000, ["toolu_o2"]))
+  const status = { command: "git status -sb" }
+  assert.deepEqual(await tool(next, "toolu_o2", "session-o", "Bash", status), QUIET)
+  assert.match(denial(await tool(next, "toolu_o2", "session-o")), /only the handoff runs/)
 })
 
 test("a subagent's call is left alone, whatever the session's context", async () => {
@@ -141,6 +175,10 @@ test("handoff.json off keeps the hook quiet, a limit of its own moves the point,
   assert.deepEqual(await stop(transcript(user(), assistant(900_000)), "session-k"), QUIET)
   assert.equal(crashes(), before + 1)
   assert.match(String(logged().at(-1)?.["message"]), /handoff\.json is malformed/)
+  writeFileSync(file, JSON.stringify({ limit: 60_000 }))
+  assert.deepEqual(await stop(transcript(user(), assistant(50_000)), "session-k"), QUIET)
+  assert.equal(crashes(), before + 2)
+  assert.match(String(logged().at(-1)?.["message"]), /at or under the 80000 margin/)
   rmSync(file)
 })
 

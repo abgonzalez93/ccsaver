@@ -39,8 +39,15 @@ defer() {
   printf '%s' "$input" | start "$hook"
   exit
 }
+head=${input%%'"tool_input":{'*}
 field() {
-  value=${input#*"\"$1\":\""}
+  value=${head#*"\"$1\":\""}
+  [ "$value" != "$head" ] || return 1
+  value=${value%%\"*}
+  case $value in *\\*) return 1 ;; esac
+}
+last() {
+  value=${input##*"\"$1\":\""}
   [ "$value" != "$input" ] || return 1
   value=${value%%\"*}
   case $value in *\\*) return 1 ;; esac
@@ -76,7 +83,7 @@ if [ "$hook" = handoff ]; then
   [ -f "$path" ] && [ -r "$path" ] || defer
   case $event in
   PreToolUse)
-    field tool_use_id || defer
+    last tool_use_id || defer
     case $value in '' | *[!A-Za-z0-9_-]*) defer ;; esac
     found=$(tail -c 16384 "$path" | grep -aF -- "\"id\":\"$value\"") ;;
   UserPromptSubmit)

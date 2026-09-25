@@ -133,7 +133,7 @@ const handoffSwitched = (first: "on" | "off"): number => {
   const means = on ? HANDOFF_ON : HANDOFF_OFF
   return setHandoff({ on }).changed
     ? done("ok", `handoff ${first}: ${means}`)
-    : done("info", `the handoff warning is already ${first}: ${means}`)
+    : done("info", `the handoff is already ${first}: ${means}`)
 }
 
 const COMMANDS: Record<string, Command> = {

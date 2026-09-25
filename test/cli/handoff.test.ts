@@ -33,7 +33,7 @@ after(() => {
   rmSync(HOME, { recursive: true, force: true })
 })
 
-test("with nothing stored the warning is on at 200,000 tokens, and nothing has been written", async () => {
+test("with nothing stored the handoff is on at 200,000 tokens, hands off at 120,000, and nothing has been written", async () => {
   const out = await ccsaver(["handoff"])
   assert.deepEqual(
     [out.code, out.stdout],
@@ -48,15 +48,12 @@ test("with nothing stored the warning is on at 200,000 tokens, and nothing has b
 test("on, off and a limit answer already when nothing changes, and record one config event when something does", async () => {
   const before = configs()
   const on = await ccsaver(["handoff", "on"])
-  assert.deepEqual([on.code, on.stdout], [0, `the handoff warning is already on: ${ON}\n`])
+  assert.deepEqual([on.code, on.stdout], [0, `the handoff is already on: ${ON}\n`])
   assert.equal(existsSync(FILE), false)
   assert.equal((await ccsaver(["handoff", "off"])).stdout, `handoff off: ${OFF}\n`)
   assert.deepEqual(jsonOf(FILE), { on: false, limit: 200_000 })
   assert.equal(statSync(FILE).mode & 0o777, 0o600)
-  assert.equal(
-    (await ccsaver(["handoff", "off"])).stdout,
-    `the handoff warning is already off: ${OFF}\n`,
-  )
+  assert.equal((await ccsaver(["handoff", "off"])).stdout, `the handoff is already off: ${OFF}\n`)
   assert.equal(
     (await ccsaver(["handoff", "300000"])).stdout,
     "handoff limit 300000 tokens (was 200000)\n",
@@ -183,8 +180,13 @@ test("a handoff.json that is there but wrong stops the settings with its name, a
     writeFileSync(FILE, text)
     assert.match((await ccsaver(["handoff"])).stderr, /is malformed/, text)
   }
+  writeFileSync(FILE, '{"limit": 80000}')
+  assert.match(
+    (await ccsaver(["handoff"])).stderr,
+    /^Error: \S+handoff\.json sets a limit of 80000 tokens, at or under the 80000 margin: fix it or delete it\n/,
+  )
   if (!AS_ROOT) {
-    writeFileSync(FILE, JSON.stringify({ on: true, limit: 5000 }))
+    writeFileSync(FILE, JSON.stringify({ on: true, limit: 500000 }))
     chmodSync(FILE, 0o000)
     assert.match(
       (await ccsaver(["handoff"])).stderr,

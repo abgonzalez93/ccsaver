@@ -37,6 +37,9 @@ export const handoffPoint = (limit: number): number => limit - HANDOFF_MARGIN
 
 const malformed = (): string => `${handoffFile()} is malformed: fix it or delete it`
 
+const underMargin = (limit: number): string =>
+  `${handoffFile()} sets a limit of ${limit} tokens, at or under the ${HANDOFF_MARGIN} margin: fix it or delete it`
+
 const isLimit = (value: unknown): value is number =>
   typeof value === "number" && Number.isInteger(value) && value > 0
 
@@ -56,6 +59,7 @@ export const readHandoff = (): Handoff => {
   const { on, limit } = raw
   if ((on !== undefined && typeof on !== "boolean") || (limit !== undefined && !isLimit(limit)))
     throw new Refusal(malformed())
+  if (limit !== undefined && limit <= HANDOFF_MARGIN) throw new Refusal(underMargin(limit))
   return { on: on ?? DEFAULT_HANDOFF.on, limit: limit ?? DEFAULT_HANDOFF.limit }
 }
 
@@ -99,6 +103,12 @@ const swept = (keep: string, now: number): void => {
     const age = now - (attempt(() => statSync(place).mtimeMs) ?? now)
     if (age > MARKER_DAYS * DAY_MS) attempt(() => unlinkSync(place))
   }
+}
+
+export const readAsked = (session: string): number | undefined => {
+  const text = attempt(() => readFileSync(askedOf(session), "utf8"))
+  const count = Number(text)
+  return text !== undefined && Number.isInteger(count) && count > 0 ? count : undefined
 }
 
 export const writeAsked = (session: string, context: number, now = Date.now()): void => {
