@@ -4,6 +4,7 @@ import { relative } from "node:path"
 import { contentRefusal, pathRefusal } from "./boundary/boundary.guard.ts"
 import {
   BYTES_PER_TOKEN,
+  deny,
   headOf,
   isBinary,
   type Limits,
@@ -62,18 +63,6 @@ const adapterOrDefaults = (name: string | undefined): Adapter => {
 }
 
 const isPresent = (value: unknown): boolean => value !== undefined && value !== null
-
-const deny = (reason: string): void => {
-  process.stdout.write(
-    JSON.stringify({
-      hookSpecificOutput: {
-        hookEventName: "PreToolUse",
-        permissionDecision: "deny",
-        permissionDecisionReason: reason,
-      },
-    }),
-  )
-}
 
 const reasonOf = (measured: Measured, inside: boolean, ranged: boolean, limits: Limits): Reason => {
   if (ranged) return "range"

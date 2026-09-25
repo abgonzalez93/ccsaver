@@ -4,6 +4,17 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.36.1 - 2026-09-25
+
+refactor: one builder of transcript lines for the tests, one deny for both hooks, and the handoff state clears itself in its store
+
+- test/test.helpers.ts builds an assistant line and a user line for the handoff, gate and transcript tests, which each built their own
+- deny lives in measure.helpers.ts, which the handoff hook now imports directly at no cost, since its store already loaded it; the read gate drops its copy
+- stateOf takes whether the count is under the point and clears the marker itself; the hook no longer does
+- the transcript reader stops reading 256 KB when the 16 KB already hold the whole response, whatever id it looks for
+- CONTRIBUTING gains room under its cap, and its map says where deny lives
+- measured against 0.35.0, three rounds of 30, paired, twice: nothing moved beyond the floor
+
 ## 0.36.0 - 2026-09-25
 
 feat: the done line carries the count the handoff was asked at

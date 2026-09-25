@@ -1,7 +1,16 @@
 import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { isRecord } from "../../src/state/state.store.ts"
-import { events, HANDOFF, type Ran, run, tempDir, writeHome } from "../test.helpers.ts"
+import {
+  assistantLine,
+  events,
+  HANDOFF,
+  type Line,
+  type Ran,
+  run,
+  tempDir,
+  writeHome,
+} from "../test.helpers.ts"
 
 export const HOME = tempDir("handoff-home")
 export const WORK = tempDir("handoff-work")
@@ -21,57 +30,16 @@ export const wipe = (): void => {
   for (const dir of [HOME, WORK]) rmSync(dir, { recursive: true, force: true })
 }
 
-export interface Said {
-  model?: string
-  output?: number
-  tool?: string
-  request?: string
-  at?: string
-  extra?: object
-}
-
-export const assistant = (context: number, said: Said = {}): string => {
-  const request = said.request ?? `req_${context}`
-  return JSON.stringify({
-    type: "assistant",
-    isSidechain: false,
-    requestId: request,
-    timestamp: said.at ?? new Date().toISOString(),
-    ...said.extra,
-    message: {
-      role: "assistant",
-      model: said.model ?? "claude-fable-5-1",
-      id: request,
-      content: [
-        said.tool === undefined
-          ? { type: "text", text: "x" }
-          : { type: "tool_use", id: said.tool, name: "Bash", input: {} },
-      ],
-      stop_reason: said.tool === undefined ? "end_turn" : "tool_use",
-      usage: {
-        input_tokens: 2,
-        cache_creation_input_tokens: 1_000,
-        cache_read_input_tokens: context - 1_002,
-        output_tokens: said.output ?? 10,
-      },
-    },
-  })
-}
+export const assistant = (context: number, said: Line = {}): string =>
+  assistantLine({ context, ...said })
 
 export const batch = (context: number, tools: string[], output = 10): string[] =>
   tools.map((tool) => assistant(context, { tool, output, request: `req_${context}` }))
 
-export const SYNTHETIC = JSON.stringify({
-  type: "assistant",
-  message: {
-    role: "assistant",
-    model: "<synthetic>",
-    usage: { input_tokens: 0, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 },
-  },
+export const SYNTHETIC = assistantLine({
+  model: "<synthetic>",
+  usage: { input_tokens: 0, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 },
 })
-
-export const user = (text = "x"): string =>
-  JSON.stringify({ type: "user", isSidechain: false, message: { role: "user", content: text } })
 
 let written = 0
 export const transcript = (...rows: string[]): string => {

@@ -69,11 +69,12 @@ test("the hook starts with the three stores of the state folder, the boundary gu
   ])
 })
 
-test("the handoff hook starts with two of those stores, its own, the transcript reader, and nothing else of ours", () => {
+test("the handoff hook starts with two of those stores, its own, the two files of the measure, and nothing else of ours", () => {
   const ours = importsOf(join(REPO, "src", "handoff.hook.ts")).filter((name) =>
     name.startsWith("."),
   )
   assert.deepEqual(ours, [
+    "./measure/measure.helpers.ts",
     "./measure/transcript.reader.ts",
     "./state/handoff.store.ts",
     "./state/log.store.ts",

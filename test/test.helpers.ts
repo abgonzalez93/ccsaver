@@ -294,3 +294,50 @@ export const fakeInstall = (
   )
   return plugin
 }
+
+export interface Line {
+  context?: number
+  usage?: object
+  model?: string
+  output?: number
+  blocks?: object[]
+  tool?: string
+  stop?: string
+  index?: number
+  request?: string
+  at?: string
+  extra?: object
+}
+
+export const assistantLine = (line: Line = {}): string => {
+  const context = line.context ?? 10_002
+  const request = line.request ?? `req_${context}`
+  const blocks =
+    line.tool === undefined
+      ? (line.blocks ?? [{ type: "text", text: "x" }])
+      : [{ type: "tool_use", id: line.tool, name: "Bash", input: {} }]
+  return JSON.stringify({
+    type: "assistant",
+    isSidechain: false,
+    requestId: request,
+    timestamp: line.at ?? new Date().toISOString(),
+    ...(line.index === undefined ? {} : { apiBlockIndex: line.index }),
+    ...line.extra,
+    message: {
+      role: "assistant",
+      model: line.model ?? "claude-fable-5-1",
+      id: request,
+      content: blocks,
+      stop_reason: line.stop ?? (line.tool === undefined ? "end_turn" : "tool_use"),
+      usage: line.usage ?? {
+        input_tokens: 2,
+        cache_creation_input_tokens: 1_000,
+        cache_read_input_tokens: context - 1_002,
+        output_tokens: line.output ?? 10,
+      },
+    },
+  })
+}
+
+export const userLine = (content: unknown = "x"): string =>
+  JSON.stringify({ type: "user", isSidechain: false, message: { role: "user", content } })

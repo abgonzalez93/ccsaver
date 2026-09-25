@@ -89,9 +89,13 @@ export const handoffPlace = (session: string): string => join(handoffDir(), `${n
 
 export type HandoffState = "none" | "asked" | "written"
 
-export const stateOf = (session: string): HandoffState => {
+export const stateOf = (session: string, under: boolean): HandoffState => {
   const asked = attempt(() => statSync(askedOf(session)).mtimeMs)
   if (asked === undefined) return "none"
+  if (under) {
+    attempt(() => unlinkSync(askedOf(session)))
+    return "none"
+  }
   const written = attempt(() => statSync(handoffPlace(session)).mtimeMs)
   return written !== undefined && written >= asked ? "written" : "asked"
 }
@@ -115,10 +119,6 @@ export const writeAsked = (session: string, context: number, now = Date.now()): 
   privateDir(handoffDir())
   writePrivate(askedOf(session), `${context}\n`)
   swept(`${nameOf(session)}.asked`, now)
-}
-
-export const clearAsked = (session: string): void => {
-  attempt(() => unlinkSync(askedOf(session)))
 }
 
 export interface Kept {

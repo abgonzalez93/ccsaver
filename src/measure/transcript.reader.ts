@@ -112,7 +112,6 @@ export const lastAssistantOf = (
   if (typeof transcript !== "string") return undefined
   if (bytes <= NEAR_TAIL) return spokenAt(transcript, bytes)
   const near = spokenAt(transcript, NEAR_TAIL)
-  const enough =
-    near !== undefined && (wanted === undefined || (near.whole && near.toolUses.includes(wanted)))
+  const enough = near !== undefined && (wanted === undefined || near.whole)
   return enough ? near : spokenAt(transcript, bytes)
 }

@@ -1,9 +1,9 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
+import { deny } from "./measure/measure.helpers.ts"
 import { lastAssistantOf, type Spoken } from "./measure/transcript.reader.ts"
 import {
   BATCH_UNIT,
-  clearAsked,
   type HandoffState,
   handoffPlace,
   handoffPoint,
@@ -59,17 +59,6 @@ const cut = (size: number, limit: number, passed: number): string =>
 
 const say = (output: object): void => {
   process.stdout.write(JSON.stringify(output))
-}
-
-const deny = (reason: string, systemMessage?: string): void => {
-  say({
-    hookSpecificOutput: {
-      hookEventName: "PreToolUse",
-      permissionDecision: "deny",
-      permissionDecisionReason: reason,
-    },
-    ...(systemMessage === undefined ? {} : { systemMessage }),
-  })
 }
 
 const context = (event: string, additionalContext: string): void => {
@@ -224,13 +213,6 @@ const awaited = (input: Input, event: unknown, session: string): Spoken | undefi
   return spoken
 }
 
-const stateAt = (session: string, size: number, limit: number): HandoffState => {
-  const state = stateOf(session)
-  if (state === "none" || size >= handoffPoint(limit)) return state
-  clearAsked(session)
-  return "none"
-}
-
 const watch = (): void => {
   const raw: unknown = JSON.parse(readFileSync(0, "utf8"))
   const input = isRecord(raw) ? raw : {}
@@ -243,7 +225,7 @@ const watch = (): void => {
   if (spoken?.context === undefined) return
   const size = spoken.context + (spoken.output ?? 0)
   const call: Call = { session, input, limit }
-  const state = stateAt(session, size, limit)
+  const state = stateOf(session, size < handoffPoint(limit))
   if (event === "PreToolUse") tool(call, spoken, size, state)
   else if (event === "Stop") stopped(call, spoken, size, state)
   else if (event === "UserPromptSubmit") prompted(call, spoken, size, state)

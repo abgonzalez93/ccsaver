@@ -4,6 +4,7 @@ import { join } from "node:path"
 import { after, test } from "node:test"
 import {
   AS_ROOT,
+  assistantLine,
   GATE,
   HANDOFF,
   HOOK,
@@ -11,6 +12,7 @@ import {
   type Ran,
   run,
   tempDir,
+  userLine,
   writeHome,
 } from "../test.helpers.ts"
 
@@ -137,31 +139,12 @@ writeFileSync(
 writeFileSync(join(SHUT_HOME, "handoff.json"), "{}", { mode: 0o000 })
 
 const spoken = (context: number, block: object, index: number, stop = "tool_use"): string =>
-  JSON.stringify({
-    type: "assistant",
-    isSidechain: false,
-    apiBlockIndex: index,
-    requestId: "req",
-    timestamp: new Date().toISOString(),
-    message: {
-      role: "assistant",
-      model: "claude-fable-5-1",
-      id: "req",
-      content: [block],
-      stop_reason: stop,
-      usage: {
-        input_tokens: 2,
-        cache_creation_input_tokens: 1_000,
-        cache_read_input_tokens: context - 1_002,
-        output_tokens: 10,
-      },
-    },
-  })
+  assistantLine({ context, blocks: [block], index, stop, request: "req" })
 
 writeFileSync(
   TRANSCRIPT,
   `${[
-    JSON.stringify({ type: "user", message: { role: "user", content: "x" } }),
+    userLine(),
     spoken(100_000, { type: "thinking", thinking: "t" }, 0),
     spoken(100_000, { type: "text", text: "x" }, 1),
     spoken(100_000, { type: "tool_use", id: "toolu_a", name: "Bash", input: {} }, 2),

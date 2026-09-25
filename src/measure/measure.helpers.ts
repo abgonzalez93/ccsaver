@@ -30,6 +30,19 @@ const NUL = 0
 
 export const HEAD_BYTES = 8192
 
+export const deny = (reason: string, systemMessage?: string): void => {
+  process.stdout.write(
+    JSON.stringify({
+      hookSpecificOutput: {
+        hookEventName: "PreToolUse",
+        permissionDecision: "deny",
+        permissionDecisionReason: reason,
+      },
+      ...(systemMessage === undefined ? {} : { systemMessage }),
+    }),
+  )
+}
+
 export const tokensIn = (bytes: number): number => Math.round(bytes / BYTES_PER_TOKEN)
 
 export const isBinary = (bytes: Buffer): boolean => bytes.includes(NUL)

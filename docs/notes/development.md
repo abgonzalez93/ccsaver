@@ -102,6 +102,8 @@ Three rounds of 30 runs per arm, paired, process spawn included, on a 300 KB tra
 
 The wait for a late line, up to two seconds in steps of 50 ms, costs nothing when the line is there, which is what the harness measures; how often a session waits, and for how long, is what the `waited` lines of the [event log](../events.md) say. Before 0.34 the hook watched the end of the turn alone: 1.7 ms unplugged or off, and 24.2–27.3 ms on, [reading 16 KB of the transcript first](#reading-the-model-out-of-the-transcript).
 
+The commits after 0.35.0, one request per crossing, the fields of the input taken before `tool_input`, the shared `deny` and the state clearing itself in its store, measured against 0.35.0 the same way, in two runs: a tool call below the point **5.0 / 5.0 / 5.1 ms** and a prompt **5.5 / 5.3 / 5.4**; the end of a turn 27.1 / 28.7 / 26.0 against 25.8 / 27.6 / 26.2 before in one run and 25.9 / 26.0 / 26.2 against 26.8 / 27.0 / 25.8 in the other, so the sign flips with the run; the crossing, now with the whole request, **33.4 / 34.1 / 36.0**; the `Read` gate 4.1 / 4.2 / 4.2 against 4.1 / 4.1 / 4.5. Nothing moved beyond the floor.
+
 ## Reading the model out of the transcript
 
 0.156 ms, mean of 200 runs, on a 2.5 MB transcript: open, read the last 64 KB, split it and `JSON.parse` each whole line, keep the `model` of the last assistant one. A naive regex over the same slice took 0.071 ms but reads a model name written in the conversation as the one in force, which this very repository's sessions produce.
