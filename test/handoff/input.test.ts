@@ -58,6 +58,12 @@ test("the hook waits for the transcript to catch up, and after two seconds decid
   setTimeout(() => appendFileSync(path, `${batch(125_000, ["toolu_late"]).join("\n")}\n`), 200)
   assert.match(denial(await late), /has 125,010 tokens in context/)
   assert.equal(askedOf("session-f"), "125010\n")
+  const landed = handoffs("waited").at(-1) ?? NONE
+  assert.deepEqual(
+    [landed["event"], landed["landed"], landed["session"]],
+    ["PreToolUse", true, "session-f"],
+  )
+  assert.ok(Number(landed["ms"]) >= 150)
   const turn = transcript(user(), ...batch(119_000, ["toolu_mid"]))
   const ending = stop(turn, "session-g")
   setTimeout(() => appendFileSync(turn, `${assistant(126_000)}\n`), 200)
@@ -66,6 +72,9 @@ test("the hook waits for the transcript to catch up, and after two seconds decid
   const there = transcript(user(), ...batch(100_000, ["toolu_there"]))
   assert.deepEqual(await tool(there, "toolu_missing", "session-h"), QUIET)
   assert.ok(Date.now() - started >= 2_000)
+  const gaveUp = handoffs("waited").at(-1) ?? NONE
+  assert.deepEqual([gaveUp["landed"], Number(gaveUp["ms"]) >= 2_000], [false, true])
+  assert.equal(handoffs("waited").filter(({ session }) => session === "session-b").length, 0)
 })
 
 test("a subagent's call is left alone, whatever the session's context", async () => {

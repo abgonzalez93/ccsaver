@@ -188,7 +188,7 @@ const settled = (input: Input, event: unknown, since: number): ((spoken: Spoken)
   return () => true
 }
 
-const awaited = (input: Input, event: unknown): Spoken | undefined => {
+const awaited = (input: Input, event: unknown, session: string): Spoken | undefined => {
   const id = input["tool_use_id"]
   const wanted = event === "PreToolUse" && typeof id === "string" ? id : undefined
   const read = (): Spoken | undefined =>
@@ -200,6 +200,9 @@ const awaited = (input: Input, event: unknown): Spoken | undefined => {
     Atomics.wait(SLEEPER, 0, 0, POLL_MS)
     spoken = read()
   }
+  const waited = Date.now() - since
+  if (spoken !== undefined && waited >= POLL_MS)
+    record("handoff", { action: "waited", event, ms: waited, landed: done(spoken) }, session)
   return spoken
 }
 
@@ -218,7 +221,7 @@ const watch = (): void => {
   const { on, limit } = readHandoff()
   if (!on) return
   const event = input["hook_event_name"]
-  const spoken = awaited(input, event)
+  const spoken = awaited(input, event, session)
   if (spoken?.context === undefined) return
   const size = spoken.context + (spoken.output ?? 0)
   const call: Call = { session, input, limit }

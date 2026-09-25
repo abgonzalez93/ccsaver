@@ -18,7 +18,7 @@ One hook, `hooks/gate handoff`, runs `src/handoff.hook.ts` from three events of 
 
 A subagent's tool calls come with an `agent_id` and are left alone: their results land in the subagent's context, not the session's, and only the report comes back.
 
-The transcript is written behind the conversation, [as Claude Code documents](https://code.claude.com/docs/en/hooks), so the line the hook needs may not be there yet when the event fires. On a tool call the hook waits, fifty milliseconds at a time and two seconds at most, for the line that holds its own `tool_use_id`; at the end of a turn, for a last line that ends the turn and was written in the last two seconds. When the line does not land, the hook decides with the line before it, one step behind, which is what the margin is for.
+The transcript is written behind the conversation, [as Claude Code documents](https://code.claude.com/docs/en/hooks), so the line the hook needs may not be there yet when the event fires. On a tool call the hook waits, fifty milliseconds at a time and two seconds at most, for the line that holds its own `tool_use_id`; at the end of a turn, for a last line that ends the turn and was written in the last two seconds. When the line does not land, the hook decides with the line before it, one step behind, which is what the margin is for. While the [event log](events.md) is on, a `waited` line says how long it waited and whether the line landed.
 
 ## The states of a session
 

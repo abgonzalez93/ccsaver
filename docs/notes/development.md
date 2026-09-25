@@ -100,7 +100,7 @@ Three rounds of 30 runs per arm, paired, process spawn included, on a 300 KB tra
 - The crossing, a tool call at the point denied with the request and the text of `commands/handoff.md`, 2,918 characters of output: **32.0 / 31.4 / 31.8 ms**, once per session.
 - The `Read` gate, which shares `hooks/gate`, did not move: 4.1 / 4.0 / 4.0 ms before against 4.0 / 4.1 / 4.1 ms after, a 100-line file let through with the log off.
 
-The wait for a late line, up to two seconds in steps of 50 ms, costs nothing when the line is there, which is what the harness measures; how often a session waits, and for how long, is not measured yet. Before 0.34 the hook watched the end of the turn alone: 1.7 ms unplugged or off, and 24.2–27.3 ms on, [reading 16 KB of the transcript first](#reading-the-model-out-of-the-transcript).
+The wait for a late line, up to two seconds in steps of 50 ms, costs nothing when the line is there, which is what the harness measures; how often a session waits, and for how long, is what the `waited` lines of the [event log](../events.md) say. Before 0.34 the hook watched the end of the turn alone: 1.7 ms unplugged or off, and 24.2–27.3 ms on, [reading 16 KB of the transcript first](#reading-the-model-out-of-the-transcript).
 
 ## Reading the model out of the transcript
 

@@ -4,6 +4,13 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.35.0 - 2026-09-25
+
+feat: the log says when the handoff hook waited for the transcript, and whether the line landed
+
+- a waited line per event that waited 50 ms or more for the transcript to catch up, with the event, the milliseconds and whether the line it needed landed before the two seconds ran out, so the live test can count the waits and their cost
+- nothing is recorded on an event that found its line at once, which is the case the harness measures
+
 ## 0.34.0 - 2026-09-25
 
 feat: the session hands off by itself at a point under the limit, instead of warning past it
