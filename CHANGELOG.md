@@ -4,6 +4,14 @@ Every commit is a version. A git hook writes each section from the commit messag
 
 Every version is here, back to the first commit, newest first. Nothing falls off the bottom, so this file has no ceiling: read it from the top, or search it. Nothing before 0.2.0 was numbered one by one, because the hook did not exist yet, so the last section is a single 0.1.0 holding the seventeen commits that make it up.
 
+## 0.36.2 - 2026-09-26
+
+test: the transcript catch-up test leaves a slow runner room to start node
+
+- the late line landed 200 ms after the spawn and the test asked the hook to have waited 150 ms, which left 50 ms to start node: CI on Node 22 takes 123-169 ms per run, so both Node 22 jobs failed on d962d48
+- the line now lands 600 ms after the spawn and the wait may fall 400 ms short of it; the hook was never wrong
+- Node 22.22.1 starts the hook in 46 ms on the owner's machine and passed the test three times out of three before the change
+
 ## 0.36.1 - 2026-09-25
 
 refactor: one builder of transcript lines for the tests, one deny for both hooks, and the handoff state clears itself in its store

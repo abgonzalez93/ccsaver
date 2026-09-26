@@ -36,6 +36,8 @@ import {
 } from "./handoff.helpers.ts"
 
 const DAY = 86_400_000
+const LATE_BY_MS = 600
+const BOOT_UP_TO_MS = 400
 
 after(wipe)
 
@@ -63,7 +65,10 @@ test("a batch near the point is cut: the calls that fit pass, the rest are denie
 test("the hook waits for the transcript to catch up, and after two seconds decides with what is there", async () => {
   const path = transcript(userLine(), ...batch(100_000, ["toolu_old"]))
   const late = tool(path, "toolu_late", "session-f")
-  setTimeout(() => appendFileSync(path, `${batch(125_000, ["toolu_late"]).join("\n")}\n`), 200)
+  setTimeout(
+    () => appendFileSync(path, `${batch(125_000, ["toolu_late"]).join("\n")}\n`),
+    LATE_BY_MS,
+  )
   assert.match(denial(await late), /has 125,010 tokens in context/)
   assert.equal(askedOf("session-f"), "125010\n")
   const landed = handoffs("waited").at(-1) ?? NONE
@@ -71,10 +76,10 @@ test("the hook waits for the transcript to catch up, and after two seconds decid
     [landed["event"], landed["landed"], landed["session"]],
     ["PreToolUse", true, "session-f"],
   )
-  assert.ok(Number(landed["ms"]) >= 150)
+  assert.ok(Number(landed["ms"]) >= LATE_BY_MS - BOOT_UP_TO_MS)
   const turn = transcript(userLine(), ...batch(119_000, ["toolu_mid"]))
   const ending = stop(turn, "session-g")
-  setTimeout(() => appendFileSync(turn, `${assistant(126_000)}\n`), 200)
+  setTimeout(() => appendFileSync(turn, `${assistant(126_000)}\n`), LATE_BY_MS)
   assert.match(contextOf(await ending), /has 126,000 tokens|has 126,010 tokens/)
   const started = Date.now()
   const there = transcript(userLine(), ...batch(100_000, ["toolu_there"]))
